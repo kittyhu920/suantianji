@@ -609,6 +609,7 @@ async function askOracle(endKey, who, gua) {
         ending: db.endings[endKey].name, persona: who,
       }),
     });
+    if (res.status === 429) S.oracleSent = false; // 限流在读请求体之前拦下，问题没有被读取
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     if (!data.text) throw new Error('empty');
