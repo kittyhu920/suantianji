@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "suantianji",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve.mjs", "8788"],
+      "port": 8788
+    }
+  ]
+}
