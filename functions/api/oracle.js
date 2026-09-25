@@ -1,7 +1,8 @@
 // 通灵模式：Pages Function + Workers AI binding（无需外部 API Key）
 // 前端 12 秒超时后自动回落离线判词，所以这里失败只需返回错误码。
 
-const MODEL = '@cf/deepseek-ai/deepseek-v4-flash-0731';
+// 均为 Workers Free 计划可用的模型；前一个失败时依次尝试下一个
+const MODELS = ['@cf/zai-org/glm-4.7-flash', '@cf/google/gemma-4-26b-a4b-it'];
 
 const SYSTEM = `你是一位通晓《周易》与唐宋诗词的老先生，同时是一名冷静的算法社会学者。
 你要为一场“被算法旁观的求签问卦”写一段批注。
@@ -35,19 +36,27 @@ export async function onRequestPost({ request, env }) {
     `系统画像：${clip(body.persona, 6)}`,
   ].join('\n');
 
-  try {
-    const out = await env.AI.run(MODEL, {
-      messages: [
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: user },
-      ],
-      max_tokens: 400,
-      temperature: 0.8,
-    });
-    const text = (out?.response ?? out?.choices?.[0]?.message?.content ?? '').trim();
-    if (!text) return Response.json({ error: 'empty' }, { status: 502 });
-    return Response.json({ text: text.slice(0, 400) });
-  } catch (err) {
-    return Response.json({ error: String(err?.message || err).slice(0, 200) }, { status: 502 });
+  let lastError = 'no model';
+  for (const model of MODELS) {
+    try {
+      const out = await env.AI.run(model, {
+        messages: [
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: user },
+        ],
+        max_tokens: 1200,
+        temperature: 0.8,
+        // 两个模型默认都会先“思考”，会把 token 用完而正文为空，这里关掉
+        chat_template_kwargs: { enable_thinking: false },
+        reasoning_effort: 'low',
+      });
+      const raw = out?.response ?? out?.choices?.[0]?.message?.content ?? '';
+      const text = String(raw).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      if (text) return Response.json({ text: text.slice(0, 400), model });
+      lastError = `${model}: empty ${JSON.stringify(out).slice(0, 300)}`;
+    } catch (err) {
+      lastError = `${model}: ${String(err?.message || err).slice(0, 160)}`;
+    }
   }
+  return Response.json({ error: lastError }, { status: 502 });
 }
