@@ -1,0 +1,6 @@
+name = "suantianji"
+pages_build_output_dir = "public"
+compatibility_date = "2026-09-01"
+
+[ai]
+binding = "AI"

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A1C1E">
+<title>演算天机</title>
+<meta name="description" content="数字重彩问命录——一场被算法旁观的求签问卦仪式。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%239E2A2B'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23F2E6CC' font-family='serif'%3E%E9%97%AE%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- 共享图形：铜钱两面 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="bronze" cx="38%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#d9b877"/>
+      <stop offset=".45" stop-color="#9c7a42"/>
+      <stop offset="1" stop-color="#4f3a1d"/>
+    </radialGradient>
+    <radialGradient id="verdigris" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#5f8f7a" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#2E5E4E" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <symbol id="coin-zi" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="url(#bronze)"/>
+      <circle cx="50" cy="50" r="48" fill="#000" filter="url(#grain)" opacity=".5"/>
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#3b2a12" stroke-opacity=".55" stroke-width="2"/>
+      <circle cx="26" cy="70" r="13" fill="url(#verdigris)"/>
+      <circle cx="74" cy="24" r="8" fill="url(#verdigris)"/>
+      <rect x="39" y="39" width="22" height="22" fill="none" stroke="#3b2a12" stroke-opacity=".6" stroke-width="3"/>
+      <rect x="41" y="41" width="18" height="18" fill="#1F2630"/>
+      <g font-family="'Ma Shan Zheng','STKaiti','KaiTi',serif" font-size="17" fill="#2d1f0c" fill-opacity=".85" text-anchor="middle">
+        <text x="50" y="32">天</text>
+        <text x="50" y="84">機</text>
+        <text x="77" y="56">通</text>
+        <text x="23" y="56">寶</text>
+      </g>
+    </symbol>
+    <symbol id="coin-bei" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="url(#bronze)"/>
+      <circle cx="50" cy="50" r="48" fill="#000" filter="url(#grain)" opacity=".5"/>
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#3b2a12" stroke-opacity=".55" stroke-width="2"/>
+      <circle cx="68" cy="72" r="12" fill="url(#verdigris)"/>
+      <rect x="39" y="39" width="22" height="22" fill="none" stroke="#3b2a12" stroke-opacity=".6" stroke-width="3"/>
+      <rect x="41" y="41" width="18" height="18" fill="#1F2630"/>
+      <path d="M38 31 q12 -10 24 0 q-12 -5 -24 0z" fill="#3b2a12" fill-opacity=".75"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="wall">
+  <div class="scroll" id="scroll">
+    <div class="mount mount-top" aria-hidden="true"><i class="ribbon"></i><i class="ribbon"></i></div>
+
+    <section class="huaxin" id="huaxin">
+      <div class="stage" id="stage">
+
+        <!-- 入卷 -->
+        <section class="screen screen-title is-active" data-screen="title" aria-labelledby="t-title">
+          <div class="title-block">
+            <h1 id="t-title" class="title-main">演算天机</h1>
+            <p class="title-sub">数字重彩问命录</p>
+          </div>
+          <div class="title-actions">
+            <button class="seal seal-lg" id="btn-enter" aria-describedby="enter-note"><span>问</span></button>
+            <p id="enter-note" class="note">按印入卷。约两分钟，建议开声。</p>
+            <label class="oracle-toggle">
+              <input type="checkbox" id="oracle-mode">
+              <span class="seal seal-sm seal-outline" aria-hidden="true"><span>灵</span></span>
+              <span class="oracle-copy">通灵模式<small>由云端模型另写一段判词，需联网</small></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 定盘 -->
+        <section class="screen screen-ding" data-screen="ding" aria-labelledby="d-h">
+          <h2 id="d-h" class="h-brush">所问何事</h2>
+          <p class="shichen" id="shichen"></p>
+          <div class="slips" role="radiogroup" aria-label="问卜领域" id="slips"></div>
+          <label class="ask">
+            <span class="ask-label">心中所问，可写可不写</span>
+            <input id="ask" type="text" maxlength="40" autocomplete="off" placeholder="例如：今年该不该换一份工作">
+          </label>
+          <button class="seal seal-md" id="btn-ding" disabled aria-label="定盘"><span>定</span></button>
+        </section>
+
+        <!-- 摇签 -->
+        <section class="screen screen-qian" data-screen="qian" aria-labelledby="q-h">
+          <h2 id="q-h" class="h-brush">摇签</h2>
+          <p class="note" id="qian-note">按住签筒摇动，松手落签。</p>
+          <div class="tube-wrap" id="tube-wrap">
+            <button class="tube" id="tube" aria-label="签筒：按住摇动，松手落签">
+              <svg viewBox="0 0 160 260" aria-hidden="true">
+                <defs>
+                  <linearGradient id="lacquer" x1="0" x2="1">
+                    <stop offset="0" stop-color="#1c0b0b"/><stop offset=".35" stop-color="#5a1c1c"/>
+                    <stop offset=".6" stop-color="#3a1212"/><stop offset="1" stop-color="#140707"/>
+                  </linearGradient>
+                  <linearGradient id="bamboo" x1="0" x2="1">
+                    <stop offset="0" stop-color="#8c7240"/><stop offset=".5" stop-color="#d4b877"/><stop offset="1" stop-color="#7a6236"/>
+                  </linearGradient>
+                </defs>
+                <g class="sticks">
+                  <rect class="stick" x="46" y="20" width="7" height="110" rx="2" fill="url(#bamboo)"/>
+                  <rect class="stick" x="56" y="8" width="7" height="120" rx="2" fill="url(#bamboo)"/>
+                  <rect class="stick" x="66" y="26" width="7" height="104" rx="2" fill="url(#bamboo)"/>
+                  <rect class="stick" x="76" y="2" width="7" height="126" rx="2" fill="url(#bamboo)"/>
+                  <rect class="stick" x="86" y="16" width="7" height="114" rx="2" fill="url(#bamboo)"/>
+                  <rect class="stick" x="96" y="30" width="7" height="100" rx="2" fill="url(#bamboo)"/>
+                  <rect class="stick" x="106" y="12" width="7" height="118" rx="2" fill="url(#bamboo)"/>
+                </g>
+                <path d="M34 92 h92 v140 q0 18 -18 18 h-56 q-18 0 -18 -18z" fill="url(#lacquer)"/>
+                <ellipse cx="80" cy="92" rx="46" ry="8" fill="#0d0505"/>
+                <rect x="34" y="104" width="92" height="4" fill="#C5A059" opacity=".8"/>
+                <rect x="34" y="220" width="92" height="4" fill="#C5A059" opacity=".8"/>
+                <text x="80" y="152" text-anchor="middle" font-family="'Ma Shan Zheng','STKaiti','KaiTi',serif" font-size="28" fill="#C5A059">天</text>
+                <text x="80" y="188" text-anchor="middle" font-family="'Ma Shan Zheng','STKaiti','KaiTi',serif" font-size="28" fill="#C5A059">机</text>
+              </svg>
+            </button>
+            <div class="fallen" id="fallen" aria-hidden="true"><span id="fallen-no"></span></div>
+          </div>
+          <article class="sign" id="sign" hidden>
+            <header class="sign-head">
+              <p class="sign-no" id="sign-no"></p>
+              <h3 class="sign-name" id="sign-name"></h3>
+              <p class="sign-level" id="sign-level"></p>
+            </header>
+            <div class="poem" id="sign-poem"></div>
+            <p class="sign-jie"><b>解曰</b><span id="sign-jie"></span></p>
+            <p class="sign-domain" id="sign-domain"></p>
+            <button class="btn btn-primary" id="btn-to-yao">取三枚铜钱</button>
+          </article>
+        </section>
+
+        <!-- 掷钱 -->
+        <section class="screen screen-yao" data-screen="yao" aria-labelledby="y-h">
+          <h2 id="y-h" class="h-brush">掷钱成卦</h2>
+          <p class="note" id="yao-note"></p>
+          <div class="yao-board">
+            <ol class="gua" id="gua" aria-label="卦象，自下而上"></ol>
+            <div class="coins" id="coins" aria-hidden="true"></div>
+          </div>
+          <p class="yao-result" id="yao-result" aria-live="polite"></p>
+          <div class="yao-actions">
+            <button class="btn btn-primary" id="btn-throw">掷</button>
+            <button class="btn btn-primary" id="btn-accept" hidden>受此爻</button>
+            <button class="btn btn-ghost" id="btn-reroll" hidden>不服，再掷</button>
+          </div>
+        </section>
+
+        <!-- 观象 -->
+        <section class="screen screen-end" data-screen="end" aria-labelledby="e-name">
+          <figure class="loom">
+            <canvas id="loom" role="img" aria-label="由你的行为数据织成的命盘"></canvas>
+            <figcaption id="loom-cap"></figcaption>
+          </figure>
+          <p class="gua-pair" id="gua-pair"></p>
+          <header class="ending-head">
+            <span class="seal seal-md" aria-hidden="true"><span id="e-seal"></span></span>
+            <div>
+              <h2 id="e-name" class="ending-name"></h2>
+              <p class="ending-sub" id="e-sub"></p>
+            </div>
+          </header>
+          <p class="ending-lead" id="e-lead"></p>
+          <div class="poem poem-end" id="e-verse"></div>
+          <p class="critique" id="e-critique"></p>
+          <aside class="oracle" id="oracle" hidden>
+            <h3>通灵批注</h3>
+            <p id="oracle-text"></p>
+          </aside>
+          <section class="ledger" aria-labelledby="l-h">
+            <h3 id="l-h">行为账本</h3>
+            <p class="ledger-intro">本局中，机器记下了这些。命盘就是用它们织成的。数据只留在你的设备上。</p>
+            <dl id="ledger"></dl>
+          </section>
+          <section class="endings" aria-labelledby="en-h">
+            <h3 id="en-h">四种结局</h3>
+            <ul id="endings-list"></ul>
+          </section>
+          <button class="btn btn-primary" id="btn-again">再问一卦</button>
+        </section>
+
+      </div>
+
+      <aside class="margin" id="margin" aria-label="机器旁批"></aside>
+      <button class="seal seal-sm seal-doubt" id="btn-doubt" hidden aria-label="存疑：不再相信这场推演"><span>存疑</span></button>
+    </section>
+
+    <div class="mount mount-bottom" aria-hidden="true"></div>
+    <div class="rod" aria-hidden="true"></div>
+  </div>
+
+  <button class="mute" id="btn-mute" aria-pressed="false" aria-label="静音">声</button>
+</main>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
