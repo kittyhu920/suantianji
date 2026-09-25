@@ -4,3 +4,9 @@ compatibility_date = "2026-09-01"
 
 [ai]
 binding = "AI"
+
+# 通灵限流计数（functions/api/oracle.js），建表见 migrations/
+[[d1_databases]]
+binding = "DB"
+database_name = "suantianji"
+database_id = "0be5fbc4-b2a8-4bf1-a68e-f2b2570be221"
