@@ -780,6 +780,7 @@ button { font: inherit; color: inherit; }
   .rod { margin: 0; height: 8px; border-radius: 0; }
   .screen { padding: 20px calc(var(--margin-w) + 6px) 30px 16px; gap: 14px; }
   .gloss { font-size: 11px; }
+  .gloss:nth-child(n+3) { display: none; } /* 旁批栏只有 46px，放两列正好，第三列会被裁成半截 */
   .slips { gap: 10px; }
   .slip { width: 56px; height: 176px; }
   .jiao-block { width: 88px; height: 44px; }
@@ -859,3 +860,9 @@ button { font: inherit; color: inherit; }
 @media (max-width: 520px) {
   .screen-about { padding: 20px 16px 30px; }
 }
+
+/* ───────── 404 ───────── */
+.screen-lost { justify-content: center; padding: 28px; gap: 22px; }
+.screen-lost .seal { cursor: default; }
+.lost-text { margin: 0; font-size: 16px; line-height: 1.9; color: var(--paper-ink); }
+.lost-back { text-decoration: none; display: inline-flex; align-items: center; }
