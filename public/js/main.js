@@ -250,9 +250,9 @@ function pickSign() {
   return db.signs[db.signs.length - 1];
 }
 
-// 0–39 的中文数字：十一、二十、三十二……
+// 0–69 的中文数字：十一、二十、六十……
 const DIGITS = '零一二三四五六七八九';
-const CN_NUM = Array.from({ length: 40 }, (_, n) => (n < 10 ? DIGITS[n]
+const CN_NUM = Array.from({ length: 70 }, (_, n) => (n < 10 ? DIGITS[n]
   : `${n >= 20 ? DIGITS[Math.floor(n / 10)] : ''}十${n % 10 ? DIGITS[n % 10] : ''}`));
 const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71, '下下': 0.89 };
 
@@ -272,12 +272,12 @@ async function dropSign() {
   const p = Math.min(0.97, DISAPPOINT[sign.level] + (trueRandom() - 0.5) * 0.06);
   S.claims.push(`${Math.round(p * 100)}% 会失望`);
   gloss(`${sign.level}签，我猜你 ${Math.round(p * 100)}% 会失望`, { alarm: p > 0.6 });
-  if (lastVisit?.no === sign.no) gloss('又是这支签。我记得');
+  if (lastVisit?.name === sign.name) gloss('又是这支签。我记得');
   if (sign.el === S.branch.el) gloss(`这支签属${sign.el}，我替你加过分`);
 }
 
 function renderSign(sign) {
-  $('sign-no').textContent = `第${CN_NUM[sign.no]}签`;
+  $('sign-no').textContent = `第${CN_NUM[sign.no]}签 · ${sign.gz} · ${sign.nayin}`;
   $('sign-name').textContent = sign.name;
   const lv = $('sign-level');
   lv.textContent = sign.level;
@@ -749,7 +749,7 @@ $('btn-poster').addEventListener('click', async () => {
   const sign = S.sign;
   const now = new Date();
   const blob = await drawPoster({
-    sign: sign && { no: `第${CN_NUM[sign.no]}签`, name: sign.name, level: sign.level, poem: sign.poem, bai: sign.bai },
+    sign: sign && { no: `第${CN_NUM[sign.no]}签 · ${sign.gz} · ${sign.nayin}`, name: sign.name, level: sign.level, poem: sign.poem, bai: sign.bai },
     cups: S.cups.length ? S.cups.map((c) => CUP_NAMES[c.kind]).join(' · ') : '还没掷筊',
     state: state.text,
     stateNo: state.key === 'no',
