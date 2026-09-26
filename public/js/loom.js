@@ -1,7 +1,9 @@
-// 数纬：把本卦 → 之卦织成一幅锦
-// 左半本卦、右半之卦；六束丝自下而上为初爻至上爻。
-// 阳爻丝束平直穿过；阴爻丝束在中段向上下分开，留出空隙。
-// 变爻的丝过了中缝由泥金转为朱砂。所有丝线都连续穿过中缝——织它的始终是同一个人。
+// 数纬：把每一次掷筊织成一幅锦
+// 每掷一次是一束丝，自下而上按先后排列。左半是你来时，右半是筊的回答：
+// 圣杯的丝平直穿过；笑杯的丝在右半绞成一个结，又回到原位；
+// 阴杯的丝过了中缝向上下分开，并由泥金转为朱砂。
+// 被你"不服，再掷"弃掉的那一掷也织进去，只是淡一些——重掷越多，锦越乱。
+// 所有丝线都连续穿过中缝，织它的始终是同一个人。
 
 import { mulberry32 } from './rng.js';
 
@@ -15,7 +17,7 @@ const smoothstep = (e0, e1, x) => {
 };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-export function weave(canvas, { seed, ben, zhi, moving, reduced = false }) {
+export function weave(canvas, { seed, throws, reduced = false }) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const W = Math.round(canvas.clientWidth * dpr);
   const H = Math.round(W * 0.75);
@@ -37,25 +39,26 @@ export function weave(canvas, { seed, ben, zhi, moving, reduced = false }) {
     g.stroke();
   }
 
-  const top = H * 0.08;
-  const bandH = (H * 0.84) / 6;
+  // 至少按三束排布，掷得少时居中
+  const slots = Math.max(3, throws.length);
+  const bandH = (H * 0.84) / slots;
   const thick = bandH * 0.64;
-  const center = (b) => top + H * 0.84 - (b + 0.5) * bandH;
-  const gapHalfW = W * 0.075;
+  const top = H * 0.08 + ((slots - throws.length) * bandH) / 2;
+  const center = (b) => top + throws.length * bandH - (b + 0.5) * bandH;
 
-  const perBand = Math.round(58 + rand() * 14);
+  const perBand = Math.round((58 + rand() * 14) * Math.min(1, 6 / slots + 0.3));
   const threads = [];
-  for (let b = 0; b < 6; b++) {
-    if (ben[b] == null) continue; // 破执：未掷出的爻不织
+  for (let b = 0; b < throws.length; b++) {
+    const { kind, kept } = throws[b];
     for (let i = 0; i < perBand; i++) {
       const stray = rand() < 0.025;
       const o = rand() * 2 - 1;
       threads.push({
-        b, o, stray,
+        b, o, stray, kind,
         k1: 1 + rand() * 3, p1: rand() * Math.PI * 2,
         k2: 5 + rand() * 6, p2: rand() * Math.PI * 2,
         ks: 0.5 + rand() * 1.5, ps: rand() * Math.PI * 2,
-        a: stray ? 0.16 : 0.1 + rand() * 0.18,
+        a: (stray ? 0.16 : 0.1 + rand() * 0.18) * (kept ? 1 : 0.4),
         w: (stray ? 0.9 : 0.5 + rand() * 0.7) * dpr,
         x: -8, y: center(b) + o * thick / 2,
       });
@@ -63,14 +66,14 @@ export function weave(canvas, { seed, ben, zhi, moving, reduced = false }) {
   }
 
   const target = (th, x) => {
-    const half = x < W / 2;
-    const yang = (half ? ben : zhi)[th.b];
-    const gx = half ? W * 0.25 : W * 0.75;
     let off = th.o * thick / 2;
-    if (!yang) {
-      const f = smoothstep(gapHalfW * 1.7, gapHalfW * 0.55, Math.abs(x - gx));
+    if (th.kind === 'yin') {
+      const f = smoothstep(W * 0.5, W * 0.62, x);
       const parted = Math.sign(th.o || 1) * (thick * 0.52 + Math.abs(th.o) * thick * 0.14);
       off = lerp(off, parted, f);
+    } else if (th.kind === 'xiao') {
+      const t = Math.min(1, Math.max(0, (x - W * 0.52) / (W * 0.3)));
+      off *= Math.cos(t * Math.PI * 2); // 绞成一个结，再回到原位
     }
     const u = (x / W) * Math.PI * 2;
     const wob = Math.sin(u * th.k1 + th.p1) * thick * 0.05 + Math.sin(u * th.k2 + th.p2) * thick * 0.015;
@@ -80,7 +83,7 @@ export function weave(canvas, { seed, ben, zhi, moving, reduced = false }) {
 
   const colorAt = (th, x) => {
     if (th.stray) return INK;
-    if (!moving[th.b]) return GOLD;
+    if (th.kind !== 'yin') return GOLD;
     const t = smoothstep(W * 0.44, W * 0.56, x);
     return [0, 1, 2].map((i) => Math.round(lerp(GOLD[i], CINNABAR[i], t)));
   };

@@ -1,4 +1,4 @@
-import { castLine, transform, LINE_LABELS } from './iching.js';
+import { castJiao, modelJiao, CUP_NAMES, CUP_SHORT, CUP_LABELS } from './jiao.js';
 import { hashString, trueRandom } from './rng.js';
 import { weave } from './loom.js';
 import * as sfx from './audio.js';
@@ -27,7 +27,8 @@ function freshState() {
     domain: null,
     question: '',
     sign: null,
-    lines: [],
+    cups: [],
+    throws: [],
     pending: null,
     rerolls: 0,
     doubt: false,
@@ -86,7 +87,7 @@ function show(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.dataset.screen === name));
   $('stage').scrollTop = 0;
   touch();
-  const inRitual = name === 'ding' || name === 'qian' || name === 'yao';
+  const inRitual = name === 'ding' || name === 'qian' || name === 'jiao';
   $('btn-doubt').hidden = !(inRitual && S.doubtShown);
 }
 
@@ -98,7 +99,7 @@ function touch() {
 function revealDoubt() {
   if (S.doubtShown) return;
   S.doubtShown = true;
-  if (['ding', 'qian', 'yao'].includes(S.screen)) $('btn-doubt').hidden = false;
+  if (['ding', 'qian', 'jiao'].includes(S.screen)) $('btn-doubt').hidden = false;
 }
 
 /* ───────── 入卷 ───────── */
@@ -262,8 +263,6 @@ function renderSign(sign) {
   lv.textContent = sign.level;
   lv.dataset.tone = db.levels[sign.level];
   $('sign-poem').replaceChildren(...sign.poem.map((l) => Object.assign(document.createElement('span'), { textContent: l })));
-  $('sign-jie').textContent = sign.jie;
-  $('sign-domain').textContent = `问${db.domains[S.domain].name}：${sign.domain[S.domain]}`;
   $('sign').hidden = false;
 }
 
@@ -307,100 +306,91 @@ function onMotion(e) {
   }
 }
 
-$('btn-to-yao').addEventListener('click', enterYao);
+$('btn-to-jiao').addEventListener('click', enterJiao);
 
-/* ───────── 掷钱 ───────── */
-const coinsEl = $('coins');
-const coinRot = [0, 0, 0];
+/* ───────── 掷筊 ───────── */
+const jiaoEl = $('jiao');
+const jiaoRot = [0, 0];
 
-function buildCoins() {
-  coinsEl.replaceChildren();
-  for (let i = 0; i < 3; i++) {
+function buildJiao() {
+  jiaoEl.replaceChildren();
+  for (let i = 0; i < 2; i++) {
     const c = document.createElement('div');
-    c.className = 'coin';
-    c.innerHTML = `<div class="coin-body">
-      <div class="coin-face front"><svg viewBox="0 0 100 100"><use href="#coin-zi"/></svg></div>
-      <div class="coin-face back"><svg viewBox="0 0 100 100"><use href="#coin-bei"/></svg></div>
+    c.className = `jiao-block${i ? ' is-right' : ''}`;
+    c.innerHTML = `<div class="jiao-body">
+      <div class="jiao-face front"><svg viewBox="0 0 120 60"><use href="#jiao-ping"/></svg></div>
+      <div class="jiao-face back"><svg viewBox="0 0 120 60"><use href="#jiao-tu"/></svg></div>
     </div>`;
-    coinsEl.append(c);
+    jiaoEl.append(c);
   }
 }
 
-function renderGua() {
-  const gua = $('gua');
-  gua.replaceChildren();
-  for (let i = 0; i < 6; i++) {
+function renderCups() {
+  const list = $('cups');
+  list.replaceChildren();
+  for (let i = 0; i < 3; i++) {
     const li = document.createElement('li');
-    li.className = 'yao is-yang';
-    const line = S.lines[i] || (i === S.lines.length ? S.pending : null);
-    if (line) {
-      li.className = `yao ${line.yang ? 'is-yang' : ''} ${S.lines[i] ? 'is-set' : 'is-pending'} ${line.moving ? 'is-moving' : ''} ${i < 3 ? 'is-auto' : ''}`;
-      if (line.moving) li.insertAdjacentHTML('beforeend', `<span class="yao-mark">${line.yang ? '○' : '×'}</span>`);
-      li.setAttribute('aria-label', `${LINE_LABELS[i]}爻：${line.name}`);
-    } else {
-      li.setAttribute('aria-label', `${LINE_LABELS[i]}爻：未成`);
-    }
-    if (i === 0) li.insertAdjacentHTML('beforeend', '<span class="yao-tag">模型</span>');
-    if (i === 3) li.insertAdjacentHTML('beforeend', '<span class="yao-tag">你</span>');
-    gua.append(li);
+    const cup = S.cups[i] || (i === S.cups.length ? S.pending : null);
+    const kind = cup?.kind;
+    li.className = `cup ${S.cups[i] ? 'is-set' : cup ? 'is-pending' : ''} ${kind ? `is-${kind}` : ''}`;
+    li.innerHTML = `<span class="cup-tag">${i === 0 ? '模型' : '你'}</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
+    list.append(li);
   }
 }
 
-async function tossCoins(line, dur = 1250) {
-  const coins = [...coinsEl.children];
-  coins.forEach((c, i) => {
+async function tossJiao(res, dur = 1250) {
+  const blocks = [...jiaoEl.children];
+  blocks.forEach((c, i) => {
     const body = c.firstElementChild;
-    const face = line.coins[i] === 3 ? 180 : 0;
-    const spins = 3 + Math.floor(trueRandom() * 3);
-    coinRot[i] = Math.ceil(coinRot[i] / 360) * 360 + spins * 360 + face;
+    const face = res.flat[i] ? 0 : 180;
+    const spins = 2 + Math.floor(trueRandom() * 3);
+    jiaoRot[i] = Math.ceil(jiaoRot[i] / 360) * 360 + spins * 360 + face;
     body.style.transitionDuration = `${dur}ms`;
     c.style.animationDuration = `${dur}ms`;
     c.classList.remove('is-tossing');
     void c.offsetWidth;
     c.classList.add('is-tossing');
-    body.style.transform = `rotateX(${coinRot[i]}deg)`;
-    setTimeout(() => sfx.bronze(430 + i * 37 + trueRandom() * 20, 1.1, 0.11), reducedMotion ? 0 : dur - 120 + i * 40);
+    body.style.transform = `rotateX(${jiaoRot[i]}deg)`;
+    setTimeout(() => sfx.clack(0.9), reducedMotion ? 0 : dur - 90 + i * 70);
   });
   await sleep(dur + 120);
+  sfx.thud();
 }
 
-function describe(line) {
-  const faces = line.coins.map((c) => (c === 3 ? '背' : '字')).join(' ');
-  const tail = line.moving ? `<em>${line.name}，变爻</em>` : line.name;
-  return `${faces}，合${CN_NUM[line.sum]}，${tail}`;
-}
+const CUP_DESC = {
+  sheng: '一平一凸，圣杯：神明应允。',
+  xiao: '两平朝上，笑杯：神明笑而不答，再掷此杯。',
+  yin: '两凸朝上，<em>阴杯</em>：神明不允此签。',
+};
 
-async function enterYao() {
-  show('yao');
-  S.lines = [];
+async function enterJiao() {
+  show('jiao');
+  S.cups = [];
+  S.throws = [];
   S.pending = null;
-  buildCoins();
-  renderGua();
+  buildJiao();
+  renderCups();
   ['btn-throw', 'btn-accept', 'btn-reroll'].forEach((id) => { $(id).hidden = true; });
-  $('yao-note').textContent = '内卦三爻，由模型依你的画像代掷。';
-  $('yao-result').textContent = '';
-  gloss('内卦由模型代掷，依画像预测');
+  $('jiao-note').textContent = '第一杯，由模型依你的画像代掷。';
+  $('jiao-result').textContent = '';
+  gloss('第一杯由模型代掷，依画像预测');
 
-  let autoMoving = 0;
-  for (let i = 0; i < 3; i++) {
-    const line = castLine();
-    await tossCoins(line, 800);
-    S.lines.push(line);
-    if (line.moving) autoMoving++;
-    renderGua();
-    $('yao-result').innerHTML = `${LINE_LABELS[i]}爻：${describe(line)}`;
-    await sleep(350);
-  }
-  S.autoMoving = autoMoving;
-  gloss(`内卦已成，预测置信 ${(0.8 + trueRandom() * 0.15).toFixed(2)}`);
-  $('yao-note').textContent = '外卦三爻，由你亲掷。每一爻都可以不服，再掷。';
-  $('yao-result').textContent = '';
+  const cup = modelJiao();
+  await tossJiao(cup, 900);
+  S.cups.push({ ...cup, by: 'model' });
+  S.throws.push({ kind: cup.kind, cup: 0, by: 'model', kept: true });
+  renderCups();
+  $('jiao-result').innerHTML = `第一杯：${CUP_DESC.sheng}`;
+  await sleep(700);
+  gloss(`第一杯已成，预测置信 ${(0.8 + trueRandom() * 0.15).toFixed(2)}`);
+  $('jiao-note').textContent = '第二、三杯由你亲掷。每一杯都可以不服，再掷。';
   readyToThrow();
 }
 
-function readyToThrow() {
+function readyToThrow({ again = false } = {}) {
   S.readyAt = performance.now();
   touch();
+  $('btn-throw').textContent = again ? '再掷此杯' : '掷';
   $('btn-throw').hidden = false;
   $('btn-throw').disabled = false;
   $('btn-accept').hidden = true;
@@ -408,21 +398,27 @@ function readyToThrow() {
   $('btn-throw').focus({ preventScroll: true });
 }
 
-async function playerThrow({ reroll = false } = {}) {
-  const idx = S.lines.length;
-  if (!reroll) {
+// again：笑杯之后按规矩再掷，不算"不服"
+async function playerThrow({ reroll = false, again = false } = {}) {
+  const idx = S.cups.length;
+  if (!reroll && !again) {
     const h = performance.now() - S.readyAt;
     S.hesitations.push(h);
-    gloss(`${LINE_LABELS[idx]}爻，迟疑 ${sec(h)} 秒`);
+    gloss(`${CUP_LABELS[idx]}，迟疑 ${sec(h)} 秒`);
   }
   touch();
   ['btn-throw', 'btn-accept', 'btn-reroll'].forEach((id) => { $(id).disabled = true; });
-  const line = castLine();
-  S.pending = line;
-  await tossCoins(line);
-  renderGua();
-  $('yao-result').innerHTML = `${LINE_LABELS[idx]}爻：${describe(line)}`;
-  if (line.moving) gloss('变爻，偏离预测', { alarm: true });
+  const cup = castJiao();
+  S.pending = cup;
+  await tossJiao(cup);
+  S.throws.push({ kind: cup.kind, cup: idx, by: 'you', kept: false });
+  renderCups();
+  $('jiao-result').innerHTML = `${CUP_LABELS[idx]}：${CUP_DESC[cup.kind]}`;
+  if (cup.kind === 'xiao') {
+    readyToThrow({ again: true });
+    return;
+  }
+  if (cup.kind === 'yin') gloss('阴杯，偏离预测', { alarm: true });
   $('btn-throw').hidden = true;
   $('btn-accept').hidden = false;
   $('btn-reroll').hidden = false;
@@ -431,7 +427,7 @@ async function playerThrow({ reroll = false } = {}) {
   S.readyAt = performance.now();
 }
 
-$('btn-throw').addEventListener('click', () => playerThrow());
+$('btn-throw').addEventListener('click', () => playerThrow({ again: S.pending?.kind === 'xiao' }));
 
 $('btn-reroll').addEventListener('click', () => {
   S.rerolls++;
@@ -442,11 +438,14 @@ $('btn-reroll').addEventListener('click', () => {
 });
 
 $('btn-accept').addEventListener('click', () => {
-  S.lines.push(S.pending);
+  const cup = S.pending;
+  S.cups.push({ ...cup, by: 'you' });
+  S.throws[S.throws.length - 1].kept = true;
   S.pending = null;
-  renderGua();
+  renderCups();
   touch();
-  if (S.lines.length === 6) finish();
+  // 阴杯即神明不允，这支签到此为止
+  if (cup.kind === 'yin' || S.cups.length === 3) finish();
   else readyToThrow();
 });
 
@@ -477,8 +476,39 @@ function persona() {
 function decideEnding() {
   if (S.doubt) return 'po';
   if (S.rerolls >= 3) return 'mi';
-  const mine = S.lines.slice(3).filter((l) => l.moving).length;
-  return mine >= 1 ? 'ni' : 'zun';
+  return S.cups.some((c) => c.by === 'you' && c.kind === 'yin') ? 'ni' : 'zun';
+}
+
+// 这支签作不作数
+function signState() {
+  if (S.cups.some((c) => c.kind === 'yin')) return { key: 'no', text: '神明不允，此签不作数，仅作参考' };
+  if (S.cups.length === 3) return { key: 'yes', text: '三杯圣杯，此签作数' };
+  return { key: 'open', text: S.cups.length ? `你在${CUP_LABELS[S.cups.length]}前停下，此签未定` : '筊未掷，此签未定' };
+}
+
+// 每一杯的全部掷法，例如"圣 / 笑→阴→圣 / 圣"
+function cupsRecord() {
+  return [0, 1, 2]
+    .map((i) => S.throws.filter((t) => t.cup === i).map((t) => CUP_SHORT[t.kind]).join('→'))
+    .filter(Boolean)
+    .join(' / ');
+}
+
+function renderJieqian(state) {
+  const box = $('jieqian');
+  box.hidden = !S.sign;
+  if (!S.sign) return;
+  const sign = S.sign;
+  const d = db.domains[S.domain];
+  $('jq-state').textContent = state.text;
+  $('jq-state').dataset.state = state.key;
+  $('jq-name').textContent = `第${CN_NUM[sign.no]}签　${sign.name}`;
+  $('jq-level').textContent = sign.level;
+  $('jq-level').dataset.tone = db.levels[sign.level];
+  $('jq-jie').textContent = sign.jie;
+  $('jq-bai').textContent = sign.bai;
+  $('jq-advice-h').textContent = `问${d.name}`;
+  $('jq-advice').textContent = sign.advice[S.domain];
 }
 
 async function finish() {
@@ -491,10 +521,7 @@ async function finish() {
   const who = persona();
   const events = 4 + S.hesitations.length + S.rerolls + S.idle + S.shakeTries + (S.question ? 1 : 0);
   const conf = Math.min(0.97, 0.52 + events * 0.035 + trueRandom() * 0.06);
-
-  const complete = S.lines.length === 6;
-  const moving = S.lines.map((l) => l.moving);
-  const gua = complete ? transform(S.lines) : null;
+  const state = signState();
 
   const ledgerData = {
     branch: S.branch.zhi, clock: S.clock.toTimeString().slice(0, 5),
@@ -502,7 +529,7 @@ async function finish() {
     domain: S.domain, qlen: [...S.question].length, pick: Math.round(S.pickMs ?? -1),
     shake: Math.round(S.shakeMs), tries: S.shakeTries, sign: S.sign?.no ?? 0,
     hes: S.hesitations.map(Math.round), rerolls: S.rerolls, idle: S.idle, hidden: S.hidden,
-    lines: S.lines.map((l) => l.sum), doubt: S.doubt, total: Math.round(totalMs),
+    throws: S.throws.map((t) => t.kind + (t.kept ? '' : '~')), doubt: S.doubt, total: Math.round(totalMs),
   };
   const seed = hashString(JSON.stringify(ledgerData)) % 4294967296;
 
@@ -510,18 +537,13 @@ async function finish() {
   show('end');
   $('btn-doubt').hidden = true;
 
-  // 命盘
-  const ben = complete ? gua.ben : S.lines.map((l) => l.yang);
-  const zhi = complete ? gua.zhi : S.lines.map((l) => l.yang);
-  const fields = Object.keys(ledgerData).length;
-  $('loom-cap').textContent = `此锦由你的 ${fields} 项行为数据织成，种子 ${seed.toString(16).padStart(8, '0')}`;
-  weave($('loom'), { seed, ben: pad6(ben), zhi: pad6(zhi), moving: pad6(moving, false), reduced: reducedMotion });
+  // 解签
+  renderJieqian(state);
+  $('cups-pair').innerHTML = S.cups.length
+    ? S.cups.map((c) => CUP_NAMES[c.kind]).join(' · ')
+    : `筊未掷<small>${S.sign ? '签已落，筊未掷' : '签未落'}</small>`;
 
-  $('gua-pair').innerHTML = complete
-    ? `${gua.benName}　→　${gua.zhiName}<small>${moving.some(Boolean) ? `变在${moving.map((m, i) => (m ? LINE_LABELS[i] : '')).filter(Boolean).join('、')}爻` : '六爻安静，无变'}</small>`
-    : `卦未成<small>${S.lines.length ? `你在第${CN_NUM[S.lines.length + 1]}爻前停下` : S.sign ? '签已落，钱未掷' : '签未落'}</small>`;
-  if (!S.lines.length) $('loom-cap').textContent = '无一爻可织。空白，也是一种回答。';
-
+  // 结局
   $('e-seal').textContent = ending.name[0];
   $('e-name').textContent = ending.name;
   $('e-sub').textContent = ending.sub;
@@ -535,21 +557,20 @@ async function finish() {
   store.set('stj-endings', [...got]);
   renderEndings(got, endKey);
 
-  sfx.bronze(262, 3.2, 0.16);
-  if ($('oracle-mode').checked) askOracle(endKey, who, gua);
-  else $('oracle').hidden = true;
-}
+  // 命盘
+  const fields = Object.keys(ledgerData).length;
+  $('loom-cap').textContent = S.throws.length
+    ? `此锦由你的 ${fields} 项行为数据织成，种子 ${seed.toString(16).padStart(8, '0')}`
+    : '一杯未掷，无丝可织。空白，也是一种回答。';
+  weave($('loom'), { seed, throws: S.throws, reduced: reducedMotion });
 
-function pad6(arr, fill = null) {
-  const out = arr.slice(0, 6);
-  while (out.length < 6) out.push(fill);
-  return out;
+  sfx.bronze(262, 3.2, 0.16);
+  if ($('oracle-mode').checked) askOracle(endKey, who);
+  else $('oracle').hidden = true;
 }
 
 function renderLedger(totalMs, who, conf, seed) {
   const h = S.hesitations;
-  const autoM = S.lines.slice(0, 3).filter((l) => l.moving).length;
-  const mineM = S.lines.slice(3).filter((l) => l.moving).length;
   const rows = [
     ['来访时辰', `${S.branch.zhi}时（设备时钟 ${S.clock.toTimeString().slice(0, 5)}）`],
     ['设备', matchMedia('(pointer: coarse)').matches ? '移动端，触屏' : '桌面端，鼠标'],
@@ -560,7 +581,7 @@ function renderLedger(totalMs, who, conf, seed) {
     ['得签', S.sign ? `第${CN_NUM[S.sign.no]}签 ${S.sign.name}（${S.sign.level}）` : '—'],
     ['亲掷前迟疑', h.length ? h.map((x) => sec(x)).join(' / ') + ' 秒' : '—'],
     ['重掷', `${S.rerolls} 次`],
-    ['变爻', `模型 ${autoM}，你 ${mineM}`],
+    ['掷筊', S.throws.length ? cupsRecord() : '—'],
     ['静止超过八秒', `${S.idle} 次`],
     ['离开页面', `${S.hidden} 次`],
     ['总用时', `${Math.floor(totalMs / 60000)} 分 ${Math.round((totalMs % 60000) / 1000)} 秒`],
@@ -586,7 +607,7 @@ function renderEndings(got, current) {
   }
 }
 
-async function askOracle(endKey, who, gua) {
+async function askOracle(endKey, who) {
   const box = $('oracle');
   const p = $('oracle-text');
   box.hidden = false;
@@ -595,7 +616,7 @@ async function askOracle(endKey, who, gua) {
   gloss('上传画像至云端');
   S.oracleSent = !!S.question;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000);
+  const timer = setTimeout(() => ctrl.abort(), 25000); // 白话解签较长，云端偶尔要十几秒
   try {
     const res = await fetch('/api/oracle', {
       method: 'POST',
@@ -604,8 +625,8 @@ async function askOracle(endKey, who, gua) {
       body: JSON.stringify({
         domain: S.domain ? db.domains[S.domain].name : '',
         question: S.question,
-        sign: S.sign ? { name: S.sign.name, level: S.sign.level, poem: S.sign.poem } : null,
-        ben: gua?.benName ?? '', zhi: gua?.zhiName ?? '',
+        sign: S.sign ? { name: S.sign.name, level: S.sign.level, poem: S.sign.poem, jie: S.sign.jie, bai: S.sign.bai } : null,
+        cups: S.cups.map((c) => CUP_NAMES[c.kind]).join('、'), verdict: signState().text,
         ending: db.endings[endKey].name, persona: who,
       }),
     });
@@ -616,7 +637,7 @@ async function askOracle(endKey, who, gua) {
     p.textContent = data.text;
     gloss('云端判词已返回');
   } catch {
-    p.textContent = '云端未应。以上离线判词即为本局之断。';
+    p.textContent = '云端未应。以上解签即为本局之断。';
     gloss('通灵失败，回落离线判词');
   } finally {
     clearTimeout(timer);
@@ -654,7 +675,7 @@ document.addEventListener('visibilitychange', () => {
 
 setInterval(() => {
   if (!S || S.finished || S.idleFlagged || shaking) return;
-  if (!['ding', 'qian', 'yao'].includes(S.screen)) return;
+  if (!['ding', 'qian', 'jiao'].includes(S.screen)) return;
   if (performance.now() - S.lastActive > 8000) {
     S.idleFlagged = true;
     S.idle++;
