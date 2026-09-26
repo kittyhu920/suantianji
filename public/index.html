@@ -71,6 +71,7 @@
               <span class="seal seal-sm seal-outline" aria-hidden="true"><span>灵</span></span>
               <span class="oracle-copy">通灵模式<small>勾选后，由 AI 用大白话帮你解签、回答你写下的问题（需联网）</small></span>
             </label>
+            <a class="about-link" href="about.html">关于这件作品</a>
           </div>
         </section>
 
@@ -184,6 +185,10 @@
           <p class="ending-lead" id="e-lead"></p>
           <div class="poem poem-end" id="e-verse"></div>
           <p class="turn">不过，在你求签的时候，<br>我也在给你算命。</p>
+          <section class="confess" id="confess-box" aria-labelledby="cf-h">
+            <h3 id="cf-h">跟你说几句实话</h3>
+            <ul id="confess"></ul>
+          </section>
           <p class="critique" id="e-critique"></p>
           <section class="ledger" aria-labelledby="l-h">
             <h3 id="l-h">行为账本</h3>
@@ -193,12 +198,14 @@
           <figure class="loom">
             <canvas id="loom" role="img" aria-label="由你的行为数据织成的命盘"></canvas>
             <figcaption id="loom-cap"></figcaption>
+            <p class="loom-legend">每掷一次，织一束丝：平直的是圣杯，打结的是笑杯，<span>朱砂分叉</span>的是阴杯；被你弃掉的那一掷，颜色淡些。</p>
           </figure>
           <section class="endings" aria-labelledby="en-h">
             <h3 id="en-h">四种结局</h3>
             <ul id="endings-list"></ul>
           </section>
           <button class="btn btn-primary" id="btn-again">再求一签</button>
+          <a class="about-link" href="about.html">关于这件作品</a>
         </section>
 
       </div>

@@ -44,6 +44,7 @@ function freshState() {
     hesitations: [],
     readyAt: 0,
     oracleSent: false,
+    claims: [], // 旁批里报给玩家的百分比，结局时坦白是编的
     finished: false,
   };
 }
@@ -99,6 +100,7 @@ function touch() {
 function revealDoubt() {
   if (S.doubtShown) return;
   S.doubtShown = true;
+  gloss('不信我，就按左下角那枚印');
   if (['ding', 'qian', 'jiao'].includes(S.screen)) $('btn-doubt').hidden = false;
 }
 
@@ -253,6 +255,7 @@ async function dropSign() {
   $('tube-wrap').hidden = true;
   $('qian-note').textContent = '';
   const p = Math.min(0.97, DISAPPOINT[sign.level] + (trueRandom() - 0.5) * 0.06);
+  S.claims.push(`${Math.round(p * 100)}% 会失望`);
   gloss(`${sign.level}签，我猜你 ${Math.round(p * 100)}% 会失望`, { alarm: p > 0.6 });
   if (sign.el === S.branch.el) gloss(`这支签属${sign.el}，我替你加过分`);
 }
@@ -386,7 +389,9 @@ async function enterJiao() {
   renderCups();
   $('jiao-result').innerHTML = `第一杯：${CUP_DESC.sheng}`;
   await sleep(700);
-  gloss(`我有 ${Math.round((0.8 + trueRandom() * 0.15) * 100)}% 的把握猜中你`);
+  const sure = Math.round((0.8 + trueRandom() * 0.15) * 100);
+  S.claims.push(`${sure}% 的把握`);
+  gloss(`我有 ${sure}% 的把握猜中你`);
   $('jiao-note').textContent = '第二、三次由你自己掷。对结果不满意，可以点“不服，再掷”。';
   readyToThrow();
 }
@@ -499,6 +504,20 @@ function cupsRecord() {
     .join(' / ');
 }
 
+// 结局时大师坦白：第一杯是安排好的，百分比是编的，这支签的暗面
+function renderConfess() {
+  const items = [];
+  if (S.throws.some((t) => t.by === 'model')) {
+    items.push('第一杯是我替你掷的。它从来都是圣杯——我给你的，永远是你会点头的东西。');
+  }
+  if (S.claims.length) {
+    items.push(`我说的${S.claims.map((c) => `“${c}”`).join('、')}，都是随口编的。数字一出口，你就信了几分。`);
+  }
+  if (S.sign) items.push(`至于这支签：${S.sign.machine}`);
+  $('confess-box').hidden = !items.length;
+  $('confess').replaceChildren(...items.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+}
+
 function renderJieqian(state) {
   const box = $('jieqian');
   box.hidden = !S.sign;
@@ -554,6 +573,7 @@ async function finish() {
   $('e-lead').textContent = ending.lead[tone];
   $('e-verse').replaceChildren(...ending.verse.map((l) => Object.assign(document.createElement('span'), { textContent: l })));
   $('e-critique').textContent = ending.critique;
+  renderConfess();
 
   renderLedger(totalMs, who, conf, seed);
   const got = new Set(store.get('stj-endings', []));

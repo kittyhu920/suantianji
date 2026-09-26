@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A1C1E">
+<title>关于 · 演算天机</title>
+<meta name="description" content="演算天机的创作理念与人和 AI Agent 的协作方式。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%239E2A2B'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23F2E6CC' font-family='serif'%3E%E9%97%AE%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<main class="wall">
+  <div class="scroll">
+    <div class="mount mount-top" aria-hidden="true"><i class="ribbon"></i><i class="ribbon"></i></div>
+
+    <section class="huaxin">
+      <div class="stage">
+        <article class="screen screen-about is-active" aria-labelledby="a-h">
+          <h1 id="a-h" class="h-brush">关于这件作品</h1>
+          <p class="about-lead">你以为在求签，<br>其实一直有人在给你算命。</p>
+
+          <section>
+            <h2>创作理念</h2>
+            <p>求签，是一种古老的“把命交给别人算”的仪式。今天替我们算命的，是推荐算法：它看你停留了多久、点了什么、犹豫了几秒，然后决定你接下来会看到什么。</p>
+            <p>这件作品把两者叠在一起。你在画面中央摇签、掷筊、解签；画面右边，一直有一位“大师”在小声说话。他记下你的每一次犹豫和重掷，猜你会不会失望，给你下判断。直到最后他才告诉你：在你求签的时候，他也在给你算命。</p>
+            <p>四种结局不取决于签的好坏，而取决于你怎么对待被给出的答案：全盘接受，亲手说“不”，一次次重掷，或者干脆不再相信。</p>
+            <p>结尾那幅“命盘”，是用你这一局的操作数据织成的：同一支签，不同的人，织出不同的锦。提花织机用穿孔卡片记录花样，是计算机的祖先之一——你的命，也是一段被织出来的数据。</p>
+          </section>
+
+          <section>
+            <h2>民俗依据</h2>
+            <p>签诗为自撰的七言四句。掷筊依闽台庙宇的习俗：一平一凸为圣杯，两面都平为笑杯，两面都凸为阴杯；连得三杯圣杯，这支签才算数。</p>
+          </section>
+
+          <section>
+            <h2>画面与声音</h2>
+            <p>整体取立轴装裱与绀纸泥金写经的样式。所有画面都由 SVG、CSS 和 Canvas 绘制，没有使用任何图片素材；声音全部由浏览器实时合成。</p>
+          </section>
+
+          <section>
+            <h2>人与 AI 的协作</h2>
+            <p>这件作品由作者与几个 AI Agent 一起完成：</p>
+            <ul>
+              <li><b>Gemini</b>参与早期构思，写出初版计划书。</li>
+              <li><b>Claude Code</b>评审初版计划，提出修改，编写全部代码和文案初稿。</li>
+              <li><b>Workers AI</b>（GLM-4.7 Flash）在“通灵模式”里实时生成白话解签。</li>
+            </ul>
+            <p>作者负责立意和每一处取舍：Agent 的哪些提议被采纳、哪些被推翻、为什么，都记在协作日志里。比如，把“掷铜钱起卦”换成“掷筊请示”，把机器口吻的旁批改成大师的第一人称，都来自试玩后的真实反馈。</p>
+          </section>
+
+          <section>
+            <h2>隐私</h2>
+            <p>你的操作记录只保存在你自己的设备上。只有勾选了“通灵模式”，你写下的问题才会发给云端 AI 用来解签；本站不保存它。</p>
+          </section>
+
+          <a class="btn btn-primary about-back" href="./">回到首页</a>
+        </article>
+      </div>
+    </section>
+
+    <div class="mount mount-bottom" aria-hidden="true"></div>
+    <div class="rod" aria-hidden="true"></div>
+  </div>
+</main>
+</body>
+</html>
