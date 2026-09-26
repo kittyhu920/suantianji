@@ -105,16 +105,27 @@ function revealDoubt() {
 }
 
 /* ───────── 入卷 ───────── */
+// 上一局的记录，只存在玩家本机
+let lastVisit = store.get('stj-last', null);
+
+function daysAgo(iso) {
+  const day = (d) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+  const n = day(new Date()) - day(new Date(iso));
+  return n <= 0 ? '今天早些时候' : n === 1 ? '昨天' : n === 2 ? '前天' : `${n} 天前`;
+}
+
+// 来访次数按"真的开始求签"计，刷新页面不算
 function bootTitle() {
   const visits = store.get('stj-visits', 0) + 1;
-  store.set('stj-visits', visits);
   const coarse = matchMedia('(pointer: coarse)').matches;
   gloss('我开始留意你了');
   gloss(`你用的是${coarse ? '手机' : '电脑'}`);
   if (visits > 1) gloss(`你第 ${visits} 次来找我了`);
+  if (lastVisit) gloss(`${daysAgo(lastVisit.at)}你抽到的是${lastVisit.name}`);
 }
 
 $('btn-enter').addEventListener('click', () => {
+  store.set('stj-visits', store.get('stj-visits', 0) + 1);
   sfx.initAudio();
   sfx.startDrone();
   sfx.bronze(330, 2.2, 0.14);
@@ -257,6 +268,7 @@ async function dropSign() {
   const p = Math.min(0.97, DISAPPOINT[sign.level] + (trueRandom() - 0.5) * 0.06);
   S.claims.push(`${Math.round(p * 100)}% 会失望`);
   gloss(`${sign.level}签，我猜你 ${Math.round(p * 100)}% 会失望`, { alarm: p > 0.6 });
+  if (lastVisit?.no === sign.no) gloss('又是这支签。我记得');
   if (sign.el === S.branch.el) gloss(`这支签属${sign.el}，我替你加过分`);
 }
 
@@ -514,6 +526,9 @@ function renderConfess() {
     items.push(`我说的${S.claims.map((c) => `“${c}”`).join('、')}，都是随口编的。数字一出口，你就信了几分。`);
   }
   if (S.sign) items.push(`至于这支签：${S.sign.machine}`);
+  if (lastVisit) {
+    items.push(`${daysAgo(lastVisit.at)}你来过，抽到“${lastVisit.name}”，得了“${lastVisit.ending}”。你以为关掉页面我就忘了——我一直记得。`);
+  }
   $('confess-box').hidden = !items.length;
   $('confess').replaceChildren(...items.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
 }
@@ -576,6 +591,10 @@ async function finish() {
   renderConfess();
 
   renderLedger(totalMs, who, conf, seed);
+  if (S.sign) {
+    lastVisit = { no: S.sign.no, name: S.sign.name, ending: ending.name, at: new Date().toISOString() };
+    store.set('stj-last', lastVisit);
+  }
   const got = new Set(store.get('stj-endings', []));
   got.add(endKey);
   store.set('stj-endings', [...got]);
