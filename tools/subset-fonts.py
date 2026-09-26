@@ -115,7 +115,7 @@ def main():
     css += FACE.format(family='Noto Serif SC', weight=400, file='noto-serif-sc-400-extra.woff2',
                        range=f'\n  unicode-range: {unicode_range(extra)};')
     css += FACE.format(family='Noto Serif SC', weight=600, file='noto-serif-sc-600.woff2', range='')
-    (PUBLIC / 'css' / 'fonts.css').write_text(css, encoding='utf-8')
+    (PUBLIC / 'css' / 'fonts.css').write_text(css, encoding='utf-8', newline='')
     print(f'fonts.css: {len(css) / 1024:.0f} KB')
 
 
