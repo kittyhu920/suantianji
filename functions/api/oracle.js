@@ -1,16 +1,18 @@
 // 通灵模式：Pages Function + Workers AI binding（无需外部 API Key）
-// 前端 12 秒超时后自动回落离线判词，所以这里失败只需返回错误码。
+// 前端 25 秒超时后自动回落离线解签，所以这里失败只需返回错误码。
 
 // 均为 Workers Free 计划可用的模型；前一个失败时依次尝试下一个
 const MODELS = ['@cf/zai-org/glm-4.7-flash', '@cf/google/gemma-4-26b-a4b-it'];
 
-const SYSTEM = `你是一位通晓《周易》与唐宋诗词的老先生，同时是一名冷静的算法社会学者。
-你要为一场“被算法旁观的求签问卦”写一段批注。
+const SYSTEM = `你是庙里一位和气的解签师父，说话像跟晚辈聊天，只用大白话。
+你要为刚求完签的人解这支签。
 要求：
-1. 先写两句七言古雅批语，扣住所得签名、卦名与所问领域；
-2. 再用一两句现代白话，点出这次问卦与推荐算法、数据画像之间的相似之处，语气克制，不说教；
-3. 全文 60 至 110 字，不用 Markdown，不用引号括起全文；
-4. 不做具体的医疗、投资、法律判断，不预言灾祸，不评价玩家的人格。`;
+1. 先用一两句话说这支签在讲什么，可以参考给出的解曰和大意，但要用自己的话说；
+2. 对方写了“心中所问”，就直接回答这个问题，结合签意给出具体、做得到的建议；没写，就按所问领域给建议；
+3. 要交代掷筊的结果：三杯圣杯，说明这支签作数；出现阴杯，说明神明不允，这支签只作参考，主意要自己拿；没掷完，就说签还未定；
+4. 最后只用一句话轻轻点出：这一路上你的犹豫和选择，也被机器记了下来。不说教；
+5. 全文 100 至 180 字，不用文言，不用 Markdown，不分点；
+6. 不做具体的医疗、投资、法律判断，涉及身体或心理的问题要建议找专业人士；不预言灾祸，不评价对方的人格。`;
 
 const clip = (s, n) => String(s ?? '').replace(/[\r\n]+/g, ' ').slice(0, n);
 
@@ -59,13 +61,17 @@ export async function onRequestPost({ request, env }) {
   }
 
   const sign = body.sign
-    ? `签「${clip(body.sign.name, 8)}」（${clip(body.sign.level, 4)}），签诗：${(body.sign.poem || []).map((l) => clip(l, 9)).join('，')}`
+    ? [
+        `签「${clip(body.sign.name, 8)}」（${clip(body.sign.level, 4)}），签诗：${(body.sign.poem || []).map((l) => clip(l, 9)).join('，')}`,
+        `解曰：${clip(body.sign.jie, 60)}`,
+        `大意：${clip(body.sign.bai, 80)}`,
+      ].join('\n')
     : '未得签';
   const user = [
     `所问领域：${clip(body.domain, 6) || '未选'}`,
     `心中所问：${clip(body.question, 40) || '（未写）'}`,
     sign,
-    `卦：${clip(body.ben, 6) || '未成'} → ${clip(body.zhi, 6) || '未成'}`,
+    `掷筊：${clip(body.cups, 12) || '未掷'}（${clip(body.verdict, 20)}）`,
     `结局：${clip(body.ending, 4)}`,
     `系统画像：${clip(body.persona, 6)}`,
   ].join('\n');
@@ -86,7 +92,7 @@ export async function onRequestPost({ request, env }) {
       });
       const raw = out?.response ?? out?.choices?.[0]?.message?.content ?? '';
       const text = String(raw).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-      if (text) return Response.json({ text: text.slice(0, 400), model });
+      if (text) return Response.json({ text: text.slice(0, 500), model });
       lastError = `${model}: empty ${JSON.stringify(out).slice(0, 300)}`;
     } catch (err) {
       lastError = `${model}: ${String(err?.message || err).slice(0, 160)}`;
