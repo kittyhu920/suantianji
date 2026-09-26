@@ -627,6 +627,31 @@ button { font: inherit; color: inherit; }
 .ending-sub { margin: 0; font-size: 14px; letter-spacing: .4em; color: var(--gold-soft); }
 .ending-lead { margin: 0; font-size: 16px; }
 .poem-end { font-size: 18px; }
+.confess {
+  width: 100%;
+  max-width: 21em;
+  text-align: left;
+}
+.confess h3 {
+  margin: 0 0 8px;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: .1em;
+}
+.confess ul { margin: 0; padding: 0 0 0 1.1em; display: flex; flex-direction: column; gap: 8px; }
+.confess li { font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
+.confess li::marker { color: var(--cinnabar-hi); }
+.loom-legend { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--gold-dim); text-align: left; }
+.loom-legend span { color: var(--cinnabar-hi); }
+.about-link {
+  font-size: 13px;
+  color: var(--gold-soft);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--gold-faint);
+}
+.about-link:hover { color: var(--gold); }
 .critique {
   margin: 0;
   max-width: 21em;
@@ -772,4 +797,30 @@ button { font: inherit; color: inherit; }
     transition-duration: .01ms !important;
   }
   .seal-doubt { opacity: .7; }
+}
+
+/* ───────── 关于页 ───────── */
+.screen-about { padding: 28px 28px 40px; text-align: left; align-items: stretch; }
+.screen-about .h-brush { text-align: center; }
+.about-lead {
+  margin: 0;
+  text-align: center;
+  font-family: var(--f-brush);
+  font-size: 20px;
+  line-height: 1.6;
+}
+.screen-about section { display: flex; flex-direction: column; gap: 8px; }
+.screen-about h2 {
+  margin: 8px 0 0;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: .1em;
+}
+.screen-about p, .screen-about li { margin: 0; font-size: 15px; line-height: 1.85; color: var(--paper-ink); }
+.screen-about ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.screen-about li b { color: var(--gold); font-weight: 600; margin-right: .4em; }
+.about-back { align-self: center; margin-top: 12px; text-decoration: none; display: inline-flex; align-items: center; }
+@media (max-width: 520px) {
+  .screen-about { padding: 20px 16px 30px; }
 }
