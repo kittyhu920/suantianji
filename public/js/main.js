@@ -107,9 +107,9 @@ function bootTitle() {
   const visits = store.get('stj-visits', 0) + 1;
   store.set('stj-visits', visits);
   const coarse = matchMedia('(pointer: coarse)').matches;
-  gloss('观测开始');
-  gloss(`来访：${coarse ? '移动端，触屏' : '桌面端，鼠标'}`);
-  if (visits > 1) gloss(`回访者，第 ${visits} 次`);
+  gloss('我开始留意你了');
+  gloss(`你用的是${coarse ? '手机' : '电脑'}`);
+  if (visits > 1) gloss(`你第 ${visits} 次来找我了`);
 }
 
 $('btn-enter').addEventListener('click', () => {
@@ -135,8 +135,8 @@ function enterDing() {
   const mm = String(S.clock.getMinutes()).padStart(2, '0');
   const from = (db.branches.indexOf(S.branch) * 2 + 23) % 24;
   $('shichen').innerHTML = `现在是<b>${zhi}时</b>（${from}–${(from + 2) % 24} 点），五行属${el}`;
-  gloss(`已取时辰：${zhi}时（设备时钟 ${hh}:${mm}）`);
-  gloss(`五行偏${el}，签池已加权`);
+  gloss(`我看了你的时间：${zhi}时 ${hh}:${mm}`);
+  gloss(`我按时辰动了签筒的概率`);
 
   const slips = $('slips');
   slips.replaceChildren();
@@ -161,7 +161,7 @@ function pickDomain(key) {
   $('slips').querySelectorAll('.slip').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.key === key)));
   $('btn-ding').disabled = false;
   const d = db.domains[key];
-  gloss(`所问：${d.name}，${d.persona}，择题 ${sec(S.pickMs)} 秒`);
+  gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒，${d.persona}`);
 }
 
 function questionMood(q) {
@@ -172,7 +172,7 @@ function questionMood(q) {
 
 $('btn-ding').addEventListener('click', () => {
   S.question = $('ask').value.trim().slice(0, 40);
-  if (S.question) gloss(`心中所问 ${[...S.question].length} 字，情绪：${questionMood(S.question)}`);
+  if (S.question) gloss(`你写了 ${[...S.question].length} 个字，我读出了${questionMood(S.question)}`);
   sfx.bronze(392, 1.6, 0.12);
   enterQian();
 });
@@ -242,7 +242,7 @@ const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71
 async function dropSign() {
   const sign = pickSign();
   S.sign = sign;
-  gloss(`摇签 ${sec(S.shakeMs)} 秒，尝试 ${S.shakeTries} 次`);
+  gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
   $('fallen-no').textContent = `第${CN_NUM[sign.no]}签`;
   $('fallen').classList.add('is-falling');
   tube.classList.add('is-done');
@@ -253,8 +253,8 @@ async function dropSign() {
   $('tube-wrap').hidden = true;
   $('qian-note').textContent = '';
   const p = Math.min(0.97, DISAPPOINT[sign.level] + (trueRandom() - 0.5) * 0.06);
-  gloss(`得签：${sign.level}，预计失望概率 ${p.toFixed(2)}`, { alarm: p > 0.6 });
-  if (sign.el === S.branch.el) gloss(`此签与时辰同属${sign.el}，命中加权`);
+  gloss(`${sign.level}签，我猜你 ${Math.round(p * 100)}% 会失望`, { alarm: p > 0.6 });
+  if (sign.el === S.branch.el) gloss(`这支签属${sign.el}，我替你加过分`);
 }
 
 function renderSign(sign) {
@@ -335,7 +335,7 @@ function renderCups() {
     const cup = S.cups[i] || (i === S.cups.length ? S.pending : null);
     const kind = cup?.kind;
     li.className = `cup ${S.cups[i] ? 'is-set' : cup ? 'is-pending' : ''} ${kind ? `is-${kind}` : ''}`;
-    li.innerHTML = `<span class="cup-tag">${i === 0 ? '机器代掷' : '你来掷'}</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
+    li.innerHTML = `<span class="cup-tag">${i === 0 ? '我替你掷' : '你来掷'}</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
     list.append(li);
   }
 }
@@ -375,9 +375,9 @@ async function enterJiao() {
   [...$('jiao-labels').children].forEach((l) => { l.textContent = ''; });
   renderCups();
   ['btn-throw', 'btn-accept', 'btn-reroll'].forEach((id) => { $(id).hidden = true; });
-  $('jiao-note').textContent = '第一次由机器根据你刚才的表现替你掷。';
+  $('jiao-note').textContent = '第一次，我照你刚才的样子替你掷。';
   $('jiao-result').textContent = '';
-  gloss('第一杯由模型代掷，依画像预测');
+  gloss('第一杯我替你掷，照我对你的了解');
 
   const cup = modelJiao();
   await tossJiao(cup, 900);
@@ -386,7 +386,7 @@ async function enterJiao() {
   renderCups();
   $('jiao-result').innerHTML = `第一杯：${CUP_DESC.sheng}`;
   await sleep(700);
-  gloss(`第一杯已成，预测置信 ${(0.8 + trueRandom() * 0.15).toFixed(2)}`);
+  gloss(`我有 ${Math.round((0.8 + trueRandom() * 0.15) * 100)}% 的把握猜中你`);
   $('jiao-note').textContent = '第二、三次由你自己掷。对结果不满意，可以点“不服，再掷”。';
   readyToThrow();
 }
@@ -409,7 +409,7 @@ async function playerThrow({ reroll = false, again = false } = {}) {
     [...$('jiao-labels').children].forEach((l) => { l.textContent = ''; });
     const h = performance.now() - S.readyAt;
     S.hesitations.push(h);
-    gloss(`${CUP_LABELS[idx]}，迟疑 ${sec(h)} 秒`);
+    gloss(`${CUP_LABELS[idx]}，你犹豫了 ${sec(h)} 秒`);
   }
   touch();
   ['btn-throw', 'btn-accept', 'btn-reroll'].forEach((id) => { $(id).disabled = true; });
@@ -423,7 +423,7 @@ async function playerThrow({ reroll = false, again = false } = {}) {
     readyToThrow({ again: true });
     return;
   }
-  if (cup.kind === 'yin') gloss('阴杯，偏离预测', { alarm: true });
+  if (cup.kind === 'yin') gloss('阴杯，和我猜的不一样', { alarm: true });
   $('btn-throw').hidden = true;
   $('btn-accept').hidden = false;
   $('btn-reroll').hidden = false;
@@ -436,8 +436,8 @@ $('btn-throw').addEventListener('click', () => playerThrow({ again: S.pending?.k
 
 $('btn-reroll').addEventListener('click', () => {
   S.rerolls++;
-  gloss(`重掷，标记：不服从 ×${S.rerolls}`, { alarm: true });
-  if (S.rerolls === 3) gloss('画像收敛中……');
+  gloss(`你不服，我记下了 ×${S.rerolls}`, { alarm: true });
+  if (S.rerolls === 3) gloss('我越来越懂你了……');
   revealDoubt();
   playerThrow({ reroll: true });
 });
@@ -460,8 +460,8 @@ $('btn-doubt').addEventListener('click', async () => {
   S.doubt = true;
   $('btn-doubt').hidden = true;
   $('huaxin').classList.add('is-broken');
-  gloss('观测中断', { alarm: true });
-  gloss('对象拒绝被预测');
+  gloss('你打断了我', { alarm: true });
+  gloss('你不想被我算');
   sfx.bronze(220, 2.6, 0.16);
   await sleep(1600);
   $('huaxin').classList.remove('is-broken');
@@ -537,7 +537,7 @@ async function finish() {
   };
   const seed = hashString(JSON.stringify(ledgerData)) % 4294967296;
 
-  gloss(`画像：${who}，置信 ${conf.toFixed(2)}`);
+  gloss(`你是${who}，把握 ${Math.round(conf * 100)}%`);
   show('end');
   $('btn-doubt').hidden = true;
 
@@ -589,7 +589,7 @@ function renderLedger(totalMs, who, conf, seed) {
     ['静止超过八秒', `${S.idle} 次`],
     ['离开页面', `${S.hidden} 次`],
     ['总用时', `${Math.floor(totalMs / 60000)} 分 ${Math.round((totalMs % 60000) / 1000)} 秒`],
-    ['机器给你的画像', `${who}，置信 ${conf.toFixed(2)}`],
+    ['我给你的画像', `${who}，置信 ${conf.toFixed(2)}`],
     ['图的编号', seed.toString(16).padStart(8, '0')],
   ];
   $('ledger').replaceChildren(...rows.flatMap(([k, v]) => [
@@ -617,7 +617,7 @@ async function askOracle(endKey, who) {
   box.hidden = false;
   box.classList.add('is-loading');
   p.textContent = 'AI 正在帮你解签……';
-  gloss('上传画像至云端');
+  gloss('我把你的画像送去了云端');
   S.oracleSent = !!S.question;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 25000); // 白话解签较长，云端偶尔要十几秒
@@ -639,10 +639,10 @@ async function askOracle(endKey, who) {
     const data = await res.json();
     if (!data.text) throw new Error('empty');
     p.textContent = data.text;
-    gloss('云端判词已返回');
+    gloss('云端回话了');
   } catch {
     p.textContent = 'AI 暂时没有回应。上面的解签就是这次的结果。';
-    gloss('通灵失败，回落离线判词');
+    gloss('云端没回话，以我的为准');
   } finally {
     clearTimeout(timer);
     box.classList.remove('is-loading');
@@ -660,7 +660,7 @@ $('btn-again').addEventListener('click', () => {
   const visits = store.get('stj-visits', 0) + 1;
   store.set('stj-visits', visits);
   S = freshState();
-  gloss(`再问，第 ${visits} 次`);
+  gloss(`你又来问了，第 ${visits} 次`);
   enterDing();
 });
 
@@ -673,7 +673,7 @@ document.addEventListener('visibilitychange', () => {
   if (!S || S.screen === 'title' || S.finished) return;
   if (document.visibilityState === 'visible') {
     S.hidden++;
-    gloss('离开页面，已记录');
+    gloss('你走开了一会儿，我记下了');
   }
 });
 
@@ -683,7 +683,7 @@ setInterval(() => {
   if (performance.now() - S.lastActive > 8000) {
     S.idleFlagged = true;
     S.idle++;
-    gloss('静止八秒，记为迟疑');
+    gloss('你停了八秒，我记为犹豫');
     revealDoubt();
   }
 }, 1000);
