@@ -133,7 +133,8 @@ function enterDing() {
   const { zhi, el } = S.branch;
   const hh = String(S.clock.getHours()).padStart(2, '0');
   const mm = String(S.clock.getMinutes()).padStart(2, '0');
-  $('shichen').innerHTML = `此刻 <b>${zhi}时</b>，${db.elements[el]}`;
+  const from = (db.branches.indexOf(S.branch) * 2 + 23) % 24;
+  $('shichen').innerHTML = `现在是<b>${zhi}时</b>（${from}–${(from + 2) % 24} 点），五行属${el}`;
   gloss(`已取时辰：${zhi}时（设备时钟 ${hh}:${mm}）`);
   gloss(`五行偏${el}，签池已加权`);
 
@@ -188,7 +189,7 @@ function enterQian() {
   tube.classList.remove('is-done', 'is-shaking');
   $('fallen').classList.remove('is-falling');
   $('sign').hidden = true;
-  $('qian-note').textContent = '按住签筒摇动，松手落签。';
+  $('qian-note').textContent = '按住签筒摇一摇，松手就会掉出一支签。手机也可以直接晃。';
   $('tube-wrap').hidden = false;
 }
 
@@ -218,7 +219,7 @@ function endShake() {
   S.shakeTries += 1;
   touch();
   if (dur < 900) {
-    $('qian-note').textContent = '再摇久一些，签才会出来。';
+    $('qian-note').textContent = '再多摇一会儿，签才会掉出来。';
     return;
   }
   dropSign();
@@ -262,6 +263,7 @@ function renderSign(sign) {
   const lv = $('sign-level');
   lv.textContent = sign.level;
   lv.dataset.tone = db.levels[sign.level];
+  $('sign-bai').textContent = sign.bai;
   $('sign-poem').replaceChildren(...sign.poem.map((l) => Object.assign(document.createElement('span'), { textContent: l })));
   $('sign').hidden = false;
 }
@@ -333,7 +335,7 @@ function renderCups() {
     const cup = S.cups[i] || (i === S.cups.length ? S.pending : null);
     const kind = cup?.kind;
     li.className = `cup ${S.cups[i] ? 'is-set' : cup ? 'is-pending' : ''} ${kind ? `is-${kind}` : ''}`;
-    li.innerHTML = `<span class="cup-tag">${i === 0 ? '模型' : '你'}</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
+    li.innerHTML = `<span class="cup-tag">${i === 0 ? '机器代掷' : '你来掷'}</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
     list.append(li);
   }
 }
@@ -355,12 +357,13 @@ async function tossJiao(res, dur = 1250) {
   });
   await sleep(dur + 120);
   sfx.thud();
+  [...$('jiao-labels').children].forEach((l, i) => { l.textContent = res.flat[i] ? '平面朝上' : '凸面朝上'; });
 }
 
 const CUP_DESC = {
-  sheng: '一平一凸，圣杯：神明应允。',
-  xiao: '两平朝上，笑杯：神明笑而不答，再掷此杯。',
-  yin: '两凸朝上，<em>阴杯</em>：神明不允此签。',
+  sheng: '一平一凸，是圣杯：神明同意。',
+  xiao: '两面都平，是笑杯：神明没说清，再掷一次。',
+  yin: '两面都凸，是<em>阴杯</em>：神明不同意这支签。',
 };
 
 async function enterJiao() {
@@ -369,9 +372,10 @@ async function enterJiao() {
   S.throws = [];
   S.pending = null;
   buildJiao();
+  [...$('jiao-labels').children].forEach((l) => { l.textContent = ''; });
   renderCups();
   ['btn-throw', 'btn-accept', 'btn-reroll'].forEach((id) => { $(id).hidden = true; });
-  $('jiao-note').textContent = '第一杯，由模型依你的画像代掷。';
+  $('jiao-note').textContent = '第一次由机器根据你刚才的表现替你掷。';
   $('jiao-result').textContent = '';
   gloss('第一杯由模型代掷，依画像预测');
 
@@ -383,14 +387,14 @@ async function enterJiao() {
   $('jiao-result').innerHTML = `第一杯：${CUP_DESC.sheng}`;
   await sleep(700);
   gloss(`第一杯已成，预测置信 ${(0.8 + trueRandom() * 0.15).toFixed(2)}`);
-  $('jiao-note').textContent = '第二、三杯由你亲掷。每一杯都可以不服，再掷。';
+  $('jiao-note').textContent = '第二、三次由你自己掷。对结果不满意，可以点“不服，再掷”。';
   readyToThrow();
 }
 
 function readyToThrow({ again = false } = {}) {
   S.readyAt = performance.now();
   touch();
-  $('btn-throw').textContent = again ? '再掷此杯' : '掷';
+  $('btn-throw').textContent = again ? '再掷一次' : '掷筊';
   $('btn-throw').hidden = false;
   $('btn-throw').disabled = false;
   $('btn-accept').hidden = true;
@@ -402,6 +406,7 @@ function readyToThrow({ again = false } = {}) {
 async function playerThrow({ reroll = false, again = false } = {}) {
   const idx = S.cups.length;
   if (!reroll && !again) {
+    [...$('jiao-labels').children].forEach((l) => { l.textContent = ''; });
     const h = performance.now() - S.readyAt;
     S.hesitations.push(h);
     gloss(`${CUP_LABELS[idx]}，迟疑 ${sec(h)} 秒`);
@@ -481,9 +486,9 @@ function decideEnding() {
 
 // 这支签作不作数
 function signState() {
-  if (S.cups.some((c) => c.kind === 'yin')) return { key: 'no', text: '神明不允，此签不作数，仅作参考' };
-  if (S.cups.length === 3) return { key: 'yes', text: '三杯圣杯，此签作数' };
-  return { key: 'open', text: S.cups.length ? `你在${CUP_LABELS[S.cups.length]}前停下，此签未定` : '筊未掷，此签未定' };
+  if (S.cups.some((c) => c.kind === 'yin')) return { key: 'no', text: '掷出了阴杯：神明不同意，这支签只能当参考。' };
+  if (S.cups.length === 3) return { key: 'yes', text: '三次都是圣杯：这支签算数。' };
+  return { key: 'open', text: S.cups.length ? `你在${CUP_LABELS[S.cups.length]}前停下了，这支签还没定。` : '还没掷筊，这支签还没定。' };
 }
 
 // 每一杯的全部掷法，例如"圣 / 笑→阴→圣 / 圣"
@@ -505,9 +510,8 @@ function renderJieqian(state) {
   $('jq-name').textContent = `第${CN_NUM[sign.no]}签　${sign.name}`;
   $('jq-level').textContent = sign.level;
   $('jq-level').dataset.tone = db.levels[sign.level];
-  $('jq-jie').textContent = sign.jie;
   $('jq-bai').textContent = sign.bai;
-  $('jq-advice-h').textContent = `问${d.name}`;
+  $('jq-advice-h').textContent = `关于${d.desc}`;
   $('jq-advice').textContent = sign.advice[S.domain];
 }
 
@@ -541,7 +545,7 @@ async function finish() {
   renderJieqian(state);
   $('cups-pair').innerHTML = S.cups.length
     ? S.cups.map((c) => CUP_NAMES[c.kind]).join(' · ')
-    : `筊未掷<small>${S.sign ? '签已落，筊未掷' : '签未落'}</small>`;
+    : `还没掷筊<small>${S.sign ? '签已抽出，但没有掷筊' : '还没抽签'}</small>`;
 
   // 结局
   $('e-seal').textContent = ending.name[0];
@@ -560,8 +564,8 @@ async function finish() {
   // 命盘
   const fields = Object.keys(ledgerData).length;
   $('loom-cap').textContent = S.throws.length
-    ? `此锦由你的 ${fields} 项行为数据织成，种子 ${seed.toString(16).padStart(8, '0')}`
-    : '一杯未掷，无丝可织。空白，也是一种回答。';
+    ? `这幅图由你刚才的 ${fields} 项操作数据生成，每个人都不一样。编号 ${seed.toString(16).padStart(8, '0')}`
+    : '一次也没掷，所以什么也没织出来。空白，也是一种回答。';
   weave($('loom'), { seed, throws: S.throws, reduced: reducedMotion });
 
   sfx.bronze(262, 3.2, 0.16);
@@ -574,19 +578,19 @@ function renderLedger(totalMs, who, conf, seed) {
   const rows = [
     ['来访时辰', `${S.branch.zhi}时（设备时钟 ${S.clock.toTimeString().slice(0, 5)}）`],
     ['设备', matchMedia('(pointer: coarse)').matches ? '移动端，触屏' : '桌面端，鼠标'],
-    ['所问', S.domain ? db.domains[S.domain].name : '未选'],
-    ['心中所问', S.question ? `${[...S.question].length} 字${S.oracleSent ? '，已发给云端模型' : '，原文未离开设备'}` : '未写'],
-    ['择题用时', S.pickMs != null ? `${sec(S.pickMs)} 秒` : '—'],
+    ['问的方向', S.domain ? db.domains[S.domain].name : '未选'],
+    ['你写的问题', S.question ? `${[...S.question].length} 字${S.oracleSent ? '，已发给云端模型' : '，原文未离开设备'}` : '未写'],
+    ['选方向用时', S.pickMs != null ? `${sec(S.pickMs)} 秒` : '—'],
     ['摇签', S.shakeTries ? `${sec(S.shakeMs)} 秒，${S.shakeTries} 次` : '—'],
     ['得签', S.sign ? `第${CN_NUM[S.sign.no]}签 ${S.sign.name}（${S.sign.level}）` : '—'],
-    ['亲掷前迟疑', h.length ? h.map((x) => sec(x)).join(' / ') + ' 秒' : '—'],
+    ['每次掷前犹豫', h.length ? h.map((x) => sec(x)).join(' / ') + ' 秒' : '—'],
     ['重掷', `${S.rerolls} 次`],
     ['掷筊', S.throws.length ? cupsRecord() : '—'],
     ['静止超过八秒', `${S.idle} 次`],
     ['离开页面', `${S.hidden} 次`],
     ['总用时', `${Math.floor(totalMs / 60000)} 分 ${Math.round((totalMs % 60000) / 1000)} 秒`],
-    ['画像', `${who}，置信 ${conf.toFixed(2)}`],
-    ['命盘种子', seed.toString(16).padStart(8, '0')],
+    ['机器给你的画像', `${who}，置信 ${conf.toFixed(2)}`],
+    ['图的编号', seed.toString(16).padStart(8, '0')],
   ];
   $('ledger').replaceChildren(...rows.flatMap(([k, v]) => [
     Object.assign(document.createElement('dt'), { textContent: k }),
@@ -602,7 +606,7 @@ function renderEndings(got, current) {
     const li = document.createElement('li');
     li.className = `${has ? '' : 'is-locked'} ${key === current ? 'is-current' : ''}`;
     li.innerHTML = `<span class="seal" aria-hidden="true"><span>${e.name[0]}</span></span>
-      <span><b>${e.name}·${e.sub}</b>${has ? (key === current ? '本局' : '已得') : e.hint}</span>`;
+      <span><b>${e.name}·${e.sub}</b>${has ? (key === current ? '这一次' : '得到过') : e.hint}</span>`;
     list.append(li);
   }
 }
@@ -612,7 +616,7 @@ async function askOracle(endKey, who) {
   const p = $('oracle-text');
   box.hidden = false;
   box.classList.add('is-loading');
-  p.textContent = '通灵中……';
+  p.textContent = 'AI 正在帮你解签……';
   gloss('上传画像至云端');
   S.oracleSent = !!S.question;
   const ctrl = new AbortController();
@@ -637,7 +641,7 @@ async function askOracle(endKey, who) {
     p.textContent = data.text;
     gloss('云端判词已返回');
   } catch {
-    p.textContent = '云端未应。以上解签即为本局之断。';
+    p.textContent = 'AI 暂时没有回应。上面的解签就是这次的结果。';
     gloss('通灵失败，回落离线判词');
   } finally {
     clearTimeout(timer);
@@ -648,7 +652,7 @@ async function askOracle(endKey, who) {
 
 function renderLedgerQuestionRow() {
   const dts = [...$('ledger').querySelectorAll('dt')];
-  const dt = dts.find((d) => d.textContent === '心中所问');
+  const dt = dts.find((d) => d.textContent === '你写的问题');
   if (dt) dt.nextElementSibling.textContent = `${[...S.question].length} 字，已发给云端模型`;
 }
 
