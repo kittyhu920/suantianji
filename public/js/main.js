@@ -2,6 +2,7 @@ import { castJiao, modelJiao, CUP_NAMES, CUP_SHORT, CUP_LABELS } from './jiao.js
 import { hashString, trueRandom } from './rng.js';
 import { weave } from './loom.js';
 import { drawPoster } from './poster.js';
+import { createQian } from './qian.js';
 import * as sfx from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -191,52 +192,48 @@ $('btn-ding').addEventListener('click', () => {
   enterQian();
 });
 
-/* ───────── 摇签 ───────── */
+/* ───────── 摇签：仿真签筒 + 摇动控制（docs/DESIGN.md） ───────── */
 const tube = $('tube');
-let shaking = false;
-let shakeStart = 0;
-let clackTimer = 0;
-let autoDrop = 0;
+const hasMotion = typeof DeviceMotionEvent !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+const qian = createQian($('qian-svg'), {
+  sfx,
+  reduced: reducedMotion,
+  onRelease: () => {
+    const sign = pickSign();
+    S.sign = sign;
+    return signNo(sign);
+  },
+  onLanded: ({ activeMs }) => {
+    S.shakeMs = activeMs;
+    signLanded();
+  },
+});
+let holding = false;
+if (location.search.includes('debug')) window.__qian = qian; // 调试：面板隐藏时 rAF 暂停，可手动 step()
 
 function enterQian() {
   show('qian');
-  tube.classList.remove('is-done', 'is-shaking');
-  $('fallen').classList.remove('is-falling');
+  qian.reset();
+  qian.start();
   $('sign').hidden = true;
-  $('qian-note').textContent = '按住签筒摇一摇，松手就会掉出一支签。手机也可以直接晃。';
+  $('qian-note').textContent = hasMotion
+    ? '拿起手机晃一晃，签会自己跳出来。也可以按住签筒左右拖。'
+    : '按住签筒左右拖着摇；只按住不动，它也会自己轻轻摇。';
   $('tube-wrap').hidden = false;
 }
 
-function startShake() {
-  if (shaking || S.sign) return;
-  touch();
-  shaking = true;
-  shakeStart = performance.now();
-  tube.classList.add('is-shaking');
-  const loop = () => {
-    if (!shaking) return;
-    sfx.clack(0.5 + Math.random() * 0.5);
-    clackTimer = setTimeout(loop, 45 + Math.random() * 90);
-  };
-  loop();
-  autoDrop = setTimeout(endShake, 4500);
-}
-
-function endShake() {
-  if (!shaking) return;
-  shaking = false;
-  clearTimeout(clackTimer);
-  clearTimeout(autoDrop);
-  tube.classList.remove('is-shaking');
-  const dur = performance.now() - shakeStart;
-  S.shakeMs += dur;
+function holdStart(clientX) {
+  if (holding || S.sign) return;
+  if (!qian.press(clientX)) return;
+  holding = true;
   S.shakeTries += 1;
   touch();
-  if (dur < 900) {
-    $('qian-note').textContent = '再多摇一会儿，签才会掉出来。';
-    return;
-  }
-  dropSign();
+}
+function holdEnd() {
+  if (!holding) return;
+  holding = false;
+  qian.release();
+  touch();
 }
 
 function pickSign() {
@@ -260,16 +257,10 @@ const signNo = (sign) => (sign.no ? `第${CN_NUM[sign.no]}签` : '签头');
 const signFull = (sign) => [signNo(sign), sign.gz, sign.nayin].filter(Boolean).join(' · ');
 const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71, '下下': 0.89 };
 
-async function dropSign() {
-  const sign = pickSign();
-  S.sign = sign;
+async function signLanded() {
+  const sign = S.sign;
+  qian.stop();
   gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
-  $('fallen-no').textContent = signNo(sign);
-  $('fallen').classList.add('is-falling');
-  tube.classList.add('is-done');
-  await sleep(1100);
-  sfx.thud();
-  await sleep(500);
   renderSign(sign);
   $('tube-wrap').hidden = true;
   $('qian-note').textContent = '';
@@ -295,21 +286,23 @@ tube.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   tube.setPointerCapture?.(e.pointerId);
   requestMotion();
-  startShake();
+  holdStart(e.clientX);
 });
-tube.addEventListener('pointerup', endShake);
-tube.addEventListener('pointercancel', endShake);
+tube.addEventListener('pointermove', (e) => { if (holding) qian.move(e.clientX); });
+tube.addEventListener('pointerup', holdEnd);
+tube.addEventListener('pointercancel', holdEnd);
 tube.addEventListener('contextmenu', (e) => e.preventDefault());
+// 键盘：按住空格或回车，等同于按住不动
 tube.addEventListener('keydown', (e) => {
-  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); startShake(); }
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); holdStart(null); }
 });
 tube.addEventListener('keyup', (e) => {
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); endShake(); }
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); holdEnd(); }
 });
 
 // 手机晃动：iOS 需要在手势内申请权限
 let motionAsked = false;
-let motionQuiet = 0;
+let motionBurst = 0;
 function requestMotion() {
   if (motionAsked || typeof DeviceMotionEvent === 'undefined') return;
   motionAsked = true;
@@ -319,17 +312,16 @@ function requestMotion() {
   } else listen();
 }
 function onMotion(e) {
-  if (S.screen !== 'qian' || S.sign) return;
-  const a = e.acceleration || e.accelerationIncludingGravity;
-  if (!a) return;
-  const mag = Math.hypot(a.x || 0, a.y || 0, a.z || 0);
-  const threshold = e.acceleration ? 12 : 22;
-  if (mag > threshold) {
-    startShake();
-    clearTimeout(motionQuiet);
-    motionQuiet = setTimeout(endShake, 450);
-  }
+  if (!S || S.screen !== 'qian' || S.sign) return;
+  qian.motion(e);
+  // 一阵晃动记为一次尝试
+  const was = motionBurst > 0;
+  motionBurst = qian.active ? 30 : Math.max(0, motionBurst - 1);
+  if (!was && motionBurst > 0 && !holding) { S.shakeTries += 1; touch(); }
+  if (qian.active) touch();
 }
+// 安卓等无需授权的设备，进入页面就开始监听晃动
+if (hasMotion && typeof DeviceMotionEvent.requestPermission !== 'function') requestMotion();
 
 $('btn-to-jiao').addEventListener('click', enterJiao);
 
@@ -811,7 +803,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 setInterval(() => {
-  if (!S || S.finished || S.idleFlagged || shaking) return;
+  if (!S || S.finished || S.idleFlagged || holding || (S.screen === 'qian' && qian.active)) return;
   if (!['ding', 'qian', 'jiao'].includes(S.screen)) return;
   if (performance.now() - S.lastActive > 8000) {
     S.idleFlagged = true;

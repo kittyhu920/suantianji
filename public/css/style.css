@@ -305,8 +305,8 @@ button { font: inherit; color: inherit; }
 .ask input::placeholder { color: rgba(197,160,89,.3); }
 .ask input:focus { outline: none; border-bottom-color: var(--gold); }
 
-/* ───────── 摇签 ───────── */
-.tube-wrap { position: relative; width: 180px; height: 290px; margin-top: 4px; }
+/* ───────── 摇签：仿真签筒（js/qian.js） ───────── */
+.tube-wrap { width: min(300px, 100%); aspect-ratio: 320 / 440; margin-top: 4px; }
 .tube {
   width: 100%; height: 100%;
   padding: 0; border: 0; background: none;
@@ -315,55 +315,9 @@ button { font: inherit; color: inherit; }
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  transform-origin: 50% 90%;
 }
-.tube svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .tube:active { cursor: grabbing; }
-.tube.is-shaking { animation: shake .16s linear infinite; }
-.tube.is-shaking .stick { animation: rattle .12s linear infinite; }
-.tube.is-shaking .stick:nth-child(2n) { animation-duration: .09s; animation-direction: reverse; }
-.tube.is-shaking .stick:nth-child(3n) { animation-duration: .14s; }
-@keyframes shake {
-  0% { transform: rotate(-6deg) translateY(0); }
-  25% { transform: rotate(4deg) translateY(-4px); }
-  50% { transform: rotate(7deg) translateY(1px); }
-  75% { transform: rotate(-3deg) translateY(-3px); }
-  100% { transform: rotate(-6deg) translateY(0); }
-}
-@keyframes rattle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
-}
-.tube.is-done { opacity: .35; transition: opacity .8s; pointer-events: none; }
-
-.fallen {
-  position: absolute;
-  left: 50%; top: 0;
-  width: 18px; height: 150px;
-  margin-left: -9px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #8c7240, #e0c585 50%, #7a6236);
-  box-shadow: 0 6px 14px rgba(0,0,0,.45);
-  display: none;
-  align-items: flex-start; justify-content: center;
-}
-.fallen span {
-  writing-mode: vertical-rl;
-  margin-top: 12px;
-  font-family: var(--f-brush);
-  font-size: 13px;
-  color: var(--cinnabar);
-}
-.fallen.is-falling {
-  display: flex;
-  animation: fall 1.3s var(--ease-out) forwards;
-}
-@keyframes fall {
-  0%   { transform: translateY(40px) rotate(0); opacity: 0; }
-  15%  { opacity: 1; }
-  40%  { transform: translateY(-70px) rotate(6deg); }
-  100% { transform: translate(64px, 150px) rotate(78deg); }
-}
+.tube svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
 .sign {
   width: 100%;
@@ -789,7 +743,7 @@ button { font: inherit; color: inherit; }
   .seal-doubt { left: 12px; bottom: 12px; }
 }
 @media (max-height: 700px) {
-  .tube-wrap { height: 240px; width: 150px; }
+  .tube-wrap { width: min(240px, 100%); }
   .poem { font-size: 17px; }
 }
 
