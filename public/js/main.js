@@ -250,7 +250,10 @@ function pickSign() {
   return db.signs[db.signs.length - 1];
 }
 
-const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+// 0–39 的中文数字：十一、二十、三十二……
+const DIGITS = '零一二三四五六七八九';
+const CN_NUM = Array.from({ length: 40 }, (_, n) => (n < 10 ? DIGITS[n]
+  : `${n >= 20 ? DIGITS[Math.floor(n / 10)] : ''}十${n % 10 ? DIGITS[n % 10] : ''}`));
 const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71, '下下': 0.89 };
 
 async function dropSign() {
