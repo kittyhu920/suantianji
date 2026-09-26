@@ -7,9 +7,9 @@
 
 import { mulberry32 } from './rng.js';
 
-const GOLD = [197, 160, 89];
-const CINNABAR = [196, 64, 60];
-const INK = [242, 230, 204];
+const GOLD = [27, 23, 18]; // 墨（沿用旧名）
+const CINNABAR = [179, 38, 31];
+const INK = [120, 108, 90]; // 游离的淡墨丝
 
 const smoothstep = (e0, e1, x) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -28,10 +28,10 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
   const g = canvas.getContext('2d');
   const rand = mulberry32(seed);
 
-  // 绀纸底 + 经线
-  g.fillStyle = '#171C24';
+  // 宣纸底 + 经线
+  g.fillStyle = '#efe6d0'; // 宣纸
   g.fillRect(0, 0, W, H);
-  g.strokeStyle = 'rgba(197,160,89,0.035)';
+  g.strokeStyle = 'rgba(179,38,31,0.05)'; // 经线用极淡的朱丝
   g.lineWidth = 1;
   const warp = 5 * dpr;
   for (let x = warp / 2; x < W; x += warp) {
@@ -90,7 +90,7 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
     return [0, 1, 2].map((i) => Math.round(lerp(GOLD[i], CINNABAR[i], t)));
   };
 
-  g.globalCompositeOperation = 'lighter';
+  g.globalCompositeOperation = 'multiply'; // 墨线越密越浓
   g.lineCap = 'round';
   const step = W / 420;
 

@@ -1,4 +1,5 @@
-// 摇签：仿真签筒 + 摇动控制（约束见 docs/DESIGN.md）
+// 摇签：水墨签筒 + 摇动控制（约束见 docs/DESIGN.md：写意的画，真实的动）
+// 运动中的器物不用 SVG 滤镜（每帧重算太卡），笔意靠不规则路径与墨色渐变。
 // 签筒绕筒底转动，倾角由弹簧追随输入；竹签在筒里受力跳动，落回筒底即是一声"叩"；
 // 摇动累积能量，被选中的那支签随能量一点点冒出筒口，满了就飞出去，受重力落地、弹跳、躺平。
 
@@ -35,46 +36,51 @@ const el = (tag, attrs = {}, parent) => {
 function defs(svg) {
   const d = el('defs', {}, svg);
   d.innerHTML = `
-    <linearGradient id="q-lacquer" x1="0" x2="1">
-      <stop offset="0" stop-color="#4a0c09"/><stop offset=".16" stop-color="#8f1f19"/>
-      <stop offset=".3" stop-color="#e0574a"/><stop offset=".42" stop-color="#b52a22"/>
-      <stop offset=".78" stop-color="#7a1813"/><stop offset="1" stop-color="#3a0806"/>
+    <linearGradient id="q-wash" x1="0" x2="1">
+      <stop offset="0" stop-color="#1b1712" stop-opacity=".92"/><stop offset=".18" stop-color="#2e2820" stop-opacity=".62"/>
+      <stop offset=".42" stop-color="#6b6254" stop-opacity=".2"/><stop offset=".62" stop-color="#8a8070" stop-opacity=".1"/>
+      <stop offset=".86" stop-color="#3a342b" stop-opacity=".5"/><stop offset="1" stop-color="#1b1712" stop-opacity=".88"/>
     </linearGradient>
-    <linearGradient id="q-gold" x1="0" x2="1">
-      <stop offset="0" stop-color="#8a6b33"/><stop offset=".3" stop-color="#f0d89a"/>
-      <stop offset=".55" stop-color="#C5A059"/><stop offset="1" stop-color="#6e5428"/>
+    <linearGradient id="q-wash-v" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#1b1712" stop-opacity="0"/><stop offset=".7" stop-color="#1b1712" stop-opacity=".08"/><stop offset="1" stop-color="#1b1712" stop-opacity=".32"/>
     </linearGradient>
-    <linearGradient id="q-bamboo" x1="0" x2="1">
-      <stop offset="0" stop-color="#e6cf94"/><stop offset=".45" stop-color="#b8995a"/><stop offset="1" stop-color="#7a6236"/>
-    </linearGradient>
-    <linearGradient id="q-shine" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".32"/><stop offset=".6" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    <linearGradient id="q-stick" x1="0" x2="1">
+      <stop offset="0" stop-color="#2a241c"/><stop offset=".5" stop-color="#5a5244"/><stop offset="1" stop-color="#1b1712"/>
     </linearGradient>
     <radialGradient id="q-mouth" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#050202"/><stop offset=".8" stop-color="#1c0b0b"/><stop offset="1" stop-color="#3a1212"/>
+      <stop offset="0" stop-color="#1b1712"/><stop offset="1" stop-color="#1b1712" stop-opacity=".75"/>
     </radialGradient>
-    <filter id="q-grain" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency=".9 .04" numOctaves="3" seed="11"/>
-      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .5 0"/>
-      <feComposite in2="SourceGraphic" operator="in"/>
-    </filter>
-    <filter id="q-crack" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="turbulence" baseFrequency=".05 .6" numOctaves="2" seed="4"/>
-      <feColorMatrix values="0 0 0 0 1  0 0 0 0 .85  0 0 0 0 .7  0 0 0 -2.2 1.1"/>
-      <feComposite in2="SourceGraphic" operator="in"/>
-    </filter>
-    <filter id="q-soft" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="5"/></filter>`;
+    <radialGradient id="q-pool" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#1b1712" stop-opacity=".22"/><stop offset="1" stop-color="#1b1712" stop-opacity="0"/>
+    </radialGradient>`;
+}
+
+// 一条手绘感的墨线：在直线上加细小的起伏
+function wobble(x1, y1, x2, y2, amp = 1.6, seg = 9) {
+  let d = `M${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  const nx = -(y2 - y1);
+  const ny = x2 - x1;
+  const len = Math.hypot(nx, ny) || 1;
+  for (let i = 1; i <= seg; i++) {
+    const t = i / seg;
+    const k = i === seg ? 0 : rand(-amp, amp);
+    d += ` L${(x1 + (x2 - x1) * t + (nx / len) * k).toFixed(1)} ${(y1 + (y2 - y1) * t + (ny / len) * k).toFixed(1)}`;
+  }
+  return d;
 }
 
 function stickShape(parent) {
-  // 以签身中心为原点，签头朝上（y 负方向）
+  // 以签身中心为原点，签头朝上（y 负方向）。一支签是一笔墨：头重、身匀、尾略收
   const g = el('g', {}, parent);
   const h = STICK_LEN / 2;
-  el('rect', { x: -STICK_W / 2, y: -h, width: STICK_W, height: STICK_LEN, rx: 2, fill: 'url(#q-bamboo)' }, g);
-  el('rect', { x: -STICK_W / 2, y: -h, width: STICK_W, height: STICK_LEN, rx: 2, fill: '#000', filter: 'url(#q-grain)', opacity: '.55' }, g);
-  el('rect', { x: -STICK_W / 2, y: -h, width: STICK_W, height: 14, rx: 2, fill: '#9E2A2B' }, g); // 签头朱红
-  for (const y of [-h + 58, -h + 150]) el('rect', { x: -STICK_W / 2, y, width: STICK_W, height: 1.4, fill: '#6e5428', opacity: '.7' }, g); // 竹节
-  el('rect', { x: -STICK_W / 2 + 1, y: -h + 2, width: 1.4, height: STICK_LEN - 4, fill: '#fff', opacity: '.25' }, g); // 左上来光
+  const w = STICK_W / 2;
+  const d = `M${-w} ${-h + 3} Q0 ${-h - 2} ${w} ${-h + 3}`
+    + ` L${w + rand(-0.4, 0.4)} ${-h / 3} L${w - 0.3} ${h / 3} L${w - 0.8} ${h}`
+    + ` L${-w + 0.8} ${h} L${-w + 0.3} ${h / 3} L${-w + rand(-0.4, 0.4)} ${-h / 3} Z`;
+  el('path', { d, fill: 'url(#q-stick)' }, g);
+  el('path', { d: `M${-w} ${-h + 3} Q0 ${-h - 2} ${w} ${-h + 3} L${w} ${-h + 16} L${-w} ${-h + 16} Z`, fill: '#0e0b08' }, g); // 签头浓墨
+  for (const y of [-h + 58, -h + 150]) el('path', { d: `M${-w - 0.5} ${y} L${w + 0.5} ${y + 0.6}`, stroke: '#0e0b08', 'stroke-width': 1.3, opacity: '.8' }, g); // 竹节
+  el('path', { d: `M${-w + 1.2} ${-h + 18} L${-w + 1} ${h - 6}`, stroke: '#efe6d0', 'stroke-width': 0.8, opacity: '.28' }, g); // 飞白
   return g;
 }
 
@@ -83,35 +89,39 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
   svg.replaceChildren();
   defs(svg);
 
-  const tubeShadow = el('ellipse', { cx: PX, cy: FLOOR - 2, rx: 66, ry: 9, fill: '#0d1117', opacity: '.55', filter: 'url(#q-soft)' }, svg);
-  const flyShadow = el('ellipse', { cx: PX, cy: FLOOR - 1, rx: 20, ry: 5, fill: '#0d1117', opacity: '0', filter: 'url(#q-soft)' }, svg);
+  const tubeShadow = el('ellipse', { cx: PX, cy: FLOOR - 2, rx: 76, ry: 10, fill: 'url(#q-pool)' }, svg);
+  const flyShadow = el('ellipse', { cx: PX, cy: FLOOR - 1, rx: 20, ry: 5, fill: 'url(#q-pool)', opacity: '0' }, svg);
   const rig = el('g', {}, svg);
 
   // 筒口内壁（在签后面）
   el('ellipse', { cx: PX, cy: RIM, rx: (TR - TL) / 2, ry: 12, fill: 'url(#q-mouth)' }, rig);
-  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 1 ${TR} ${RIM}`, fill: 'none', stroke: '#8a6b33', 'stroke-width': 2.5 }, rig); // 口沿后半圈
+  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 1 ${TR} ${RIM}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 2.5 }, rig); // 口沿后半圈
   const sticksG = el('g', {}, rig);
-  // 筒身（挡住签的下半截）
+  // 筒身（挡住签的下半截）：宣纸色打底，淡墨晕染
   const bodyPath = `M${TL} ${RIM} V${PY - 20} Q${TL} ${PY} ${TL + 22} ${PY} H${TR - 22} Q${TR} ${PY} ${TR} ${PY - 20} V${RIM} A${(TR - TL) / 2} 12 0 0 1 ${TL} ${RIM} Z`;
-  el('path', { d: bodyPath, fill: 'url(#q-lacquer)' }, rig);
-  el('path', { d: bodyPath, fill: '#000', filter: 'url(#q-grain)', opacity: '.2' }, rig);
-  el('path', { d: bodyPath, fill: '#000', filter: 'url(#q-crack)', opacity: '.12' }, rig);
-  el('rect', { x: TL + 12, y: RIM + 8, width: 12, height: PY - RIM - 30, rx: 6, fill: 'url(#q-shine)' }, rig); // 左上高光
-  for (const y of [RIM + 20, PY - 34]) {
-    el('rect', { x: TL, y, width: TR - TL, height: 7, fill: 'url(#q-gold)' }, rig);
-    el('rect', { x: TL, y: y + 7, width: TR - TL, height: 1.5, fill: '#2a0605', opacity: '.6' }, rig);
+  el('path', { d: bodyPath, fill: '#efe6d0' }, rig);
+  el('path', { d: bodyPath, fill: 'url(#q-wash)' }, rig);
+  el('path', { d: bodyPath, fill: 'url(#q-wash-v)' }, rig);
+  // 墨线勾勒：左重右轻，像一笔下来
+  el('path', { d: wobble(TL, RIM, TL - 0.5, PY - 18, 1.4), fill: 'none', stroke: '#1b1712', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: wobble(TR, RIM, TR + 0.5, PY - 18, 1.2), fill: 'none', stroke: '#1b1712', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${TL} ${PY - 20} Q${TL} ${PY} ${TL + 22} ${PY} H${TR - 22} Q${TR} ${PY} ${TR} ${PY - 20}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3, 'stroke-linecap': 'round' }, rig);
+  for (const [y, w] of [[RIM + 22, 2.6], [PY - 34, 2]]) {
+    el('path', { d: wobble(TL + 2, y, TR - 2, y + 1, 1), fill: 'none', stroke: '#1b1712', 'stroke-width': w, opacity: '.75' }, rig);
   }
+  // 朱印
   const brush = "'Ma Shan Zheng','STKaiti','KaiTi',serif";
-  for (const [ch, y] of [['天', RIM + 88], ['机', RIM + 136]]) {
-    el('text', { x: PX + 1.5, y: y + 1.5, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 34, fill: '#2a0605', opacity: '.55' }, rig).textContent = ch;
-    el('text', { x: PX, y, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 34, fill: 'url(#q-gold)' }, rig).textContent = ch;
-  }
-  // 口沿：金边前半弧
-  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 0 ${TR} ${RIM}`, fill: 'none', stroke: 'url(#q-gold)', 'stroke-width': 4 }, rig);
+  const seal = el('g', { transform: `translate(${PX - 22} ${RIM + 72}) rotate(-6 22 22)` }, rig);
+  el('rect', { width: 44, height: 44, rx: 3, fill: '#b3261f' }, seal);
+  el('rect', { x: 4, y: 4, width: 36, height: 36, rx: 2, fill: 'none', stroke: '#efe6d0', 'stroke-width': 1.5, opacity: '.85' }, seal);
+  el('text', { x: 22, y: 20, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 15, fill: '#efe6d0' }, seal).textContent = '天';
+  el('text', { x: 22, y: 37, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 15, fill: '#efe6d0' }, seal).textContent = '机';
+  // 口沿前半圈
+  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 0 ${TR} ${RIM}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3.4, 'stroke-linecap': 'round' }, rig);
 
   const flyG = el('g', { opacity: '0' }, svg);
   stickShape(flyG);
-  const labelEl = el('text', { x: PX, y: FLOOR - 30, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 22, fill: '#C5A059', opacity: '0' }, svg);
+  const labelEl = el('text', { x: PX, y: FLOOR - 30, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 24, fill: '#1b1712', opacity: '0' }, svg);
   const dustG = el('g', {}, svg);
 
   let sticks;
@@ -139,7 +149,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     };
     rig.style.transition = '';
     rig.setAttribute('opacity', '1');
-    tubeShadow.setAttribute('opacity', '.55');
+    tubeShadow.setAttribute('opacity', '1');
     flyG.setAttribute('opacity', '0');
     flyShadow.setAttribute('opacity', '0');
     labelEl.setAttribute('opacity', '0');
@@ -359,8 +369,8 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
   }
 
   function burst(x, y, power) {
-    for (let i = 0; i < 18; i++) {
-      const c = el('circle', { r: rand(0.8, 2.2).toFixed(2), fill: Math.random() < 0.5 ? '#f0d89a' : '#C5A059' }, dustG);
+    for (let i = 0; i < 14; i++) {
+      const c = el('circle', { r: rand(0.8, 2.8).toFixed(2), fill: '#1b1712' }, dustG);
       const ang = rand(-Math.PI * 0.95, -Math.PI * 0.05);
       const sp = rand(80, 320) * (0.5 + power);
       st.dust.push({ c, x: x + rand(-40, 40), y: y - 2, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: rand(0.6, 1.1), age: 0 });
@@ -372,7 +382,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
       p.vy += 900 * dt;
       p.x += p.vx * dt;
       p.y = Math.min(FLOOR - 1, p.y + p.vy * dt);
-      if (p.age >= p.life) { p.c.remove(); return false; }
+      if (p.age >= p.life) return false; // 墨点停在纸上，不再更新
       return true;
     });
   }
@@ -397,7 +407,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     for (const p of st.dust) {
       p.c.setAttribute('cx', p.x.toFixed(1));
       p.c.setAttribute('cy', p.y.toFixed(1));
-      p.c.setAttribute('opacity', (1 - p.age / p.life).toFixed(2));
+      p.c.setAttribute('opacity', p.y >= FLOOR - 1.5 ? '.85' : (1 - (p.age / p.life) * 0.3).toFixed(2)); // 墨点落纸即留下
     }
   }
 
