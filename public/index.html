@@ -90,35 +90,9 @@
           <h2 id="q-h" class="h-brush">摇签</h2>
           <p class="note" id="qian-note">按住签筒摇动，松手落签。</p>
           <div class="tube-wrap" id="tube-wrap">
-            <button class="tube" id="tube" aria-label="签筒：按住摇动，松手落签">
-              <svg viewBox="0 0 160 260" aria-hidden="true">
-                <defs>
-                  <linearGradient id="lacquer" x1="0" x2="1">
-                    <stop offset="0" stop-color="#1c0b0b"/><stop offset=".35" stop-color="#5a1c1c"/>
-                    <stop offset=".6" stop-color="#3a1212"/><stop offset="1" stop-color="#140707"/>
-                  </linearGradient>
-                  <linearGradient id="bamboo" x1="0" x2="1">
-                    <stop offset="0" stop-color="#8c7240"/><stop offset=".5" stop-color="#d4b877"/><stop offset="1" stop-color="#7a6236"/>
-                  </linearGradient>
-                </defs>
-                <g class="sticks">
-                  <rect class="stick" x="46" y="20" width="7" height="110" rx="2" fill="url(#bamboo)"/>
-                  <rect class="stick" x="56" y="8" width="7" height="120" rx="2" fill="url(#bamboo)"/>
-                  <rect class="stick" x="66" y="26" width="7" height="104" rx="2" fill="url(#bamboo)"/>
-                  <rect class="stick" x="76" y="2" width="7" height="126" rx="2" fill="url(#bamboo)"/>
-                  <rect class="stick" x="86" y="16" width="7" height="114" rx="2" fill="url(#bamboo)"/>
-                  <rect class="stick" x="96" y="30" width="7" height="100" rx="2" fill="url(#bamboo)"/>
-                  <rect class="stick" x="106" y="12" width="7" height="118" rx="2" fill="url(#bamboo)"/>
-                </g>
-                <path d="M34 92 h92 v140 q0 18 -18 18 h-56 q-18 0 -18 -18z" fill="url(#lacquer)"/>
-                <ellipse cx="80" cy="92" rx="46" ry="8" fill="#0d0505"/>
-                <rect x="34" y="104" width="92" height="4" fill="#C5A059" opacity=".8"/>
-                <rect x="34" y="220" width="92" height="4" fill="#C5A059" opacity=".8"/>
-                <text x="80" y="152" text-anchor="middle" font-family="'Ma Shan Zheng','STKaiti','KaiTi',serif" font-size="28" fill="#C5A059">天</text>
-                <text x="80" y="188" text-anchor="middle" font-family="'Ma Shan Zheng','STKaiti','KaiTi',serif" font-size="28" fill="#C5A059">机</text>
-              </svg>
+            <button class="tube" id="tube" aria-label="签筒：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃">
+              <svg id="qian-svg" aria-hidden="true"></svg>
             </button>
-            <div class="fallen" id="fallen" aria-hidden="true"><span id="fallen-no"></span></div>
           </div>
           <article class="sign" id="sign" hidden>
             <header class="sign-head">
