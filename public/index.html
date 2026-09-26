@@ -206,7 +206,10 @@
             <h3 id="en-h">四种结局</h3>
             <ul id="endings-list"></ul>
           </section>
-          <button class="btn btn-primary" id="btn-again">再求一签</button>
+          <div class="end-actions">
+            <button class="btn btn-primary" id="btn-poster">保存这一签</button>
+            <button class="btn" id="btn-again">再求一签</button>
+          </div>
           <a class="about-link" href="about.html">关于这件作品</a>
         </section>
 
@@ -218,6 +221,19 @@
 
     <div class="mount mount-bottom" aria-hidden="true"></div>
     <div class="rod" aria-hidden="true"></div>
+  </div>
+
+  <div class="poster" id="poster" hidden role="dialog" aria-modal="true" aria-label="保存这一签">
+    <div class="poster-box">
+      <p class="poster-status" id="poster-status">正在为你装裱……</p>
+      <img id="poster-img" alt="这一签的结果图" hidden>
+      <p class="poster-tip" id="poster-tip" hidden></p>
+      <div class="poster-actions">
+        <a class="btn btn-primary" id="poster-download" hidden>下载图片</a>
+        <button class="btn btn-primary" id="poster-share" hidden>分享</button>
+        <button class="btn" id="poster-close">关闭</button>
+      </div>
+    </div>
   </div>
 
   <button class="mute" id="btn-mute" aria-pressed="false" aria-label="静音">声</button>

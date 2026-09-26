@@ -17,9 +17,11 @@ const smoothstep = (e0, e1, x) => {
 };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-export function weave(canvas, { seed, throws, reduced = false }) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const W = Math.round(canvas.clientWidth * dpr);
+// width：直接指定像素宽度（分享图离屏重织时用），缺省按页面上的显示宽度
+export function weave(canvas, { seed, throws, reduced = false, width }) {
+  // 指定宽度时，按页面上约 380px 宽的命盘等比放大丝线粗细
+  const dpr = width ? width / 380 : Math.min(window.devicePixelRatio || 1, 2);
+  const W = Math.round(width ?? canvas.clientWidth * dpr);
   const H = Math.round(W * 0.75);
   canvas.width = W;
   canvas.height = H;

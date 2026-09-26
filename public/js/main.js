@@ -1,6 +1,7 @@
 import { castJiao, modelJiao, CUP_NAMES, CUP_SHORT, CUP_LABELS } from './jiao.js';
 import { hashString, trueRandom } from './rng.js';
 import { weave } from './loom.js';
+import { drawPoster } from './poster.js';
 import * as sfx from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -606,6 +607,7 @@ async function finish() {
     ? `这幅图由你刚才的 ${fields} 项操作数据生成，每个人都不一样。编号 ${seed.toString(16).padStart(8, '0')}`
     : '一次也没掷，所以什么也没织出来。空白，也是一种回答。';
   weave($('loom'), { seed, throws: S.throws, reduced: reducedMotion });
+  S.poster = { endKey, seed, state };
 
   sfx.bronze(262, 3.2, 0.16);
   S.oracleArgs = [endKey, who];
@@ -725,6 +727,60 @@ function renderLedgerQuestionRow() {
   const dt = dts.find((d) => d.textContent === '你写的问题');
   if (dt) dt.nextElementSibling.textContent = questionNote();
 }
+
+/* ───────── 分享图 ───────── */
+let posterUrl = '';
+
+$('btn-poster').addEventListener('click', async () => {
+  const dlg = $('poster');
+  const img = $('poster-img');
+  dlg.hidden = false;
+  img.hidden = true;
+  $('poster-tip').hidden = true;
+  ['poster-download', 'poster-share'].forEach((id) => { $(id).hidden = true; });
+  $('poster-status').hidden = false;
+  $('poster-close').focus();
+
+  const { endKey, seed, state } = S.poster;
+  const ending = db.endings[endKey];
+  const sign = S.sign;
+  const now = new Date();
+  const blob = await drawPoster({
+    sign: sign && { no: `第${CN_NUM[sign.no]}签`, name: sign.name, level: sign.level, poem: sign.poem, bai: sign.bai },
+    cups: S.cups.length ? S.cups.map((c) => CUP_NAMES[c.kind]).join(' · ') : '还没掷筊',
+    state: state.text,
+    stateNo: state.key === 'no',
+    ending,
+    throws: S.throws,
+    seed,
+    date: `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`,
+  });
+  if (posterUrl) URL.revokeObjectURL(posterUrl);
+  posterUrl = URL.createObjectURL(blob);
+  img.src = posterUrl;
+  img.hidden = false;
+  $('poster-status').hidden = true;
+
+  const name = `演算天机-${sign ? sign.name : ending.name}.png`;
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  $('poster-tip').textContent = coarse ? '长按图片即可保存' : '也可以在图片上右键另存';
+  $('poster-tip').hidden = false;
+  const dl = $('poster-download');
+  dl.href = posterUrl;
+  dl.download = name;
+  dl.hidden = coarse;
+  const file = new File([blob], name, { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) {
+    const btn = $('poster-share');
+    btn.hidden = false;
+    btn.onclick = () => navigator.share({ files: [file], title: '演算天机' }).catch(() => {});
+  }
+  gloss('你想把我给的命带走');
+});
+
+$('poster-close').addEventListener('click', () => { $('poster').hidden = true; });
+$('poster').addEventListener('click', (e) => { if (e.target === $('poster')) $('poster').hidden = true; });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('poster').hidden = true; });
 
 $('btn-again').addEventListener('click', () => {
   const visits = store.get('stj-visits', 0) + 1;
