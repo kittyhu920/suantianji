@@ -254,13 +254,17 @@ function pickSign() {
 const DIGITS = '零一二三四五六七八九';
 const CN_NUM = Array.from({ length: 70 }, (_, n) => (n < 10 ? DIGITS[n]
   : `${n >= 20 ? DIGITS[Math.floor(n / 10)] : ''}十${n % 10 ? DIGITS[n % 10] : ''}`));
+
+// 签头（no 为 0）不属干支，显示为"签头"
+const signNo = (sign) => (sign.no ? `第${CN_NUM[sign.no]}签` : '签头');
+const signFull = (sign) => [signNo(sign), sign.gz, sign.nayin].filter(Boolean).join(' · ');
 const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71, '下下': 0.89 };
 
 async function dropSign() {
   const sign = pickSign();
   S.sign = sign;
   gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
-  $('fallen-no').textContent = `第${CN_NUM[sign.no]}签`;
+  $('fallen-no').textContent = signNo(sign);
   $('fallen').classList.add('is-falling');
   tube.classList.add('is-done');
   await sleep(1100);
@@ -277,7 +281,7 @@ async function dropSign() {
 }
 
 function renderSign(sign) {
-  $('sign-no').textContent = `第${CN_NUM[sign.no]}签 · ${sign.gz} · ${sign.nayin}`;
+  $('sign-no').textContent = signFull(sign);
   $('sign-name').textContent = sign.name;
   const lv = $('sign-level');
   lv.textContent = sign.level;
@@ -545,7 +549,7 @@ function renderJieqian(state) {
   const d = db.domains[S.domain];
   $('jq-state').textContent = state.text;
   $('jq-state').dataset.state = state.key;
-  $('jq-name').textContent = `第${CN_NUM[sign.no]}签　${sign.name}`;
+  $('jq-name').textContent = `${signNo(sign)}　${sign.name}`;
   $('jq-level').textContent = sign.level;
   $('jq-level').dataset.tone = db.levels[sign.level];
   $('jq-bai').textContent = sign.bai;
@@ -627,7 +631,7 @@ function renderLedger(totalMs, who, conf, seed) {
     ['你写的问题', S.question ? questionNote() : '未写'],
     ['选方向用时', S.pickMs != null ? `${sec(S.pickMs)} 秒` : '—'],
     ['摇签', S.shakeTries ? `${sec(S.shakeMs)} 秒，${S.shakeTries} 次` : '—'],
-    ['得签', S.sign ? `第${CN_NUM[S.sign.no]}签 ${S.sign.name}（${S.sign.level}）` : '—'],
+    ['得签', S.sign ? `${signNo(S.sign)} ${S.sign.name}（${S.sign.level}）` : '—'],
     ['每次掷前犹豫', h.length ? h.map((x) => sec(x)).join(' / ') + ' 秒' : '—'],
     ['重掷', `${S.rerolls} 次`],
     ['掷筊', S.throws.length ? cupsRecord() : '—'],
@@ -749,7 +753,7 @@ $('btn-poster').addEventListener('click', async () => {
   const sign = S.sign;
   const now = new Date();
   const blob = await drawPoster({
-    sign: sign && { no: `第${CN_NUM[sign.no]}签 · ${sign.gz} · ${sign.nayin}`, name: sign.name, level: sign.level, poem: sign.poem, bai: sign.bai },
+    sign: sign && { no: signFull(sign), name: sign.name, level: sign.level, poem: sign.poem, bai: sign.bai },
     cups: S.cups.length ? S.cups.map((c) => CUP_NAMES[c.kind]).join(' · ') : '还没掷筊',
     state: state.text,
     stateNo: state.key === 'no',
