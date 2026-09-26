@@ -589,8 +589,9 @@ async function finish() {
   weave($('loom'), { seed, throws: S.throws, reduced: reducedMotion });
 
   sfx.bronze(262, 3.2, 0.16);
+  S.oracleArgs = [endKey, who];
   if ($('oracle-mode').checked) askOracle(endKey, who);
-  else $('oracle').hidden = true;
+  else offerOracle();
 }
 
 function renderLedger(totalMs, who, conf, seed) {
@@ -599,7 +600,7 @@ function renderLedger(totalMs, who, conf, seed) {
     ['来访时辰', `${S.branch.zhi}时（设备时钟 ${S.clock.toTimeString().slice(0, 5)}）`],
     ['设备', matchMedia('(pointer: coarse)').matches ? '移动端，触屏' : '桌面端，鼠标'],
     ['问的方向', S.domain ? db.domains[S.domain].name : '未选'],
-    ['你写的问题', S.question ? `${[...S.question].length} 字${S.oracleSent ? '，已发给云端模型' : '，原文未离开设备'}` : '未写'],
+    ['你写的问题', S.question ? questionNote() : '未写'],
     ['选方向用时', S.pickMs != null ? `${sec(S.pickMs)} 秒` : '—'],
     ['摇签', S.shakeTries ? `${sec(S.shakeMs)} 秒，${S.shakeTries} 次` : '—'],
     ['得签', S.sign ? `第${CN_NUM[S.sign.no]}签 ${S.sign.name}（${S.sign.level}）` : '—'],
@@ -631,10 +632,30 @@ function renderEndings(got, current) {
   }
 }
 
+// 没勾通灵模式的人，看完结果还能再请 AI 解签
+function offerOracle() {
+  $('oracle').hidden = !S.sign;
+  $('oracle-text').hidden = true;
+  $('oracle-ask').hidden = false;
+  $('btn-oracle').disabled = false;
+}
+
+$('btn-oracle').addEventListener('click', () => {
+  $('btn-oracle').disabled = true;
+  askOracle(...S.oracleArgs);
+});
+
+const LIMITED = {
+  ip: '你今天已经找我细说过好几回了，明天再来吧。上面的解签，就是这次的结果。',
+  global: '今天来找我细说的人太多了，明天再来吧。上面的解签，就是这次的结果。',
+};
+
 async function askOracle(endKey, who) {
   const box = $('oracle');
   const p = $('oracle-text');
   box.hidden = false;
+  p.hidden = false;
+  $('oracle-ask').hidden = true;
   box.classList.add('is-loading');
   p.textContent = 'AI 正在帮你解签……';
   gloss('我把你的画像送去了云端');
@@ -654,7 +675,13 @@ async function askOracle(endKey, who) {
         ending: db.endings[endKey].name, persona: who,
       }),
     });
-    if (res.status === 429) S.oracleSent = false; // 限流在读请求体之前拦下，问题没有被读取
+    if (res.status === 429) {
+      S.oracleSent = false; // 限流在读请求体之前拦下，问题没有被读取
+      const { scope } = await res.json().catch(() => ({}));
+      p.textContent = LIMITED[scope] ?? LIMITED.global;
+      gloss('云端没回话，以我的为准');
+      return;
+    }
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     if (!data.text) throw new Error('empty');
@@ -670,10 +697,14 @@ async function askOracle(endKey, who) {
   }
 }
 
+function questionNote() {
+  return `${[...S.question].length} 字，${S.oracleSent ? '我已把原文送去云端' : '原文没有离开你的设备'}`;
+}
+
 function renderLedgerQuestionRow() {
   const dts = [...$('ledger').querySelectorAll('dt')];
   const dt = dts.find((d) => d.textContent === '你写的问题');
-  if (dt) dt.nextElementSibling.textContent = `${[...S.question].length} 字，已发给云端模型`;
+  if (dt) dt.nextElementSibling.textContent = questionNote();
 }
 
 $('btn-again').addEventListener('click', () => {
