@@ -1,16 +1,17 @@
-// 分享图：把这一局的签、结局与命盘画成一张竖幅立轴，1080 × 2400
+// 分享图：把这一局的签、结局与命盘画成一页宣纸，1080 × 2600（风格见 docs/DESIGN.md）
 // 全部由 Canvas 当场绘制，不引入任何位图素材。
 
 import { mulberry32 } from './rng.js';
 import { weave } from './loom.js';
 
 const W = 1080;
-const H = 2400;
+const H = 2600;
 const C = {
-  wall: '#1A1C1E', gan: '#1F2630', ganDeep: '#171C24', jade: '#2E5E4E', jadeDeep: '#22463a',
-  gold: '#C5A059', goldSoft: 'rgba(197,160,89,.72)', goldDim: 'rgba(197,160,89,.45)', goldFaint: 'rgba(197,160,89,.16)',
-  cinnabar: '#9E2A2B', cinnabarHi: '#c4403c', ink: '#F2E6CC',
+  paper: '#efe6d0',
+  gold: '#1b1712', goldSoft: 'rgba(27,23,18,.74)', goldDim: 'rgba(27,23,18,.5)', goldFaint: 'rgba(27,23,18,.14)', // 墨（沿用旧名）
+  cinnabar: '#b3261f', cinnabarHi: '#b3261f', ink: '#f6eedb', // ink：朱印上的字
 };
+const TITLE = '"Zhi Mang Xing", "Ma Shan Zheng", "STKaiti", serif';
 const BRUSH = '"Ma Shan Zheng", "STKaiti", "KaiTi", serif';
 const TEXT = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
 
@@ -30,41 +31,59 @@ function wrap(g, text, maxW) {
   return lines;
 }
 
-function paper(g, x, y, w, h, seed) {
-  g.fillStyle = C.gan;
-  g.fillRect(x, y, w, h);
-  // 纸纹：细竖纹 + 随机颗粒
-  g.fillStyle = 'rgba(197,160,89,.022)';
-  for (let i = x; i < x + w; i += 2) g.fillRect(i, y, 1, h);
+function paper(g, seed) {
+  g.fillStyle = C.paper;
+  g.fillRect(0, 0, W, H);
+  // 纸纹：横向拉长的纤维颗粒
   const rand = mulberry32(seed);
-  for (let i = 0; i < 9000; i++) {
-    g.fillStyle = `rgba(197,160,89,${(rand() * 0.06).toFixed(3)})`;
-    g.fillRect(x + rand() * w, y + rand() * h, 1.5, 1.5);
+  for (let i = 0; i < 12000; i++) {
+    g.fillStyle = `rgba(90,72,48,${(rand() * 0.07).toFixed(3)})`;
+    g.fillRect(rand() * W, rand() * H, 1 + rand() * 5, 1.2);
   }
-  const v = g.createRadialGradient(W / 2, H * 0.42, h * 0.3, W / 2, H * 0.42, h * 0.75);
-  v.addColorStop(0, 'rgba(0,0,0,0)');
-  v.addColorStop(1, 'rgba(0,0,0,.35)');
-  g.fillStyle = v;
-  g.fillRect(x, y, w, h);
-  g.strokeStyle = C.goldFaint;
-  g.lineWidth = 2;
-  g.strokeRect(x + 14, y + 14, w - 28, h - 28);
+  // 朱丝栏
+  g.fillStyle = 'rgba(179,38,31,.2)';
+  for (let x = 70; x < W - 40; x += 118) g.fillRect(x, 60, 2, H - 120);
+  // 版框：四周双边
+  g.strokeStyle = C.gold;
+  g.lineWidth = 8;
+  g.strokeRect(28, 28, W - 56, H - 56);
+  g.lineWidth = 2.5;
+  g.strokeRect(44, 44, W - 88, H - 88);
 }
 
-function mount(g, y, h) {
-  const grd = g.createLinearGradient(0, y, 0, y + h);
-  grd.addColorStop(0, C.jade);
-  grd.addColorStop(1, C.jadeDeep);
-  g.fillStyle = grd;
-  g.fillRect(0, y, W, h);
-  g.fillStyle = 'rgba(255,255,255,.025)';
-  for (let i = 0; i < W; i += 3) g.fillRect(i, y, 1, h);
+// 枯笔一扫：许多条细笔沿同一条弧线走，随机断开，模拟飞白
+function inkSwash(g, seed) {
+  const rand = mulberry32(seed ^ 0x5bd1e995);
+  g.save();
+  g.lineCap = 'round';
+  for (let k = 0; k < 90; k++) {
+    const t = k / 89;
+    const off = (t - 0.5) * 230;
+    g.strokeStyle = `rgba(27,23,18,${(0.55 + rand() * 0.45).toFixed(2)})`;
+    g.lineWidth = 2 + rand() * 5;
+    const gap = 40 + rand() * 260;
+    g.setLineDash([gap * (t > 0.85 || t < 0.1 ? 1.2 : 6), 4 + rand() * (t > 0.8 ? 60 : 14)]);
+    g.lineDashOffset = rand() * 200;
+    g.beginPath();
+    g.moveTo(-60, 470 + off);
+    g.bezierCurveTo(260, 380 + off, 640, 250 + off * 0.8, W + 80, 190 + off * 0.6);
+    g.stroke();
+  }
+  g.setLineDash([]);
+  // 溅墨
+  for (let i = 0; i < 5; i++) {
+    g.fillStyle = C.gold;
+    g.beginPath();
+    g.arc(760 + rand() * 220, 420 + rand() * 120, 4 + rand() * 14, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
 }
 
 function seal(g, cx, cy, s, ch) {
   g.fillStyle = C.cinnabar;
   g.fillRect(cx - s / 2, cy - s / 2, s, s);
-  g.strokeStyle = 'rgba(242,230,204,.55)';
+  g.strokeStyle = 'rgba(246,238,219,.7)';
   g.lineWidth = 3;
   g.strokeRect(cx - s / 2 + 8, cy - s / 2 + 8, s - 16, s - 16);
   g.fillStyle = C.ink;
@@ -95,22 +114,28 @@ function center(g, text, y, font, color) {
 export async function drawPoster(d) {
   const sample = [d.sign?.name, d.sign?.no, d.sign?.level, ...(d.sign?.poem ?? []), d.sign?.bai, d.cups, d.state,
     d.ending.name, d.ending.sub, '演算天机数字重彩问命录这支签在说什么在你求签的时候我也在给你算命'].join('');
-  await Promise.all([document.fonts.load(`48px ${BRUSH}`, sample), document.fonts.load(`38px ${TEXT}`, sample)]);
+  await Promise.all([document.fonts.load(`48px ${BRUSH}`, sample), document.fonts.load(`38px ${TEXT}`, sample),
+    document.fonts.load(`84px ${TITLE}`, '演算天机')]);
 
   const cv = document.createElement('canvas');
   cv.width = W;
   cv.height = H;
   const g = cv.getContext('2d');
 
-  g.fillStyle = C.wall;
-  g.fillRect(0, 0, W, H);
-  mount(g, 0, 96);
-  mount(g, H - 90, 90);
-  paper(g, 0, 96, W, H - 186, d.seed);
+  paper(g, d.seed);
+  inkSwash(g, d.seed);
+  // 标题反白压在墨上
+  g.save();
+  g.translate(W / 2, 330);
+  g.rotate(-0.2);
+  g.font = `150px ${TITLE}`;
+  g.fillStyle = C.paper;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('演算天机', 0, 0);
+  g.restore();
 
-  let y = 250;
-  center(g, '演算天机', y, `84px ${BRUSH}`, C.gold);
-  y += 58;
+  let y = 520;
   g.save();
   g.font = `30px ${TEXT}`;
   g.fillStyle = C.goldDim;
@@ -151,7 +176,7 @@ export async function drawPoster(d) {
     center(g, '这支签在说什么', y, `40px ${BRUSH}`, C.gold);
     y += 70;
     g.font = `38px ${TEXT}`;
-    g.fillStyle = C.ink;
+    g.fillStyle = C.gold;
     for (const line of wrap(g, d.sign.bai, 860)) {
       g.textAlign = 'center';
       g.fillText(line, W / 2, y);
