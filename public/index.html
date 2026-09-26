@@ -32,12 +32,13 @@
       <feComposite in2="SourceGraphic" operator="in"/>
     </filter>
     <path id="jiao-shape" d="M4 54 C4 14 36 4 60 4 C84 4 116 14 116 54 C96 46 24 46 4 54Z"/>
-    <!-- 平面朝上：平整的漆面，带一圈磨出的木色边 -->
+    <!-- 平面朝上：凸面着地，看上去像一只碗，顶上露出一块平整的漆面 -->
     <symbol id="jiao-ping" viewBox="0 0 120 60">
-      <use href="#jiao-shape" fill="url(#lacquer-flat)"/>
-      <use href="#jiao-shape" fill="#000" filter="url(#lacquer-grain)"/>
-      <use href="#jiao-shape" fill="none" stroke="#d9a36a" stroke-opacity=".55" stroke-width="1.6"/>
-      <path d="M14 46 C16 20 40 12 60 12 C80 12 104 20 106 46" fill="none" stroke="#f0b49c" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M4 18 C4 46 34 57 60 57 C86 57 116 46 116 18 Z" fill="url(#lacquer-tu)"/>
+      <path d="M4 18 C4 46 34 57 60 57 C86 57 116 46 116 18 Z" fill="#000" filter="url(#lacquer-grain)" opacity=".5"/>
+      <path d="M4 18 C24 7 96 7 116 18 C96 28 24 28 4 18Z" fill="#d9644c"/>
+      <path d="M4 18 C24 7 96 7 116 18 C96 28 24 28 4 18Z" fill="none" stroke="#f3b79a" stroke-opacity=".7" stroke-width="1.4"/>
+      <path d="M22 17 C44 11 76 11 98 17" fill="none" stroke="#ffe2d2" stroke-opacity=".35" stroke-width="1"/>
     </symbol>
     <!-- 凸面朝上：鼓起的漆面，一道高光 -->
     <symbol id="jiao-tu" viewBox="0 0 120 60">
@@ -64,25 +65,25 @@
           </div>
           <div class="title-actions">
             <button class="seal seal-lg" id="btn-enter" aria-describedby="enter-note"><span>问</span></button>
-            <p id="enter-note" class="note">按印入卷。约两分钟，建议开声。</p>
+            <p id="enter-note" class="note">点红色的“问”字印章开始。<br>全程约两分钟，建议打开声音。</p>
             <label class="oracle-toggle">
               <input type="checkbox" id="oracle-mode">
               <span class="seal seal-sm seal-outline" aria-hidden="true"><span>灵</span></span>
-              <span class="oracle-copy">通灵模式<small>由云端模型用白话解签，回答你写下的问题，需联网</small></span>
+              <span class="oracle-copy">通灵模式<small>勾选后，由 AI 用大白话帮你解签、回答你写下的问题（需联网）</small></span>
             </label>
           </div>
         </section>
 
         <!-- 定盘 -->
         <section class="screen screen-ding" data-screen="ding" aria-labelledby="d-h">
-          <h2 id="d-h" class="h-brush">所问何事</h2>
+          <h2 id="d-h" class="h-brush">想问哪方面</h2>
           <p class="shichen" id="shichen"></p>
           <div class="slips" role="radiogroup" aria-label="问卜领域" id="slips"></div>
           <label class="ask">
-            <span class="ask-label">心中所问，可写可不写</span>
+            <span class="ask-label">写下你想问的具体问题（可以不写）</span>
             <input id="ask" type="text" maxlength="40" autocomplete="off" placeholder="例如：今年该不该换一份工作">
           </label>
-          <button class="seal seal-md" id="btn-ding" disabled aria-label="定盘"><span>定</span></button>
+          <button class="seal seal-md" id="btn-ding" disabled aria-label="确定"><span>定</span></button>
         </section>
 
         <!-- 摇签 -->
@@ -127,7 +128,8 @@
               <p class="sign-level" id="sign-level"></p>
             </header>
             <div class="poem" id="sign-poem"></div>
-            <p class="sign-wait">签已出，尚未作数。<br>须掷筊请示神明，连得三杯圣杯，方可解签。</p>
+            <p class="sign-bai"><b>这支签在说什么</b><span id="sign-bai"></span></p>
+            <p class="sign-wait">按习俗，求到签后还要掷筊，问问神明：这支签算不算数。</p>
             <button class="btn btn-primary" id="btn-to-jiao">掷筊请示</button>
           </article>
         </section>
@@ -135,16 +137,25 @@
         <!-- 掷筊 -->
         <section class="screen screen-jiao" data-screen="jiao" aria-labelledby="j-h">
           <h2 id="j-h" class="h-brush">掷筊请示</h2>
-          <p class="jiao-rule">两片筊杯，一平一凸为圣杯，是神明应允。<br>连得三杯圣杯，这支签才作数。</p>
+          <p class="jiao-rule">筊杯是两块月牙形的木片，一面平、一面凸。</p>
+          <ul class="jiao-legend">
+            <li><b>圣杯</b>一平一凸：神明同意</li>
+            <li><b>笑杯</b>两面都平：没说清，再掷一次</li>
+            <li class="is-yin"><b>阴杯</b>两面都凸：神明不同意</li>
+          </ul>
+          <p class="jiao-rule">连续三次都是圣杯，这支签才算数。</p>
           <p class="note" id="jiao-note"></p>
           <div class="jiao-board">
-            <div class="jiao" id="jiao" aria-hidden="true"></div>
+            <div class="jiao-pair">
+              <div class="jiao" id="jiao" aria-hidden="true"></div>
+              <div class="jiao-labels" id="jiao-labels" aria-hidden="true"><span></span><span></span></div>
+            </div>
             <ol class="cups" id="cups" aria-label="三杯"></ol>
           </div>
           <p class="jiao-result" id="jiao-result" aria-live="polite"></p>
           <div class="jiao-actions">
-            <button class="btn btn-primary" id="btn-throw">掷</button>
-            <button class="btn btn-primary" id="btn-accept" hidden>受此杯</button>
+            <button class="btn btn-primary" id="btn-throw">掷筊</button>
+            <button class="btn btn-primary" id="btn-accept" hidden>接受</button>
             <button class="btn btn-ghost" id="btn-reroll" hidden>不服，再掷</button>
           </div>
         </section>
@@ -156,8 +167,7 @@
             <h3 id="jq-h">解签</h3>
             <p class="jq-state" id="jq-state"></p>
             <p class="jq-title"><span id="jq-name"></span><span class="sign-level" id="jq-level"></span></p>
-            <p class="jq-row jq-wen"><b>解曰</b><span id="jq-jie"></span></p>
-            <p class="jq-row"><b>大意</b><span id="jq-bai"></span></p>
+            <p class="jq-row"><b>这支签在说什么</b><span id="jq-bai"></span></p>
             <p class="jq-row"><b id="jq-advice-h"></b><span id="jq-advice"></span></p>
           </article>
           <aside class="oracle" id="oracle" hidden>
@@ -177,7 +187,7 @@
           <p class="critique" id="e-critique"></p>
           <section class="ledger" aria-labelledby="l-h">
             <h3 id="l-h">行为账本</h3>
-            <p class="ledger-intro">本局中，机器记下了这些。下面的命盘就是用它们织成的。数据只留在你的设备上。</p>
+            <p class="ledger-intro">刚才的每一步，机器都记了下来。下面那幅图就是用这些数据生成的。数据只保存在你自己的设备上。</p>
             <dl id="ledger"></dl>
           </section>
           <figure class="loom">
