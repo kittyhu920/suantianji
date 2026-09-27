@@ -78,15 +78,19 @@
               </g>
             </svg>
             <h1 id="t-title" class="title-main">演算天机</h1>
-            <p class="title-sub">数字重彩问命录</p>
           </div>
+          <p class="title-sub">你求签，我算你</p>
           <div class="title-actions">
             <button class="seal seal-lg" id="btn-enter" aria-describedby="enter-note"><span>问</span></button>
             <p id="enter-note" class="note">点红色的“问”字印章开始。<br>全程约两分钟，建议打开声音。</p>
             <label class="oracle-toggle">
               <input type="checkbox" id="oracle-mode">
-              <span class="seal seal-sm seal-outline" aria-hidden="true"><span>灵</span></span>
-              <span class="oracle-copy">通灵模式<small>勾选后，由 AI 用大白话帮你解签、回答你写下的问题（需联网）</small></span>
+              <span class="oracle-row">
+                <span class="seal seal-sm seal-outline" aria-hidden="true"><span>灵</span></span>
+                <span class="oracle-name">通灵模式</span>
+                <span class="oracle-state" aria-hidden="true"></span>
+              </span>
+              <small class="oracle-desc">勾选后，由 AI 用大白话帮你解签、回答你写下的问题（需联网）</small>
             </label>
             <a class="about-link" href="about.html">关于这件作品</a>
           </div>
@@ -208,7 +212,9 @@
 
       </div>
 
-      <aside class="margin" id="margin" aria-label="大师旁批"></aside>
+      <aside class="margin" id="margin" aria-label="大师的眉批" aria-live="polite"></aside>
+      <button class="corner-btn corner-home" id="btn-home" type="button" hidden aria-label="回到卷首">卷首</button>
+      <button class="corner-btn corner-mute" id="btn-mute" type="button" aria-pressed="false" aria-label="静音">声</button>
       <button class="seal seal-sm seal-doubt" id="btn-doubt" hidden aria-label="存疑：不再相信这场推演"><span>存疑</span></button>
     </section>
 
@@ -229,7 +235,6 @@
     </div>
   </div>
 
-  <button class="mute" id="btn-mute" aria-pressed="false" aria-label="静音">声</button>
 </main>
 
 <script type="module" src="js/main.js"></script>

@@ -69,7 +69,7 @@ async function drainGloss() {
     el.className = 'gloss is-new' + (alarm ? ' is-alarm' : '');
     el.style.margin = '0';
     margin.prepend(el);
-    while (margin.children.length > 6) margin.lastElementChild.remove();
+    while (margin.children.length > 3) margin.lastElementChild.remove(); // 眉批只留最近几条，其余淡出
     const caret = document.createElement('span');
     caret.className = 'caret';
     caret.textContent = '▍';
@@ -92,6 +92,7 @@ function show(name) {
   touch();
   const inRitual = name === 'ding' || name === 'qian' || name === 'jiao';
   $('btn-doubt').hidden = !(inRitual && S.doubtShown);
+  $('btn-home').hidden = name === 'title';
 }
 
 function touch() {
@@ -127,6 +128,7 @@ function bootTitle() {
 }
 
 $('btn-enter').addEventListener('click', () => {
+  requestMotion(); // iOS 只允许在点击里申请"动作与方向"权限，所以在这里就申请，摇签时才能直接晃
   store.set('stj-visits', store.get('stj-visits', 0) + 1);
   sfx.initAudio();
   sfx.startDrone();
@@ -216,10 +218,17 @@ function enterQian() {
   qian.reset();
   qian.start();
   $('sign').hidden = true;
-  $('qian-note').textContent = hasMotion
-    ? '拿起手机晃一晃，签会自己跳出来。也可以按住签筒左右拖。'
-    : '按住签筒左右拖着摇；只按住不动，它也会自己轻轻摇。';
+  updateQianNote();
   $('tube-wrap').hidden = false;
+}
+
+function updateQianNote() {
+  if (S?.screen !== 'qian' || S.sign) return;
+  $('qian-note').textContent = !hasMotion
+    ? '按住签筒左右拖着摇；只按住不动，它也会自己轻轻摇。'
+    : motionState === 'denied'
+      ? '没有得到晃动手机的许可，就按住签筒左右拖着摇吧。'
+      : '拿起手机晃一晃，签会自己跳出来。也可以按住签筒左右拖。';
 }
 
 function holdStart(clientX) {
@@ -258,6 +267,7 @@ const signFull = (sign) => [signNo(sign), sign.gz, sign.nayin].filter(Boolean).j
 const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71, '下下': 0.89 };
 
 async function signLanded() {
+  if (S.screen !== 'qian' || !S.sign) return; // 玩家已回卷首
   const sign = S.sign;
   qian.stop();
   gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
@@ -300,15 +310,22 @@ tube.addEventListener('keyup', (e) => {
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); holdEnd(); }
 });
 
-// 手机晃动：iOS 需要在手势内申请权限
-let motionAsked = false;
+// 手机晃动：iOS（以及新版 Chrome）要求在真实的点击里申请"动作与方向"权限，
+// 所以点"问"字印章时就申请；被拒绝时，下次点签筒还会再试一次。
+let motionState = 'unknown'; // unknown | asking | granted | denied
 let motionBurst = 0;
 function requestMotion() {
-  if (motionAsked || typeof DeviceMotionEvent === 'undefined') return;
-  motionAsked = true;
-  const listen = () => window.addEventListener('devicemotion', onMotion);
+  if (typeof DeviceMotionEvent === 'undefined' || motionState === 'granted' || motionState === 'asking') return;
+  const listen = () => {
+    motionState = 'granted';
+    window.addEventListener('devicemotion', onMotion);
+    updateQianNote();
+  };
   if (typeof DeviceMotionEvent.requestPermission === 'function') {
-    DeviceMotionEvent.requestPermission().then((s) => s === 'granted' && listen()).catch(() => {});
+    motionState = 'asking';
+    DeviceMotionEvent.requestPermission()
+      .then((r) => { if (r === 'granted') listen(); else { motionState = 'denied'; updateQianNote(); } })
+      .catch(() => { motionState = 'denied'; updateQianNote(); });
   } else listen();
 }
 function onMotion(e) {
@@ -396,11 +413,13 @@ async function enterJiao() {
 
   const cup = modelJiao();
   await tossJiao(cup, 900);
+  if (S.screen !== 'jiao') return; // 玩家已回卷首
   S.cups.push({ ...cup, by: 'model' });
   S.throws.push({ kind: cup.kind, cup: 0, by: 'model', kept: true });
   renderCups();
   $('jiao-result').innerHTML = `第一杯：${CUP_DESC.sheng}`;
   await sleep(700);
+  if (S.screen !== 'jiao') return;
   const sure = Math.round((0.8 + trueRandom() * 0.15) * 100);
   S.claims.push(`${sure}% 的把握`);
   gloss(`我有 ${sure}% 的把握猜中你`);
@@ -433,6 +452,7 @@ async function playerThrow({ reroll = false, again = false } = {}) {
   const cup = castJiao();
   S.pending = cup;
   await tossJiao(cup);
+  if (S.screen !== 'jiao') return;
   S.throws.push({ kind: cup.kind, cup: idx, by: 'you', kept: false });
   renderCups();
   $('jiao-result').innerHTML = `${CUP_LABELS[idx]}：${CUP_DESC[cup.kind]}`;
@@ -780,6 +800,14 @@ $('btn-poster').addEventListener('click', async () => {
 $('poster-close').addEventListener('click', () => { $('poster').hidden = true; });
 $('poster').addEventListener('click', (e) => { if (e.target === $('poster')) $('poster').hidden = true; });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('poster').hidden = true; });
+
+// 回卷首：放弃这一局，回到首页
+$('btn-home').addEventListener('click', () => {
+  qian.stop();
+  $('poster').hidden = true;
+  S = freshState();
+  show('title');
+});
 
 $('btn-again').addEventListener('click', () => {
   const visits = store.get('stj-visits', 0) + 1;
