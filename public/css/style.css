@@ -24,12 +24,13 @@
   --f-zhupi: "Liu Jian Mao Cao", "Ma Shan Zheng", "STKaiti", serif;
   --f-text: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
 
-  --margin-w: 64px;
+  --mei-h: 76px;            /* 顶部眉批区（含角按钮）的高度 */
   --ease-out: cubic-bezier(.2, .7, .2, 1);
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
   background:
@@ -112,10 +113,24 @@ button { font: inherit; color: inherit; }
   min-height: 0;
   background-color: var(--gan);
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .015' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .35 0 0 0 0 .24 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(90deg, transparent 0 43px, var(--zhu-rule) 43px 44px),
-    radial-gradient(130% 90% at 50% 40%, transparent 60%, rgba(120, 90, 50, .12) 100%);
+    /* 木版印刷的朱丝栏：略有抖动、偶有断口；一块图案三根线，断口错开 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='520'%3E%3Cfilter id='w' filterUnits='userSpaceOnUse' x='0' y='0' width='132' height='520'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04545 .025' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='2.4'/%3E%3C/filter%3E%3Cg stroke='%23b3261f' stroke-opacity='.24' stroke-width='1.15' filter='url(%23w)'%3E%3Cpath d='M22 0V520' stroke-dasharray='150 2 90 1 180 3 94 0'/%3E%3Cpath d='M66 0V520' stroke-dasharray='60 1 210 3 130 2 114 0' stroke-opacity='.2'/%3E%3Cpath d='M110 0V520' stroke-dasharray='240 2 70 1 150 2 55 0'/%3E%3C/g%3E%3C/svg%3E"),
+    /* 纤维 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    /* 纸的深浅斑驳 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .44 0 0 0 0 .28 0 0 0 .5 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    radial-gradient(130% 90% at 50% 40%, transparent 60%, rgba(120, 90, 50, .14) 100%);
+  background-size: 132px 520px, 240px 240px, 1000px 1000px, 100% 100%;
   overflow: hidden;
+}
+.huaxin::after { /* 盖在内容上的一层极淡纸纹：墨字、朱印也带上纤维，像印在纸上 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .82 0 0 0 .55 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  opacity: .5;
+  pointer-events: none;
+  z-index: 3;
 }
 .huaxin::before { /* 版框：四周双边 */
   content: "";
@@ -129,6 +144,7 @@ button { font: inherit; color: inherit; }
 .stage {
   position: absolute;
   inset: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -139,7 +155,7 @@ button { font: inherit; color: inherit; }
 .screen {
   display: none;
   min-height: 100%;
-  padding: 28px calc(var(--margin-w) + 8px) 36px 28px;
+  padding: calc(var(--mei-h) + 14px) 30px 40px;
   flex-direction: column;
   align-items: center;
   text-align: center;
@@ -147,6 +163,7 @@ button { font: inherit; color: inherit; }
 }
 .screen.is-active {
   display: flex;
+  text-shadow: 0 0 .6px rgba(27, 23, 18, .28); /* 墨在纸上的微微洇开 */
   animation: ink-in .9s var(--ease-out) both;
 }
 @keyframes ink-in {
@@ -199,6 +216,7 @@ button { font: inherit; color: inherit; }
     radial-gradient(circle at 60% 90%, rgba(239,230,208,.4) 0 1.5px, transparent 2.5px);
   pointer-events: none;
 }
+.seal, .btn-primary { text-shadow: none; }
 .seal:hover:not(:disabled) { filter: brightness(1.12); }
 .seal:active:not(:disabled) { transform: scale(.94) rotate(-2deg); }
 .seal:disabled { opacity: .35; cursor: default; }
@@ -213,52 +231,55 @@ button { font: inherit; color: inherit; }
 
 /* ───────── 入卷 ───────── */
 .screen-title { justify-content: space-between; padding-top: 40px; }
+.screen-title { padding-top: 34px; }
 .title-block {
   position: relative;
-  width: calc(100% + 60px);
-  margin: 0 -30px;
-  height: 300px;
+  width: 100%;
+  height: 270px;
 }
-.title-ink { position: absolute; inset: 0; width: 100%; height: 100%; }
+.title-ink { position: absolute; top: 0; bottom: 0; left: -44px; width: calc(100% + 88px); height: 100%; }
 .title-main {
   position: absolute;
-  left: 50%; top: 44%;
+  left: 50%; top: 46%;
   transform: translate(-50%, -50%) rotate(-13deg);
   margin: 0;
   font-family: var(--f-title);
   font-weight: 400;
-  font-size: clamp(58px, 18vw, 86px);
+  font-size: clamp(56px, 17vw, 84px);
   line-height: 1;
   white-space: nowrap;
-  color: var(--gan);
+  color: #fffdf6; /* 内容层与纸正片叠底，字色要比纸亮一档才显得是反白 */
+  text-shadow: none;
 }
 .title-sub {
-  position: absolute;
-  right: 34px; bottom: -12px;
-  writing-mode: vertical-rl;
-  margin: 0;
-  font-size: 14px;
-  letter-spacing: .5em;
-  color: var(--gold-soft);
+  margin: -6px 0 0;
+  font-family: var(--f-brush);
+  font-size: 22px;
+  letter-spacing: .3em;
+  padding-left: .3em;
+  color: var(--gold);
 }
 .title-actions {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
 }
 .oracle-toggle {
-  margin-top: 14px;
-  display: flex; align-items: center; gap: 10px;
-  text-align: left;
-  font-size: 14px;
-  color: var(--gold-soft);
+  margin-top: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   cursor: pointer;
 }
 .oracle-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.oracle-toggle .seal { cursor: pointer; opacity: .6; }
-.oracle-toggle input:checked + .seal {
+.oracle-row { display: inline-flex; align-items: center; gap: 10px; }
+.oracle-name { font-size: 16px; color: var(--gold); letter-spacing: .1em; }
+.oracle-state { font-size: 13px; color: var(--gold-dim); }
+.oracle-state::after { content: "未开启"; }
+.oracle-toggle input:checked ~ .oracle-row .oracle-state { color: var(--cinnabar); }
+.oracle-toggle input:checked ~ .oracle-row .oracle-state::after { content: "已开启"; }
+.oracle-toggle .seal { cursor: pointer; opacity: .75; }
+.oracle-toggle input:checked ~ .oracle-row .seal {
   background: var(--cinnabar); color: var(--on-zhu); box-shadow: none; opacity: 1;
 }
-.oracle-toggle input:focus-visible + .seal { outline: 2px solid var(--gold); outline-offset: 3px; }
-.oracle-copy small { display: block; font-size: 12px; color: var(--gold-dim); }
+.oracle-toggle input:focus-visible ~ .oracle-row .seal { outline: 2px solid var(--gold); outline-offset: 3px; }
+.oracle-desc { max-width: 19em; font-size: 13px; line-height: 1.7; color: var(--gold-dim); text-align: center; }
 
 /* ───────── 定盘 ───────── */
 .shichen {
@@ -665,40 +686,70 @@ button { font: inherit; color: inherit; }
 .endings li b { display: block; font-weight: 600; color: var(--gold); }
 .endings li.is-current b { color: var(--cinnabar-hi); }
 
-/* ───────── 朱批：大师的旁批 ───────── */
+/* ───────── 眉批：大师写在天头的朱批 ───────── */
 .margin {
   position: absolute;
-  top: 22px; right: 16px; bottom: 22px;
-  width: var(--margin-w);
+  top: 16px; left: 64px; right: 64px;
+  height: calc(var(--mei-h) - 16px);
   display: flex;
-  flex-direction: row-reverse;
-  gap: 4px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  padding-top: 4px;
   overflow: hidden;
   pointer-events: none;
-  border-left: 1px solid rgba(179, 38, 31, .35);
-  padding-left: 4px;
+  border-bottom: 1px solid rgba(179, 38, 31, .32);
   z-index: 5;
 }
 .gloss {
   flex: none;
-  writing-mode: vertical-rl;
-  font-family: var(--f-zhupi);
-  font-size: 17px;
-  line-height: 1.25;
-  letter-spacing: .02em;
+  max-width: 100%;
+  font-family: var(--f-brush);
+  font-size: 18px;
+  line-height: 1.35;
+  letter-spacing: .04em;
   color: var(--cinnabar);
   white-space: nowrap;
-  max-height: 100%;
   overflow: hidden;
-  transition: opacity .6s;
+  text-overflow: ellipsis;
+  transition: opacity .8s, font-size .4s;
+  animation: gloss-in .6s var(--ease-out) both;
 }
-.gloss:not(:has(.caret))::after { content: "〇"; font-family: var(--f-text); font-size: 10px; margin-top: 2px; }
-.gloss:nth-child(n+3) { opacity: .6; }
-.gloss:nth-child(n+4) { opacity: .35; }
-.gloss:nth-child(n+5) { opacity: .15; }
-.gloss.is-alarm { text-emphasis: filled dot; text-emphasis-color: var(--cinnabar); -webkit-text-emphasis: filled dot; -webkit-text-emphasis-color: var(--cinnabar); }
+@keyframes gloss-in { from { opacity: 0; transform: translateY(-5px); filter: blur(2px); } }
+.gloss:not(:has(.caret))::after { content: " 〇"; font-family: var(--f-text); font-size: 11px; vertical-align: .2em; }
+.gloss:nth-child(2) { opacity: .42; font-size: 15px; }
+.gloss:nth-child(n+3) { opacity: 0; }
+.gloss.is-alarm { text-emphasis: filled dot; text-emphasis-color: var(--cinnabar); -webkit-text-emphasis: filled dot; -webkit-text-emphasis-color: var(--cinnabar); text-emphasis-position: under right; -webkit-text-emphasis-position: under; }
 .gloss .caret { animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
+
+/* 角上的两个小按钮：左回卷首，右开关声音 */
+.corner-btn {
+  position: absolute;
+  top: 18px;
+  z-index: 6;
+  min-width: 36px;
+  height: 34px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid var(--gold-faint);
+  border-radius: 3px;
+  background: rgba(239, 230, 208, .85);
+  color: var(--gold-soft);
+  font-family: var(--f-brush);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.corner-home { left: 18px; }
+.corner-mute { right: 18px; }
+.corner-btn:hover { color: var(--gold); border-color: var(--gold-dim); }
+.corner-mute[aria-pressed="true"] { color: var(--gold-faint); text-decoration: line-through; }
 
 /* 存疑 */
 .seal-doubt {
@@ -726,40 +777,38 @@ button { font: inherit; color: inherit; }
   100% { transform: translate(0); }
 }
 
-/* 静音 */
-.mute {
-  position: fixed;
-  right: 14px; bottom: 14px;
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  border: 1px solid var(--gold-faint);
-  background: rgba(239,230,208,.9);
-  color: var(--gold-soft);
-  font-family: var(--f-brush);
-  font-size: 18px;
-  cursor: pointer;
-  z-index: 10;
-}
-.mute[aria-pressed="true"] { color: var(--gold-faint); text-decoration: line-through; }
-
 /* ───────── 窄屏 ───────── */
 @media (max-width: 520px) {
-  :root { --margin-w: 48px; }
+  :root { --mei-h: 72px; }
   .wall { padding: 0; }
   .scroll { width: 100vw; height: 100dvh; filter: none; }
   .mount-top { height: 30px; }
   .mount-top::before { display: none; }
   .mount-bottom { height: 18px; }
   .rod { margin: 0; height: 8px; border-radius: 0; }
-  .screen { padding: 24px calc(var(--margin-w) + 14px) 34px 26px; gap: 14px; } /* 让出版框 */
-  .gloss { font-size: 15px; }
-  .gloss:nth-child(n+3) { display: none; } /* 旁批栏只有 46px，放两列正好，第三列会被裁成半截 */
+  .screen { padding: calc(var(--mei-h) + 10px) 24px 36px; gap: 14px; } /* 让出版框与眉批 */
+  .margin { left: 58px; right: 58px; }
+  .corner-btn { top: 16px; }
+  .corner-home { left: 16px; }
+  .corner-mute { right: 16px; }
+  .gloss { font-size: 17px; }
   .slips { gap: 10px; }
   .slip { width: 56px; height: 176px; }
   .jiao-block { width: 88px; height: 44px; }
   .jiao-labels span { width: 88px; }
-  .mute { right: 10px; bottom: 26px; width: 34px; height: 34px; font-size: 16px; }
   .seal-doubt { left: 12px; bottom: 12px; }
+}
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .note, .shichen, .sign-wait, .ask-label { font-size: 15px; }
+  .sign-bai, .jq-row, .confess li, .critique, .oracle p, .screen-about p, .screen-about li, .lost-text { font-size: 16px; line-height: 1.85; }
+  .jiao-legend, .jiao-rule, .oracle-desc, .ledger-intro, .oracle .oracle-ask-note { font-size: 14px; }
+  .ledger dl { font-size: 15px; }
+  .endings li { font-size: 14px; }
+  .loom-legend, .loom figcaption, .cup-tag { font-size: 13px; }
+  .cup-name, .jq-state { font-size: 14px; }
+  .slip-desc { font-size: 12px; }
+  .poem { font-size: 20px; }
 }
 @media (max-height: 700px) {
   .tube-wrap { width: min(240px, 100%); }
@@ -809,8 +858,17 @@ button { font: inherit; color: inherit; }
 .poster-actions .btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 /* ───────── 关于页 ───────── */
-.screen-about { padding: 28px 28px 40px; text-align: left; align-items: stretch; }
+.screen-about { padding: 64px 30px 40px; text-align: left; align-items: stretch; }
 .screen-about .h-brush { text-align: center; }
+.about-by {
+  margin: -4px 0 0;
+  text-align: center;
+  font-family: var(--f-brush);
+  font-size: 20px;
+  letter-spacing: .12em;
+  color: var(--cinnabar);
+}
+a.corner-btn { text-decoration: none; }
 .about-lead {
   margin: 0;
   text-align: center;
@@ -831,7 +889,7 @@ button { font: inherit; color: inherit; }
 .screen-about li b { color: var(--gold); font-weight: 600; margin-right: .4em; }
 .about-back { align-self: center; margin-top: 12px; text-decoration: none; display: inline-flex; align-items: center; }
 @media (max-width: 520px) {
-  .screen-about { padding: 20px 16px 30px; }
+  .screen-about { padding: 60px 24px 32px; }
 }
 
 /* ───────── 404 ───────── */
