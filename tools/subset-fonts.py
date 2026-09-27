@@ -22,6 +22,8 @@ from pathlib import Path
 from fontTools import subset
 from fontTools.ttLib import TTFont
 
+from compose_glyph import compose  # 给书法字体补造"筊"等缺字
+
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / 'public'
 CACHE = ROOT / '.cache' / 'fonts'
@@ -131,11 +133,15 @@ def main():
     used = site_chars() | BASICS
     extra = gb2312_level1() - used
 
-    write(TTFont(fetch('MaShanZheng-Regular.ttf')), brush_chars() | BASICS, 'ma-shan-zheng.woff2')
+    brush = TTFont(fetch('MaShanZheng-Regular.ttf'))
+    compose(brush)
+    write(brush, brush_chars() | BASICS, 'ma-shan-zheng.woff2')
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), used, 'noto-serif-sc-400.woff2')
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), extra, 'noto-serif-sc-400-extra.woff2')
     write(TTFont(fetch('NotoSerifSC-SemiBold.otf')), ui_chars() | BASICS, 'noto-serif-sc-600.woff2')
-    write(TTFont(fetch('ZhiMangXing-Regular.ttf')), ui_chars() | BASICS, 'zhi-mang-xing.woff2')
+    title = TTFont(fetch('ZhiMangXing-Regular.ttf'))
+    compose(title)
+    write(title, ui_chars() | BASICS, 'zhi-mang-xing.woff2')
     write(TTFont(fetch('LiuJianMaoCao-Regular.ttf')), ui_chars() | BASICS, 'liu-jian-mao-cao.woff2')
 
     css = '/* 由 tools/subset-fonts.py 生成，不要手改 */\n'

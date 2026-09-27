@@ -688,19 +688,28 @@ button { font: inherit; color: inherit; }
 
 /* ───────── 眉批：大师写在天头的朱批 ───────── */
 .margin {
+  /* 眉批带：横贯画框，毛玻璃。内容滚到下面会隐约透出，但不和批语叠在一起 */
   position: absolute;
-  top: 16px; left: 64px; right: 64px;
-  height: calc(var(--mei-h) - 16px);
+  top: 16px; left: 16px; right: 16px; /* 收在版框内线之内 */
+  height: calc(var(--mei-h) - 4px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 2px;
-  padding-top: 4px;
+  padding: 8px 60px 0;
   overflow: hidden;
   pointer-events: none;
   border-bottom: 1px solid rgba(179, 38, 31, .32);
+  background: rgba(239, 230, 208, .96); /* 不支持模糊的旧浏览器：近乎不透明 */
   z-index: 5;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .margin {
+    background: rgba(239, 230, 208, .62);
+    -webkit-backdrop-filter: blur(8px) saturate(1.1);
+    backdrop-filter: blur(8px) saturate(1.1);
+  }
 }
 .gloss {
   flex: none;
@@ -787,7 +796,7 @@ button { font: inherit; color: inherit; }
   .mount-bottom { height: 18px; }
   .rod { margin: 0; height: 8px; border-radius: 0; }
   .screen { padding: calc(var(--mei-h) + 10px) 24px 36px; gap: 14px; } /* 让出版框与眉批 */
-  .margin { left: 58px; right: 58px; }
+  .margin { padding: 8px 54px 0; }
   .corner-btn { top: 16px; }
   .corner-home { left: 16px; }
   .corner-mute { right: 16px; }
