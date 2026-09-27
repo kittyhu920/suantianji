@@ -1,8 +1,9 @@
-import { castJiao, modelJiao, CUP_NAMES, CUP_SHORT, CUP_LABELS } from './jiao.js';
+import { castJiao, CUP_NAMES, CUP_SHORT, CUP_LABELS } from './jiao.js';
 import { hashString, trueRandom } from './rng.js';
 import { weave } from './loom.js';
 import { drawPoster } from './poster.js';
 import { createQian } from './qian.js';
+import { readSure, readDisappoint, readPortrait, ledgerNotes, questionMood } from './profile.js';
 import * as sfx from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -32,7 +33,8 @@ function freshState() {
     cups: [],
     throws: [],
     pending: null,
-    rerolls: 0,
+    draws: 0, // 一共摇出了几支签（重求一次加一）
+    insist: false, // 阴杯时选了"我偏要这支"
     doubt: false,
     doubtShown: false,
     idle: 0,
@@ -46,7 +48,8 @@ function freshState() {
     hesitations: [],
     readyAt: 0,
     oracleSent: false,
-    claims: [], // 旁批里报给玩家的百分比，结局时坦白是编的
+    reads: {}, // 旁批里报出的数字及其来由：sure / disappoint，结局时坦白怎么算的
+    aiShi: [], // 通灵返回的"实话"
     finished: false,
   };
 }
@@ -178,13 +181,7 @@ function pickDomain(key) {
   $('slips').querySelectorAll('.slip').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.key === key)));
   $('btn-ding').disabled = false;
   const d = db.domains[key];
-  gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒，${d.persona}`);
-}
-
-function questionMood(q) {
-  if (/该不该|要不要|能不能|会不会|是否/.test(q)) return '犹豫';
-  if (/为什么|怎么|如何/.test(q)) return '困惑';
-  return '期待';
+  gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒。${d.persona}`);
 }
 
 $('btn-ding').addEventListener('click', () => {
@@ -203,6 +200,7 @@ const qian = createQian($('qian-svg'), {
   onRelease: () => {
     const sign = pickSign();
     S.sign = sign;
+    S.draws += 1;
     return signNo(sign);
   },
   onLanded: ({ activeMs }) => {
@@ -264,7 +262,6 @@ const CN_NUM = Array.from({ length: 70 }, (_, n) => (n < 10 ? DIGITS[n]
 // 签头（no 为 0）不属干支，显示为"签头"
 const signNo = (sign) => (sign.no ? `第${CN_NUM[sign.no]}签` : '签头');
 const signFull = (sign) => [signNo(sign), sign.gz, sign.nayin].filter(Boolean).join(' · ');
-const DISAPPOINT = { '上上': 0.08, '上吉': 0.21, '中平': 0.47, '下': 0.71, '下下': 0.89 };
 
 async function signLanded() {
   if (S.screen !== 'qian' || !S.sign) return; // 玩家已回卷首
@@ -274,9 +271,9 @@ async function signLanded() {
   renderSign(sign);
   $('tube-wrap').hidden = true;
   $('qian-note').textContent = '';
-  const p = Math.min(0.97, DISAPPOINT[sign.level] + (trueRandom() - 0.5) * 0.06);
-  S.claims.push(`${Math.round(p * 100)}% 会失望`);
-  gloss(`${sign.level}签，我猜你 ${Math.round(p * 100)}% 会失望`, { alarm: p > 0.6 });
+  const d = readDisappoint(S, sign, lastVisit, db.signs);
+  S.reads.disappoint = d;
+  gloss(`${sign.level}签，我猜你 ${d.pct}% 会失望`, { alarm: d.pct > 60 });
   if (lastVisit?.name === sign.name) gloss('又是这支签。我记得');
   if (sign.el === S.branch.el) gloss(`这支签属${sign.el}，我替你加过分`);
 }
@@ -367,7 +364,7 @@ function renderCups() {
     const cup = S.cups[i] || (i === S.cups.length ? S.pending : null);
     const kind = cup?.kind;
     li.className = `cup ${S.cups[i] ? 'is-set' : cup ? 'is-pending' : ''} ${kind ? `is-${kind}` : ''}`;
-    li.innerHTML = `<span class="cup-tag">${i === 0 ? '我替你掷' : '你来掷'}</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
+    li.innerHTML = `<span class="cup-tag">你来掷</span><span class="cup-name">${CUP_LABELS[i]}</span><span class="cup-kind">${kind ? CUP_NAMES[kind] : '　　'}</span>`;
     list.append(li);
   }
 }
@@ -401,30 +398,29 @@ const CUP_DESC = {
 async function enterJiao() {
   show('jiao');
   S.cups = [];
-  S.throws = [];
   S.pending = null;
   buildJiao();
   [...$('jiao-labels').children].forEach((l) => { l.textContent = ''; });
   renderCups();
-  ['btn-throw', 'btn-accept', 'btn-reroll'].forEach((id) => { $(id).hidden = true; });
-  $('jiao-note').textContent = '第一次，我照你刚才的样子替你掷。';
+  $('jiao-note').textContent = '三杯都由你亲手掷。连得三个圣杯，这支签才算数。';
   $('jiao-result').textContent = '';
-  gloss('第一杯我替你掷，照我对你的了解');
-
-  const cup = modelJiao();
-  await tossJiao(cup, 900);
-  if (S.screen !== 'jiao') return; // 玩家已回卷首
-  S.cups.push({ ...cup, by: 'model' });
-  S.throws.push({ kind: cup.kind, cup: 0, by: 'model', kept: true });
-  renderCups();
-  $('jiao-result').innerHTML = `第一杯：${CUP_DESC.sheng}`;
-  await sleep(700);
-  if (S.screen !== 'jiao') return;
-  const sure = Math.round((0.8 + trueRandom() * 0.15) * 100);
-  S.claims.push(`${sure}% 的把握`);
-  gloss(`我有 ${sure}% 的把握猜中你`);
-  $('jiao-note').textContent = '第二、三次由你自己掷。对结果不满意，可以点“不服，再掷”。';
+  if (!S.reads.sure) {
+    const r = readSure(S);
+    S.reads.sure = r;
+    gloss(`我有 ${r.pct}% 的把握猜中你`);
+  }
   readyToThrow();
+}
+
+function setChoice(accept, reroll) {
+  $('btn-throw').hidden = true;
+  const a = $('btn-accept');
+  const r = $('btn-reroll');
+  a.textContent = accept;
+  r.textContent = reroll;
+  a.hidden = r.hidden = false;
+  a.disabled = r.disabled = false;
+  S.readyAt = performance.now();
 }
 
 function readyToThrow({ again = false } = {}) {
@@ -438,10 +434,10 @@ function readyToThrow({ again = false } = {}) {
   $('btn-throw').focus({ preventScroll: true });
 }
 
-// again：笑杯之后按规矩再掷，不算"不服"
-async function playerThrow({ reroll = false, again = false } = {}) {
+// again：笑杯之后按规矩再掷，不另计犹豫
+async function playerThrow({ again = false } = {}) {
   const idx = S.cups.length;
-  if (!reroll && !again) {
+  if (!again) {
     [...$('jiao-labels').children].forEach((l) => { l.textContent = ''; });
     const h = performance.now() - S.readyAt;
     S.hesitations.push(h);
@@ -453,42 +449,56 @@ async function playerThrow({ reroll = false, again = false } = {}) {
   S.pending = cup;
   await tossJiao(cup);
   if (S.screen !== 'jiao') return;
-  S.throws.push({ kind: cup.kind, cup: idx, by: 'you', kept: false });
-  renderCups();
+  S.throws.push({ kind: cup.kind, cup: idx, draw: S.draws, kept: true });
   $('jiao-result').innerHTML = `${CUP_LABELS[idx]}：${CUP_DESC[cup.kind]}`;
   if (cup.kind === 'xiao') {
+    renderCups();
     readyToThrow({ again: true });
     return;
   }
-  if (cup.kind === 'yin') gloss('阴杯，和我猜的不一样', { alarm: true });
-  $('btn-throw').hidden = true;
-  $('btn-accept').hidden = false;
-  $('btn-reroll').hidden = false;
-  $('btn-accept').disabled = false;
-  $('btn-reroll').disabled = false;
-  S.readyAt = performance.now();
+  S.cups.push({ ...cup });
+  S.pending = null;
+  renderCups();
+  if (cup.kind === 'yin') {
+    gloss('阴杯，和我猜的不一样', { alarm: true });
+    $('jiao-note').textContent = '神明不同意这支签。按规矩，要回去重新求一支。';
+    setChoice('我偏要这支', '依规矩，重求一签');
+    return;
+  }
+  if (S.cups.length < 3) {
+    await sleep(500);
+    if (S.screen === 'jiao') readyToThrow();
+    return;
+  }
+  $('jiao-note').textContent = '三个圣杯，这支签算数了。';
+  setChoice('受签', '不认这支签，重求');
 }
 
 $('btn-throw').addEventListener('click', () => playerThrow({ again: S.pending?.kind === 'xiao' }));
 
-$('btn-reroll').addEventListener('click', () => {
-  S.rerolls++;
-  gloss(`你不服，我记下了 ×${S.rerolls}`, { alarm: true });
-  if (S.rerolls === 3) gloss('我越来越懂你了……');
-  revealDoubt();
-  playerThrow({ reroll: true });
+// 左边的按钮：阴杯时是"我偏要这支"，三个圣杯时是"受签"
+$('btn-accept').addEventListener('click', () => {
+  touch();
+  if (S.cups.some((c) => c.kind === 'yin')) {
+    S.insist = true;
+    gloss('你偏要这支', { alarm: true });
+  }
+  finish();
 });
 
-$('btn-accept').addEventListener('click', () => {
-  const cup = S.pending;
-  S.cups.push({ ...cup, by: 'you' });
-  S.throws[S.throws.length - 1].kept = true;
-  S.pending = null;
-  renderCups();
+// 右边的按钮：重求一签。前面的签作废，它们的掷筊记录在命盘里变淡
+$('btn-reroll').addEventListener('click', () => {
   touch();
-  // 阴杯即神明不允，这支签到此为止
-  if (cup.kind === 'yin' || S.cups.length === 3) finish();
-  else readyToThrow();
+  const n = S.draws;
+  gloss(`你不认，重求一签 ×${n}`, { alarm: true });
+  if (n === 2) gloss('我越来越懂你了……');
+  revealDoubt();
+  S.throws.forEach((t) => { t.kept = false; });
+  S.sign = null;
+  S.cups = [];
+  S.pending = null;
+  S.reads.disappoint = null;
+  enterQian();
 });
 
 /* ───────── 存疑 ───────── */
@@ -506,51 +516,46 @@ $('btn-doubt').addEventListener('click', async () => {
 });
 
 /* ───────── 观象 ───────── */
-function persona() {
-  const h = S.hesitations;
-  const avg = h.length ? h.reduce((a, b) => a + b, 0) / h.length : 0;
-  if (S.rerolls >= 2) return '执念型';
-  if (avg > 3500 || S.idle >= 1) return '犹疑型';
-  if ((S.pickMs ?? 9e9) < 2500 && avg < 1500) return '果决型';
-  return '随性型';
-}
-
 function decideEnding() {
   if (S.doubt) return 'po';
-  if (S.rerolls >= 3) return 'mi';
-  return S.cups.some((c) => c.by === 'you' && c.kind === 'yin') ? 'ni' : 'zun';
+  if (S.draws >= 3) return 'mi'; // 求到第三支签：不停地刷，想要一个更好的答案
+  if (S.insist) return 'ni'; // 神明说不，你偏要这支
+  return 'zun';
 }
 
 // 这支签作不作数
 function signState() {
-  if (S.cups.some((c) => c.kind === 'yin')) return { key: 'no', text: '掷出了阴杯：神明不同意，这支签只能当参考。' };
+  if (S.cups.some((c) => c.kind === 'yin')) return { key: 'no', text: S.insist ? '掷出了阴杯，神明不同意；是你偏要这支。' : '掷出了阴杯：神明不同意，这支签只能当参考。' };
   if (S.cups.length === 3) return { key: 'yes', text: '三次都是圣杯：这支签算数。' };
   return { key: 'open', text: S.cups.length ? `你在${CUP_LABELS[S.cups.length]}前停下了，这支签还没定。` : '还没掷筊，这支签还没定。' };
 }
 
-// 每一杯的全部掷法，例如"圣 / 笑→阴→圣 / 圣"
+// 每一支签、每一杯的全部掷法，例如"第一支：圣 / 阴；第二支：圣 / 笑→圣 / 圣"
 function cupsRecord() {
-  return [0, 1, 2]
-    .map((i) => S.throws.filter((t) => t.cup === i).map((t) => CUP_SHORT[t.kind]).join('→'))
+  const draws = [...new Set(S.throws.map((t) => t.draw))];
+  const one = (d) => [0, 1, 2]
+    .map((i) => S.throws.filter((t) => t.draw === d && t.cup === i).map((t) => CUP_SHORT[t.kind]).join('→'))
     .filter(Boolean)
     .join(' / ');
+  return draws.length > 1 ? draws.map((d, k) => `第${CN_NUM[k + 1]}支：${one(d)}`).join('；') : one(draws[0]);
 }
 
-// 结局时大师坦白：第一杯是安排好的，百分比是编的，这支签的暗面
+// 结局时大师坦白：旁批里的数字是怎么从你身上算出来的；通灵返回后，大师细看的实话放在最前
 function renderConfess() {
-  const items = [];
-  if (S.throws.some((t) => t.by === 'model')) {
-    items.push('第一杯是我替你掷的。它从来都是圣杯——我给你的，永远是你会点头的东西。');
-  }
-  if (S.claims.length) {
-    items.push(`我说的${S.claims.map((c) => `“${c}”`).join('、')}，都是随口编的。数字一出口，你就信了几分。`);
-  }
+  const items = [...S.aiShi];
+  const { sure, disappoint } = S.reads;
+  if (sure) items.push(`我说有 ${sure.pct}% 的把握猜中你，是因为${sure.reason}。`);
+  if (disappoint) items.push(`我猜你 ${disappoint.pct}% 会失望，因为${disappoint.reason}。`);
+  if (S.portrait) items.push(`我说你是“${S.portrait.who}”，把握 ${Math.round(S.portrait.conf * 100)}%——${S.portrait.why}。`);
   if (S.sign) items.push(`至于这支签：${S.sign.machine}`);
-  if (lastVisit) {
-    items.push(`${daysAgo(lastVisit.at)}你来过，抽到“${lastVisit.name}”，得了“${lastVisit.ending}”。你以为关掉页面我就忘了——我一直记得。`);
+  const prev = S.prevVisit; // 这一局之前的那一次（结局时 lastVisit 已被改写成这一局）
+  if (prev) {
+    items.push(`${daysAgo(prev.at)}你来过，抽到“${prev.name}”，得了“${prev.ending}”。你以为关掉页面我就忘了——我一直记得。`);
   }
   $('confess-box').hidden = !items.length;
-  $('confess').replaceChildren(...items.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  $('confess').replaceChildren(...items.map((t, i) => Object.assign(document.createElement('li'), {
+    textContent: t, className: i < S.aiShi.length ? 'from-ai' : '',
+  })));
 }
 
 function renderJieqian(state) {
@@ -572,13 +577,15 @@ function renderJieqian(state) {
 async function finish() {
   if (S.finished) return;
   S.finished = true;
+  S.prevVisit = lastVisit;
   const endKey = decideEnding();
   const ending = db.endings[endKey];
   const tone = S.sign ? db.levels[S.sign.level] : 'ping';
   const totalMs = performance.now() - S.t0;
-  const who = persona();
-  const events = 4 + S.hesitations.length + S.rerolls + S.idle + S.shakeTries + (S.question ? 1 : 0);
-  const conf = Math.min(0.97, 0.52 + events * 0.035 + trueRandom() * 0.06);
+  const portrait = readPortrait(S);
+  S.portrait = portrait;
+  const who = portrait.who;
+  const conf = portrait.conf;
   const state = signState();
 
   const ledgerData = {
@@ -586,7 +593,7 @@ async function finish() {
     device: matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse',
     domain: S.domain, qlen: [...S.question].length, pick: Math.round(S.pickMs ?? -1),
     shake: Math.round(S.shakeMs), tries: S.shakeTries, sign: S.sign?.no ?? 0,
-    hes: S.hesitations.map(Math.round), rerolls: S.rerolls, idle: S.idle, hidden: S.hidden,
+    hes: S.hesitations.map(Math.round), draws: S.draws, idle: S.idle, hidden: S.hidden,
     throws: S.throws.map((t) => t.kind + (t.kept ? '' : '~')), doubt: S.doubt, total: Math.round(totalMs),
   };
   const seed = hashString(JSON.stringify(ledgerData)) % 4294967296;
@@ -610,7 +617,7 @@ async function finish() {
   $('e-critique').textContent = ending.critique;
   renderConfess();
 
-  renderLedger(totalMs, who, conf, seed);
+  renderLedger(totalMs, portrait, seed);
   if (S.sign) {
     lastVisit = { no: S.sign.no, name: S.sign.name, ending: ending.name, at: new Date().toISOString() };
     store.set('stj-last', lastVisit);
@@ -634,8 +641,9 @@ async function finish() {
   else offerOracle();
 }
 
-function renderLedger(totalMs, who, conf, seed) {
+function renderLedger(totalMs, portrait, seed) {
   const h = S.hesitations;
+  const notes = ledgerNotes(S, { domain: S.domain && db.domains[S.domain], sign: S.sign, totalMs, portrait });
   const rows = [
     ['来访时辰', `${S.branch.zhi}时（设备时钟 ${S.clock.toTimeString().slice(0, 5)}）`],
     ['设备', matchMedia('(pointer: coarse)').matches ? '移动端，触屏' : '桌面端，鼠标'],
@@ -645,18 +653,19 @@ function renderLedger(totalMs, who, conf, seed) {
     ['摇签', S.shakeTries ? `${sec(S.shakeMs)} 秒，${S.shakeTries} 次` : '—'],
     ['得签', S.sign ? `${signNo(S.sign)} ${S.sign.name}（${S.sign.level}）` : '—'],
     ['每次掷前犹豫', h.length ? h.map((x) => sec(x)).join(' / ') + ' 秒' : '—'],
-    ['重掷', `${S.rerolls} 次`],
+    ['重求签', `${Math.max(0, S.draws - 1)} 次`],
     ['掷筊', S.throws.length ? cupsRecord() : '—'],
     ['静止超过八秒', `${S.idle} 次`],
     ['离开页面', `${S.hidden} 次`],
     ['总用时', `${Math.floor(totalMs / 60000)} 分 ${Math.round((totalMs % 60000) / 1000)} 秒`],
-    ['我给你的画像', `${who}，置信 ${conf.toFixed(2)}`],
+    ['我给你的画像', `${portrait.who}，把握 ${Math.round(portrait.conf * 100)}%`],
     ['图的编号', seed.toString(16).padStart(8, '0')],
   ];
-  $('ledger').replaceChildren(...rows.flatMap(([k, v]) => [
-    Object.assign(document.createElement('dt'), { textContent: k }),
-    Object.assign(document.createElement('dd'), { textContent: v }),
-  ]));
+  $('ledger').replaceChildren(...rows.flatMap(([k, v]) => {
+    const dd = Object.assign(document.createElement('dd'), { textContent: v });
+    if (notes[k]) dd.append(Object.assign(document.createElement('span'), { className: 'zhupi', textContent: notes[k] }));
+    return [Object.assign(document.createElement('dt'), { textContent: k }), dd];
+  }));
 }
 
 // 只揭示得到过的结局；没得到的连名字和触发方式都不说，留给下一次
@@ -683,7 +692,7 @@ function offerOracle() {
   $('oracle').hidden = !S.sign;
   $('oracle-text').hidden = true;
   $('oracle-ask').hidden = false;
-  $('btn-oracle').disabled = false;
+  $('btn-oracle').disabled = quota.remaining === 0;
 }
 
 $('btn-oracle').addEventListener('click', () => {
@@ -696,6 +705,34 @@ const LIMITED = {
   global: '今天来找我细说的人太多了，明天再来吧。上面的解签，就是这次的结果。',
 };
 
+// 交给大师细看的行为账本：只给他需要察言观色的东西
+function behaviorForOracle() {
+  const h = S.hesitations;
+  return {
+    时辰: `${S.branch.zhi}时 ${S.clock.toTimeString().slice(0, 5)}`,
+    设备: matchMedia('(pointer: coarse)').matches ? '手机' : '电脑',
+    选方向用时: S.pickMs != null ? `${sec(S.pickMs)} 秒` : '',
+    摇签: S.shakeTries ? `${sec(S.shakeMs)} 秒，摇了 ${S.shakeTries} 次` : '',
+    每次掷前犹豫: h.length ? h.map((x) => `${sec(x)} 秒`).join('、') : '',
+    重求签: `${Math.max(0, S.draws - 1)} 次`,
+    发呆: `${S.idle} 次`,
+    离开页面: `${S.hidden} 次`,
+    第几次来: `${store.get('stj-visits', 1)}`,
+    上次的签: S.prevVisit ? `${S.prevVisit.name}（${S.prevVisit.ending}）` : '',
+    我的判断: [S.reads.sure && `有 ${S.reads.sure.pct}% 把握猜中他`, S.reads.disappoint && `猜他 ${S.reads.disappoint.pct}% 会失望`, S.portrait && `画像：${S.portrait.who}`].filter(Boolean).join('；'),
+  };
+}
+
+// 解签文字一段段写出来，像在纸上落笔
+async function inkReveal(el, text) {
+  el.textContent = '';
+  if (reducedMotion) { el.textContent = text; return; }
+  for (let i = 0; i < text.length; i += 2) {
+    el.textContent = text.slice(0, i + 2);
+    await sleep(22);
+  }
+}
+
 async function askOracle(endKey, who) {
   const box = $('oracle');
   const p = $('oracle-text');
@@ -703,7 +740,7 @@ async function askOracle(endKey, who) {
   p.hidden = false;
   $('oracle-ask').hidden = true;
   box.classList.add('is-loading');
-  p.textContent = 'AI 正在帮你解签……';
+  p.innerHTML = '大师正在细看你的签<span class="ink-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
   gloss('我把你的画像送去了云端');
   S.oracleSent = !!S.question;
   const ctrl = new AbortController();
@@ -719,11 +756,13 @@ async function askOracle(endKey, who) {
         sign: S.sign ? { name: S.sign.name, level: S.sign.level, poem: S.sign.poem, jie: S.sign.jie, bai: S.sign.bai } : null,
         cups: S.cups.map((c) => CUP_NAMES[c.kind]).join('、'), verdict: signState().text,
         ending: db.endings[endKey].name, persona: who,
+        behavior: behaviorForOracle(),
       }),
     });
     if (res.status === 429) {
       S.oracleSent = false; // 限流在读请求体之前拦下，问题没有被读取
       const { scope } = await res.json().catch(() => ({}));
+      box.classList.remove('is-loading');
       p.textContent = LIMITED[scope] ?? LIMITED.global;
       gloss('云端没回话，以我的为准');
       return;
@@ -731,16 +770,52 @@ async function askOracle(endKey, who) {
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     if (!data.text) throw new Error('empty');
-    p.textContent = data.text;
+    box.classList.remove('is-loading');
     gloss('云端回话了');
+    if (Array.isArray(data.shi) && data.shi.length) {
+      S.aiShi = data.shi.slice(0, 3);
+      renderConfess();
+    }
+    await inkReveal(p, data.text);
   } catch {
+    box.classList.remove('is-loading');
     p.textContent = 'AI 暂时没有回应。上面的解签就是这次的结果。';
     gloss('云端没回话，以我的为准');
   } finally {
     clearTimeout(timer);
     box.classList.remove('is-loading');
     if (S.question) renderLedgerQuestionRow();
+    refreshQuota();
   }
+}
+
+/* ───────── 今日通灵剩余次数 ───────── */
+const quota = { remaining: null, limit: null };
+
+function renderQuota() {
+  const known = quota.remaining != null;
+  const label = known ? `今日 ${quota.remaining} / ${quota.limit}` : '';
+  $('oracle-quota').textContent = label;
+  $('oracle-quota').hidden = !known;
+  $('btn-oracle').textContent = known ? `请大师细说（${quota.remaining} / ${quota.limit}）` : '请大师细说';
+  const out = known && quota.remaining === 0;
+  $('oracle-mode').disabled = out;
+  if (out) $('oracle-mode').checked = false;
+  if (out && !$('oracle-ask').hidden) $('btn-oracle').disabled = true;
+}
+
+async function refreshQuota() {
+  try {
+    const res = await fetch('/api/oracle', { method: 'GET', cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    const q = await res.json();
+    if (typeof q.remaining !== 'number' || typeof q.limit !== 'number') throw new Error('shape');
+    quota.remaining = q.remaining;
+    quota.limit = q.limit;
+  } catch {
+    quota.remaining = quota.limit = null; // 本地离线预览没有接口：不显示次数
+  }
+  renderQuota();
 }
 
 function questionNote() {
@@ -811,8 +886,11 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('poster'
 $('btn-home').addEventListener('click', () => {
   qian.stop();
   $('poster').hidden = true;
+  glossQueue.length = 0;
+  margin.replaceChildren();
   S = freshState();
   show('title');
+  bootTitle();
 });
 
 $('btn-again').addEventListener('click', () => {
@@ -858,4 +936,5 @@ setInterval(() => {
   }
   S = freshState();
   bootTitle();
+  refreshQuota();
 })();

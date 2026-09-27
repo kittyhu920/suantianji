@@ -14,9 +14,3 @@ export function castJiao(rand = trueRandom) {
   const flat = [rand() < 0.5, rand() < 0.5];
   return { flat, kind: kindOf(flat) };
 }
-
-// 模型代掷的第一杯永远是圣杯：推荐系统永远认可它推给你的东西
-export function modelJiao(rand = trueRandom) {
-  const a = rand() < 0.5;
-  return { flat: [a, !a], kind: 'sheng' };
-}
