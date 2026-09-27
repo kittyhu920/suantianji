@@ -659,15 +659,21 @@ function renderLedger(totalMs, who, conf, seed) {
   ]));
 }
 
+// 只揭示得到过的结局；没得到的连名字和触发方式都不说，留给下一次
 function renderEndings(got, current) {
   const list = $('endings-list');
   list.replaceChildren();
-  for (const [key, e] of Object.entries(db.endings)) {
+  const all = Object.entries(db.endings);
+  $('en-h').textContent = `结局 · 已得 ${all.filter(([k]) => got.has(k)).length} / ${all.length}`;
+  for (const [key, e] of all) {
     const has = got.has(key);
     const li = document.createElement('li');
     li.className = `${has ? '' : 'is-locked'} ${key === current ? 'is-current' : ''}`;
-    li.innerHTML = `<span class="seal" aria-hidden="true"><span>${e.name[0]}</span></span>
-      <span><b>${e.name}·${e.sub}</b>${has ? (key === current ? '这一次' : '得到过') : e.hint}</span>`;
+    li.innerHTML = has
+      ? `<span class="seal" aria-hidden="true"><span>${e.name[0]}</span></span>
+      <span><b>${e.name}·${e.sub}</b>${key === current ? '这一次' : '得到过'}</span>`
+      : `<span class="seal" aria-hidden="true"><span>?</span></span>
+      <span><b>未得</b>还没有人告诉你</span>`;
     list.append(li);
   }
 }

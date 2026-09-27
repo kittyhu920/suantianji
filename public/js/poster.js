@@ -1,16 +1,21 @@
-// 分享图：把这一局的签、结局与命盘画成一页宣纸，1080 × 2600（风格见 docs/DESIGN.md）
+// 分享图：把这一局的签、结局与命盘画成一页宣纸，1080 × 2860，落款处附二维码（风格见 docs/DESIGN.md）
 // 全部由 Canvas 当场绘制，不引入任何位图素材。
 
 import { mulberry32 } from './rng.js';
 import { weave } from './loom.js';
 
 const W = 1080;
-const H = 2600;
+const H = 2860;
 const C = {
   paper: '#efe6d0',
   gold: '#1b1712', goldSoft: 'rgba(27,23,18,.74)', goldDim: 'rgba(27,23,18,.5)', goldFaint: 'rgba(27,23,18,.14)', // 墨（沿用旧名）
   cinnabar: '#b3261f', cinnabarHi: '#b3261f', ink: '#f6eedb', // ink：朱印上的字
 };
+// 站点网址的二维码点阵（29×29，纠错等级 Q）。网址固定，所以离线算好直接嵌入，不引入二维码库。
+// 重新生成：python -c "import segno;q=segno.make('https://suantianji.pages.dev',error='m');print([''.join('1' if c else '0' for c in r) for r in q.matrix])"
+const QR = ["11111110010010011000001111111", "10000010011111011011001000001", "10111010100100001110101011101", "10111010010101110010001011101", "10111010100000010010001011101", "10000010111010001101001000001", "11111110101010101010101111111", "00000000010000111100100000000", "01001010100000111011110110100", "10111000111100100110001111011", "01100111001001000010010011001", "11001101011001100100110000011", "11110111101010001101000101001", "11111101001011100000001010101", "01110011010101011100101010001", "11110001100011001101001101010", "11101110100000010011110000001", "10011100010011101010011110001", "00110111111111001110000000101", "00011001110100100101100101011", "11011011110110110100111110011", "00000000101101011110100010101", "11111110010101010011101010001", "10000010000100011001100011010", "10111010101110001001111110011", "10111010001101000110000101110", "10111010000000110101110000011", "10000010101010111110111101011", "11111110000110100101111011010"];
+const SITE = 'suantianji.pages.dev';
+
 const TITLE = '"Zhi Mang Xing", "Ma Shan Zheng", "STKaiti", serif';
 const BRUSH = '"Ma Shan Zheng", "STKaiti", "KaiTi", serif';
 const TEXT = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
@@ -113,7 +118,7 @@ function center(g, text, y, font, color) {
  */
 export async function drawPoster(d) {
   const sample = [d.sign?.name, d.sign?.no, d.sign?.level, ...(d.sign?.poem ?? []), d.sign?.bai, d.cups, d.state,
-    d.ending.name, d.ending.sub, '演算天机数字重彩问命录这支签在说什么在你求签的时候我也在给你算命'].join('');
+    d.ending.name, d.ending.sub, '演算天机你求签我算这支签在说什么在你求签的时候我也在给你算命扫码来求一签'].join('');
   await Promise.all([document.fonts.load(`48px ${BRUSH}`, sample), document.fonts.load(`38px ${TEXT}`, sample),
     document.fonts.load(`84px ${TITLE}`, '演算天机')]);
 
@@ -137,10 +142,10 @@ export async function drawPoster(d) {
 
   let y = 520;
   g.save();
-  g.font = `30px ${TEXT}`;
-  g.fillStyle = C.goldDim;
+  g.font = `44px ${BRUSH}`;
+  g.fillStyle = C.gold;
   g.textAlign = 'center';
-  g.fillText('数 字 重 彩 问 命 录', W / 2, y);
+  g.fillText('你 求 签 ， 我 算 你', W / 2, y);
   g.restore();
 
   if (d.sign) {
@@ -214,7 +219,7 @@ export async function drawPoster(d) {
   y += 50;
   const lw2 = 640;
   const lh2 = lw2 * 0.75;
-  const room = H - 90 - 90 - y;
+  const room = H - 380 - y; // 下面留给落款与二维码
   const scale = Math.min(1, room / lh2);
   const mw = lw2 * scale;
   const mh = lh2 * scale;
@@ -226,8 +231,24 @@ export async function drawPoster(d) {
   g.lineWidth = 2;
   g.strokeRect(W / 2 - mw / 2, y, mw, mh);
 
-  // 落款
-  center(g, `suantianji.pages.dev　${d.date}`, H - 124, `28px ${TEXT}`, C.goldDim);
+  // 落款：左边字，右边二维码
+  const cell = 8;
+  const qs = QR.length * cell;
+  const qx = W / 2 + 60;
+  const qy = H - 110 - qs;
+  g.fillStyle = C.paper;
+  g.fillRect(qx - cell * 4, qy - cell * 4, qs + cell * 8, qs + cell * 8); // 四格静区，免得纸纹干扰识别
+  g.fillStyle = C.gold;
+  QR.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] === '1') g.fillRect(qx + c * cell, qy + r * cell, cell, cell); });
+  g.textAlign = 'right';
+  g.textBaseline = 'alphabetic';
+  g.font = `46px ${BRUSH}`;
+  g.fillStyle = C.gold;
+  g.fillText('扫码来求一签', qx - 50, qy + qs * 0.42);
+  g.font = `26px ${TEXT}`;
+  g.fillStyle = C.goldDim;
+  g.fillText(SITE, qx - 50, qy + qs * 0.42 + 56);
+  g.fillText(d.date, qx - 50, qy + qs * 0.42 + 96);
 
   return new Promise((resolve) => cv.toBlob(resolve, 'image/png'));
 }
