@@ -89,6 +89,7 @@
                 <span class="seal seal-sm seal-outline" aria-hidden="true"><span>灵</span></span>
                 <span class="oracle-name">通灵模式</span>
                 <span class="oracle-state" aria-hidden="true"></span>
+                <span class="oracle-quota" id="oracle-quota" hidden></span>
               </span>
               <small class="oracle-desc">勾选后，由 AI 用大白话帮你解签、回答你写下的问题（需联网）</small>
             </label>
@@ -151,8 +152,8 @@
           <p class="jiao-result" id="jiao-result" aria-live="polite"></p>
           <div class="jiao-actions">
             <button class="btn btn-primary" id="btn-throw">掷筊</button>
-            <button class="btn btn-primary" id="btn-accept" hidden>接受</button>
-            <button class="btn btn-ghost" id="btn-reroll" hidden>不服，再掷</button>
+            <button class="btn btn-primary" id="btn-accept" hidden>受签</button>
+            <button class="btn btn-ghost" id="btn-reroll" hidden>重求一签</button>
           </div>
         </section>
 
@@ -171,9 +172,10 @@
             <p id="oracle-text"></p>
             <div class="oracle-ask" id="oracle-ask" hidden>
               <p class="oracle-ask-note">还想听我用大白话细说？我会把你这支签、掷筊的结果，连同你写下的问题，送去云端请 AI 解一解。</p>
-              <button class="btn btn-primary" id="btn-oracle">请大师细说</button>
+              <button class="btn btn-zhu-line" id="btn-oracle">请大师细说</button>
             </div>
           </aside>
+          <hr class="ink-rule" aria-hidden="true">
           <header class="ending-head">
             <span class="seal seal-md" aria-hidden="true"><span id="e-seal"></span></span>
             <div>
