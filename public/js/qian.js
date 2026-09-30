@@ -370,20 +370,28 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
 
   function burst(x, y, power) {
     for (let i = 0; i < 14; i++) {
-      const c = el('circle', { r: rand(0.8, 2.8).toFixed(2), fill: '#1b1712' }, dustG);
+      const c = el('circle', { fill: '#1b1712' }, dustG);
       const ang = rand(-Math.PI * 0.95, -Math.PI * 0.05);
       const sp = rand(80, 320) * (0.5 + power);
-      st.dust.push({ c, x: x + rand(-40, 40), y: y - 2, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: rand(0.6, 1.1), age: 0 });
+      const r0 = rand(0.8, 2.8);
+      st.dust.push({ c, r0, spread: 0, landed: false, x: x + rand(-40, 40), y: y - 2, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: rand(0.6, 1.1), age: 0 });
     }
   }
   function dustStep(dt) {
     st.dust = st.dust.filter((p) => {
       p.age += dt;
-      p.vy += 900 * dt;
-      p.x += p.vx * dt;
-      p.y = Math.min(FLOOR - 1, p.y + p.vy * dt);
-      if (p.age >= p.life) return false; // 墨点停在纸上，不再更新
-      return true;
+      if (!p.landed) {
+        p.vy += 900 * dt;
+        p.x += p.vx * dt;
+        p.y = Math.min(FLOOR - 1, p.y + p.vy * dt);
+        if (p.y >= FLOOR - 1 || p.age >= p.life) { p.landed = true; p.vx = p.vy = 0; }
+        return true;
+      }
+      // 落在纸上的墨点慢慢洇开一圈，然后留在那里
+      p.spread = Math.min(1, p.spread + dt * 3.5);
+      if (p.spread < 1) return true;
+      p.c.setAttribute('r', (p.r0 * 1.9).toFixed(2));
+      return false;
     });
   }
 
@@ -407,7 +415,8 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     for (const p of st.dust) {
       p.c.setAttribute('cx', p.x.toFixed(1));
       p.c.setAttribute('cy', p.y.toFixed(1));
-      p.c.setAttribute('opacity', p.y >= FLOOR - 1.5 ? '.85' : (1 - (p.age / p.life) * 0.3).toFixed(2)); // 墨点落纸即留下
+      p.c.setAttribute('r', (p.r0 * (1 + 0.9 * p.spread)).toFixed(2));
+      p.c.setAttribute('opacity', p.landed ? (0.85 - 0.25 * p.spread).toFixed(2) : (1 - (p.age / p.life) * 0.3).toFixed(2)); // 墨点落纸即留下
     }
   }
 

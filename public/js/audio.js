@@ -91,6 +91,26 @@ export function thud() {
   clack(0.8);
 }
 
+// 水滴：一声上扬的短音，隔一拍再有一点空腔的余响
+export function drip(vol = 0.06) {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const f = 640 + Math.random() * 360;
+  for (const [delay, ratio, amp, dur] of [[0, 1, 1, 0.2], [0.085, 1.5, 0.32, 0.26]]) {
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f * ratio, t + delay);
+    o.frequency.exponentialRampToValueAtTime(f * ratio * 2.3, t + delay + 0.05);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t + delay);
+    g.gain.exponentialRampToValueAtTime(vol * amp, t + delay + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur);
+    o.connect(g).connect(master);
+    o.start(t + delay);
+    o.stop(t + delay + dur + 0.05);
+  }
+}
+
 // 环境：两条相差 0.6Hz 的低频正弦形成缓慢拍频，加一层滤波噪声
 export function startDrone() {
   if (!ctx || drone) return;
