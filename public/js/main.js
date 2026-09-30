@@ -4,6 +4,7 @@ import { weave } from './loom.js';
 import { drawPoster } from './poster.js';
 import { createQian } from './qian.js';
 import { readSure, readDisappoint, readPortrait, ledgerNotes, questionMood } from './profile.js';
+import { createInk, COLOR } from './ink.js';
 import * as sfx from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -18,6 +19,69 @@ const store = {
 
 let db;
 let S; // 本局状态
+
+/* ───────── 墨与水（js/ink.js，约束见 docs/DESIGN.md §8） ───────── */
+const fxCanvas = $('ink-fx');
+const fx = createInk(fxCanvas, { reduced: reducedMotion });
+const rand = (a, b) => a + Math.random() * (b - a);
+if (location.search.includes('debug')) window.__fx = fx; // 调试：手动触发墨与水
+
+// 某个元素上的一点，换算成墨画布里的坐标
+function fxPoint(el, ax = 0.5, ay = 0.5) {
+  const c = fxCanvas.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return { x: r.left - c.left + r.width * ax, y: r.top - c.top + r.height * ay };
+}
+
+// 一个一个字洇开的文字：每个字是一个带延迟的 span
+function inkChar(ch, delay = 0) {
+  const c = document.createElement('span');
+  c.className = 'ink-ch';
+  c.textContent = ch;
+  if (delay) c.style.animationDelay = `${delay}ms`;
+  return c;
+}
+function inkChars(parent, text, start = 0, step = 55) {
+  [...text].forEach((ch, i) => parent.append(inkChar(ch, start + i * step)));
+}
+
+// 等元素滚进视野再播：ink-wait 的字、stamp-wait 的印
+const inView = 'IntersectionObserver' in window
+  ? new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      const el = en.target;
+      inView.unobserve(el);
+      if (el.classList.contains('stamp-wait')) {
+        el.classList.add('is-stamped');
+        setTimeout(() => { // 印落下的一刻，朱砂的水纹与溅点
+          const p = fxPoint(el);
+          fx.wash(p.x, p.y, { color: COLOR.zhu, R: 52, a: 0.16, grow: 0.9, hold: 0.2, fade: 1.5 });
+          fx.ripple(p.x, p.y, { color: COLOR.zhu, r: 64, rings: 2, a: 0.24 });
+          sfx.thud();
+        }, 380);
+      } else el.classList.add('in');
+    }
+  }, { root: $('stage'), threshold: 0.6 })
+  : null;
+function watchInView(el, cls) {
+  if (!inView) return;
+  el.classList.remove('in', 'is-stamped');
+  el.classList.add(cls);
+  inView.observe(el);
+}
+
+// 指尖落在纸上：一小团墨晕、两圈水纹
+let lastTap = null;
+$('huaxin').addEventListener('pointerdown', (e) => {
+  const c = fxCanvas.getBoundingClientRect();
+  const x = e.clientX - c.left;
+  const y = e.clientY - c.top;
+  lastTap = { x, y, t: performance.now() };
+  // 签筒上手指一直在动、红色按钮自己就有按下的反馈，都不再落墨
+  if (e.target.closest?.('.tube, .seal, .btn-primary')) return;
+  fx.splash(x, y);
+}, { passive: true });
 
 function freshState() {
   const now = new Date();
@@ -58,39 +122,82 @@ function freshState() {
 const margin = $('margin');
 const glossQueue = [];
 let glossBusy = false;
+let glossCur = null; // 正在写的那一条
 
-function gloss(text, { alarm = false } = {}) {
-  glossQueue.push({ text, alarm });
+// key：同一类的批语只留最新一条。连点"功名、尘缘"时，排着队的、正在写的、已写好的旧批语都被新的顶替，
+// 眉批始终跟手，不会排出一条越来越长的队
+function gloss(text, { alarm = false, key = '' } = {}) {
+  if (key) {
+    for (let i = glossQueue.length - 1; i >= 0; i--) if (glossQueue[i].key === key) glossQueue.splice(i, 1);
+    if (glossCur?.key === key) glossCur.stale = true; // 正在写同一类的：停笔，换新的
+  }
+  glossQueue.push({ text, alarm, key });
   if (!glossBusy) drainGloss();
 }
 async function drainGloss() {
   glossBusy = true;
   while (glossQueue.length) {
-    const { text, alarm } = glossQueue.shift();
+    const item = glossQueue.shift();
+    glossCur = item;
     margin.querySelectorAll('.gloss.is-new').forEach((n) => n.classList.remove('is-new'));
+    if (item.key) margin.querySelectorAll('.gloss').forEach((n) => { if (n.dataset.key === item.key) n.remove(); });
     const el = document.createElement('p');
-    el.className = 'gloss is-new' + (alarm ? ' is-alarm' : '');
+    el.className = 'gloss is-new' + (item.alarm ? ' is-alarm' : '');
     el.style.margin = '0';
+    if (item.key) el.dataset.key = item.key;
     margin.prepend(el);
     while (margin.children.length > 3) margin.lastElementChild.remove(); // 眉批只留最近几条，其余淡出
     const caret = document.createElement('span');
     caret.className = 'caret';
-    caret.textContent = '▍';
     el.append(caret);
-    for (const ch of text) {
-      caret.before(ch);
-      await sleep(38);
+    // 按标点切成语段，每段是不可拆的一块：只在语段之间折行，不在"3.9 秒"或一个词中间断开
+    for (const clause of item.text.match(/[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g) ?? []) {
+      const word = document.createElement('span');
+      word.className = 'ink-w';
+      caret.before(word);
+      for (const ch of clause) {
+        if (item.stale) break;
+        word.append(inkChar(ch));
+        await sleep(glossQueue.length > 1 ? 10 : 38); // 后面排着队时写快些
+      }
+      if (item.stale) break;
     }
     caret.remove();
-    await sleep(220);
+    if (item.stale) el.remove();
+    else await sleep(glossQueue.length ? 60 : 220);
   }
+  glossCur = null;
   glossBusy = false;
 }
 
 /* ───────── 屏幕切换 ───────── */
+// 换屏：新的一屏从指尖按下的地方洇开。@property 才能动画，老浏览器退回淡入
+const canReveal = !reducedMotion && !!window.CSS?.registerProperty;
+function reveal(next) {
+  const box = $('huaxin').getBoundingClientRect();
+  const tap = lastTap && performance.now() - lastTap.t < 2500 ? lastTap : null;
+  const x = tap ? tap.x : box.width / 2;
+  const y = tap ? tap.y : box.height * 0.42;
+  next.style.setProperty('--ox', `${Math.round(x)}px`);
+  next.style.setProperty('--oy', `${Math.round(y)}px`);
+  next.style.setProperty('--rmax', `${Math.ceil(Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y))) + 60}px`);
+  next.classList.add('is-reveal');
+  const done = (e) => {
+    if (e.target !== next) return; // 屏里其他元素的动画结束不算
+    next.classList.remove('is-reveal');
+    next.removeEventListener('animationend', done);
+  };
+  next.addEventListener('animationend', done);
+  fx.ripple(x, y, { r: Math.min(260, parseFloat(next.style.getPropertyValue('--rmax')) * 0.45), rings: 2, dur: 1.6, a: 0.14 });
+}
+
 function show(name) {
+  const was = S.screen;
   S.screen = name;
+  document.querySelectorAll('.screen.is-reveal').forEach((s) => s.classList.remove('is-reveal'));
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.dataset.screen === name));
+  if (canReveal && was !== name) reveal(document.querySelector(`.screen[data-screen="${name}"]`));
+  if (name === 'title') scheduleTitleInk(true);
   $('stage').scrollTop = 0;
   touch();
   const inRitual = name === 'ding' || name === 'qian' || name === 'jiao';
@@ -111,6 +218,55 @@ function revealDoubt() {
 }
 
 /* ───────── 入卷 ───────── */
+// 首页的墨是活的：墨痕的边缘时时有一团淡墨在纸上洇开；偶尔下缘鼓起一颗墨珠，坠下，落在纸上洇成一小团。
+// 只在首页、页面可见时。不画线：之前的卷须像蜘蛛腿，拖出的流痕像蛛丝，都去掉了。
+const titleInk = document.querySelector('.title-ink');
+const cubic = (P, t) => {
+  const u = 1 - t;
+  return [0, 1].map((k) => u ** 3 * P[0][k] + 3 * u * u * t * P[1][k] + 3 * u * t * t * P[2][k] + t ** 3 * P[3][k]);
+};
+// 墨痕轮廓上的几段贝塞尔（取自 index.html 里那条 path），坐标是 SVG 的 viewBox 坐标
+const EDGES = {
+  top: [[-40, 190], [60, 150], [170, 100], [300, 76]],
+  bottom: [[440, 150], [360, 152], [250, 178], [150, 232]],
+  bottom2: [[150, 232], [50, 286], [10, 312], [-40, 330]],
+};
+// 取墨痕边缘上的一点，换算成墨画布里的坐标；落在画面之外就返回 null
+function inkEdgePoint(edge, lo = 0.08, hi = 0.92) {
+  const m = titleInk.getScreenCTM();
+  if (!m) return null;
+  const [x, y] = cubic(EDGES[edge], rand(lo, hi));
+  const c = fxCanvas.getBoundingClientRect();
+  const px = m.a * x + m.c * y + m.e - c.left;
+  const py = m.b * x + m.d * y + m.f - c.top;
+  return px > 24 && px < c.width - 24 && py > 0 && py < c.height ? { x: px, y: py } : null;
+}
+
+let inkTimer = 0;
+let nextBead = 0;
+function scheduleTitleInk(first = false) {
+  clearTimeout(inkTimer);
+  if (reducedMotion) return;
+  if (first) nextBead = performance.now() + 5200;
+  inkTimer = setTimeout(() => {
+    if (S?.screen === 'title' && !document.hidden) {
+      const p = inkEdgePoint(['top', 'bottom', 'bottom', 'bottom2'][Math.floor(rand(0, 4))]);
+      if (p) fx.wash(p.x, p.y, { R: rand(34, 56), a: 0.085, grow: 2.8, hold: 0.4, fade: 3 });
+      if (performance.now() > nextBead) {
+        nextBead = performance.now() + rand(7500, 11500);
+        const q = inkEdgePoint('bottom', 0.3, 0.85);
+        if (q) {
+          const c = fxCanvas.getBoundingClientRect();
+          const blockBottom = document.querySelector('.title-block').getBoundingClientRect().bottom - c.top;
+          const land = Math.min(q.y + rand(80, 140), blockBottom + 6);
+          if (land > q.y + 30) fx.fall(q.x, q.y - 3, land, { size: 1, hang: 1.6, onRelease: () => sfx.drip(0.04) });
+        }
+      }
+    }
+    scheduleTitleInk();
+  }, first ? 2300 : rand(1400, 2500));
+}
+
 // 上一局的记录，只存在玩家本机
 let lastVisit = store.get('stj-last', null);
 
@@ -176,12 +332,13 @@ function enterDing() {
 
 function pickDomain(key) {
   sfx.clack(0.6);
+  const changed = S.domain !== key;
   S.domain = key;
   if (S.pickMs == null) S.pickMs = performance.now() - S.dingEnterAt;
   $('slips').querySelectorAll('.slip').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.key === key)));
   $('btn-ding').disabled = false;
   const d = db.domains[key];
-  gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒。${d.persona}`);
+  if (changed) gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒。${d.persona}`, { key: 'pick' });
 }
 
 $('btn-ding').addEventListener('click', () => {
@@ -271,6 +428,12 @@ async function signLanded() {
   renderSign(sign);
   $('tube-wrap').hidden = true;
   $('qian-note').textContent = '';
+  setTimeout(() => { // 签名落下的一刻：水纹与溅点
+    if (S.screen !== 'qian') return;
+    const p = fxPoint($('sign-name'));
+    fx.wash(p.x, p.y, { R: 110, a: 0.1, grow: 1.0, hold: 0.2, fade: 1.4 });
+    fx.ripple(p.x, p.y, { r: 90, rings: 2, a: 0.2 });
+  }, 480);
   const d = readDisappoint(S, sign, lastVisit, db.signs);
   S.reads.disappoint = d;
   gloss(`${sign.level}签，我猜你 ${d.pct}% 会失望`, { alarm: d.pct > 60 });
@@ -285,7 +448,11 @@ function renderSign(sign) {
   lv.textContent = sign.level;
   lv.dataset.tone = db.levels[sign.level];
   $('sign-bai').textContent = sign.bai;
-  $('sign-poem').replaceChildren(...sign.poem.map((l) => Object.assign(document.createElement('span'), { textContent: l })));
+  $('sign-poem').replaceChildren(...sign.poem.map((l, i) => {
+    const line = document.createElement('span');
+    inkChars(line, l, 650 + i * [...l].length * 55, 55);
+    return line;
+  }));
   $('sign').hidden = false;
 }
 
@@ -386,6 +553,11 @@ async function tossJiao(res, dur = 1250) {
   });
   await sleep(dur + 120);
   sfx.thud();
+  blocks.forEach((c) => {
+    const p = fxPoint(c, 0.5, 0.7);
+    fx.wash(p.x, p.y, { R: 34, a: 0.12, grow: 0.7, hold: 0.1, fade: 1.2 });
+    fx.ripple(p.x, p.y, { r: 46, rings: 2, a: 0.18 });
+  });
   [...$('jiao-labels').children].forEach((l, i) => { l.textContent = res.flat[i] ? '平面朝上' : '凸面朝上'; });
 }
 
@@ -574,6 +746,19 @@ function renderJieqian(state) {
   $('jq-advice').textContent = sign.advice[S.domain];
 }
 
+// 转折句按行拆成字，进入视野时一字字洇开
+const turnEl = document.querySelector('.turn');
+const turnLines = turnEl.innerHTML.split(/<br\s*\/?>/i);
+function prepTurn() {
+  turnEl.replaceChildren();
+  let n = 0;
+  turnLines.forEach((line, i) => {
+    if (i) turnEl.append(document.createElement('br'));
+    inkChars(turnEl, line, 300 + n * 90, 90);
+    n += [...line].length;
+  });
+}
+
 async function finish() {
   if (S.finished) return;
   S.finished = true;
@@ -613,7 +798,15 @@ async function finish() {
   $('e-name').textContent = ending.name;
   $('e-sub').textContent = ending.sub;
   $('e-lead').textContent = ending.lead[tone];
-  $('e-verse').replaceChildren(...ending.verse.map((l) => Object.assign(document.createElement('span'), { textContent: l })));
+  prepTurn();
+  $('e-verse').replaceChildren(...ending.verse.map((l, i) => {
+    const line = document.createElement('span');
+    inkChars(line, l, i * [...l].length * 70, 70);
+    return line;
+  }));
+  watchInView($('e-verse'), 'ink-wait');
+  watchInView(turnEl, 'ink-wait');
+  watchInView(document.querySelector('.ending-head .seal'), 'stamp-wait');
   $('e-critique').textContent = ending.critique;
   renderConfess();
 
@@ -723,6 +916,21 @@ function behaviorForOracle() {
   };
 }
 
+// 通灵等待：一滴墨落进纸里，化开，隔一会儿再一滴
+function startWell(canvas) {
+  const w = createInk(canvas, { reduced: reducedMotion });
+  let dead = false;
+  let timer = 0;
+  const tick = () => {
+    if (dead) return;
+    const r = canvas.getBoundingClientRect();
+    w.fall(r.width * rand(0.3, 0.7), -6, r.height * 0.5, { size: 0.9, onLand: () => sfx.drip(0.07) });
+    timer = setTimeout(tick, rand(2300, 3200));
+  };
+  timer = setTimeout(tick, 300);
+  return { stop() { dead = true; clearTimeout(timer); setTimeout(() => w.destroy(), 3500); } };
+}
+
 // 解签文字一段段写出来，像在纸上落笔
 async function inkReveal(el, text) {
   el.textContent = '';
@@ -740,7 +948,14 @@ async function askOracle(endKey, who) {
   p.hidden = false;
   $('oracle-ask').hidden = true;
   box.classList.add('is-loading');
-  p.innerHTML = '大师正在细看你的签<span class="ink-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+  let well = null;
+  if (reducedMotion) {
+    p.innerHTML = '大师正在细看你的签<span class="ink-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+  } else {
+    p.innerHTML = '大师正在细看你的签<canvas class="ink-well" aria-hidden="true"></canvas>';
+    well = startWell(p.querySelector('.ink-well'));
+  }
+  const endLoading = () => { box.classList.remove('is-loading'); well?.stop(); };
   gloss('我把你的画像送去了云端');
   S.oracleSent = !!S.question;
   const ctrl = new AbortController();
@@ -762,7 +977,7 @@ async function askOracle(endKey, who) {
     if (res.status === 429) {
       S.oracleSent = false; // 限流在读请求体之前拦下，问题没有被读取
       const { scope } = await res.json().catch(() => ({}));
-      box.classList.remove('is-loading');
+      endLoading();
       p.textContent = LIMITED[scope] ?? LIMITED.global;
       gloss('云端没回话，以我的为准');
       return;
@@ -770,7 +985,7 @@ async function askOracle(endKey, who) {
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     if (!data.text) throw new Error('empty');
-    box.classList.remove('is-loading');
+    endLoading();
     gloss('云端回话了');
     if (Array.isArray(data.shi) && data.shi.length) {
       S.aiShi = data.shi.slice(0, 3);
@@ -778,12 +993,12 @@ async function askOracle(endKey, who) {
     }
     await inkReveal(p, data.text);
   } catch {
-    box.classList.remove('is-loading');
+    endLoading();
     p.textContent = 'AI 暂时没有回应。上面的解签就是这次的结果。';
     gloss('云端没回话，以我的为准');
   } finally {
     clearTimeout(timer);
-    box.classList.remove('is-loading');
+    endLoading();
     if (S.question) renderLedgerQuestionRow();
     refreshQuota();
   }
@@ -888,6 +1103,7 @@ $('btn-home').addEventListener('click', () => {
   $('poster').hidden = true;
   glossQueue.length = 0;
   margin.replaceChildren();
+  fx.clear();
   S = freshState();
   show('title');
   bootTitle();
@@ -936,5 +1152,6 @@ setInterval(() => {
   }
   S = freshState();
   bootTitle();
+  scheduleTitleInk(true);
   refreshQuota();
 })();

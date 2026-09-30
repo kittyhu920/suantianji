@@ -71,9 +71,15 @@
                   <feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="2" seed="5" result="n"/>
                   <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
                 </filter>
+                <!-- 一笔自左下扫向右上：蒙版里的粗线沿笔路"走"一遍，墨痕就像被写出来 -->
+                <mask id="brush-path" maskUnits="userSpaceOnUse" x="-100" y="-100" width="640" height="520">
+                  <path class="brush-run" pathLength="1000" d="M-50 268 C 60 220, 230 150, 300 120 S 400 100, 460 98" fill="none" stroke="#fff" stroke-width="190" stroke-linecap="butt"/>
+                </mask>
               </defs>
-              <path d="M-40 190 C 60 150, 170 100, 300 76 S 430 64, 440 52 L 440 150 C 360 152, 250 178, 150 232 S 10 312, -40 330 Z" fill="#1b1712" filter="url(#dry)"/>
-              <g fill="#1b1712" filter="url(#bleed)">
+              <g filter="url(#dry)">
+                <path d="M-40 190 C 60 150, 170 100, 300 76 S 430 64, 440 52 L 440 150 C 360 152, 250 178, 150 232 S 10 312, -40 330 Z" fill="#1b1712" mask="url(#brush-path)"/>
+              </g>
+              <g class="brush-spots" fill="#1b1712" filter="url(#bleed)">
                 <circle cx="330" cy="196" r="9"/><circle cx="350" cy="210" r="4"/><circle cx="314" cy="216" r="3"/><circle cx="46" cy="96" r="5"/>
               </g>
             </svg>
@@ -214,6 +220,7 @@
 
       </div>
 
+      <canvas class="ink-fx" id="ink-fx" aria-hidden="true"></canvas>
       <aside class="margin" id="margin" aria-label="大师的眉批" aria-live="polite"></aside>
       <button class="corner-btn corner-home" id="btn-home" type="button" hidden aria-label="回到卷首">卷首</button>
       <button class="corner-btn corner-mute" id="btn-mute" type="button" aria-pressed="false" aria-label="静音">声</button>
