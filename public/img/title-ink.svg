@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" preserveAspectRatio="xMidYMid slice">
+  <!-- 首页那一笔枯笔墨痕。单独成图：浏览器只把它光栅化一次，之后"写出来"的动画只是平移一张蒙版，不再每帧重算滤镜 -->
+  <defs>
+    <filter id="dry" x="-10%" y="-30%" width="120%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency=".035 .6" numOctaves="3" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="26" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".02 1.4" numOctaves="2" seed="12" result="s"/>
+      <feColorMatrix in="s" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 1.9" result="streak"/>
+      <feComposite in="d" in2="streak" operator="in"/>
+    </filter>
+  </defs>
+  <g filter="url(#dry)">
+    <path d="M-40 190 C 60 150, 170 100, 300 76 S 430 64, 440 52 L 440 150 C 360 152, 250 178, 150 232 S 10 312, -40 330 Z" fill="#1b1712"/>
+  </g>
+</svg>

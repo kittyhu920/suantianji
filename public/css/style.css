@@ -206,14 +206,14 @@ button { font: inherit; color: inherit; }
   box-shadow: inset 0 0 0 3px var(--cinnabar), inset 0 0 0 5px rgba(246,238,219,.75);
   transition: transform .18s var(--ease-out), filter .18s;
 }
-.seal::after { /* 印泥斑驳 */
+.seal { filter: url(#seal-rough); } /* 边缘与字口微微起毛：石头刻的、蘸泥盖的，没有一根是直的 */
+.seal::after { /* 印泥剥蚀：纸色的细碎斑点，越靠近边缘越密，中心几乎完整 */
   content: "";
   position: absolute; inset: 0;
   border-radius: inherit;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(239,230,208,.55) 0 2px, transparent 3px),
-    radial-gradient(circle at 85% 30%, rgba(239,230,208,.45) 0 1.5px, transparent 2.5px),
-    radial-gradient(circle at 60% 90%, rgba(239,230,208,.4) 0 1.5px, transparent 2.5px);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='e' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .82 12 0 0 0 -8.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23e)'/%3E%3C/svg%3E") 0 0 / 120px 120px;
+  -webkit-mask-image: radial-gradient(closest-side, transparent 38%, rgba(0, 0, 0, .35) 68%, #000 100%);
+  mask-image: radial-gradient(closest-side, transparent 38%, rgba(0, 0, 0, .35) 68%, #000 100%);
   pointer-events: none;
 }
 .seal, .btn-primary { text-shadow: none; }
@@ -237,7 +237,7 @@ button { font: inherit; color: inherit; }
   width: 100%;
   height: 270px;
 }
-.title-ink { position: absolute; top: 0; bottom: 0; left: -44px; width: calc(100% + 88px); height: 100%; }
+.title-ink, .title-ink-img { position: absolute; top: 0; bottom: 0; left: -44px; width: calc(100% + 88px); height: 100%; }
 .title-main {
   position: absolute;
   left: 50%; top: 46%;
@@ -828,10 +828,25 @@ button { font: inherit; color: inherit; }
   pointer-events: none;
 }
 
-/* 首页：墨痕被一笔"写"出来，标题随后在墨里洇出 */
-.brush-run { stroke-dasharray: 1000; stroke-dashoffset: 0; }
-.screen-title.is-active .brush-run { animation: brush-write 1.7s cubic-bezier(.45, .05, .3, 1) .25s both; }
-@keyframes brush-write { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
+/* 首页：墨痕被一笔"写"出来，标题随后在墨里洇出。
+   墨痕是一张静态图（img/title-ink.svg），"写"的动作是平移一张预先带毛边的蒙版：笔锋前端是飞白的毛边，
+   而每一帧只是挪一张已经画好的图，不用重算滤镜。不支持 mask 的浏览器会直接看到整笔墨痕。 */
+.title-ink-img {
+  display: block;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 100' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='30' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='-40' y='-10' width='165' height='120' fill='%23000' filter='url(%23r)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 100' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='30' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='-40' y='-10' width='165' height='120' fill='%23000' filter='url(%23r)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 250% 100%;
+  mask-size: 250% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 0;
+  mask-position: 0 0;
+}
+.screen-title.is-active .title-ink-img { animation: brush-write 1.8s cubic-bezier(.45, .05, .3, 1) .25s both; }
+@keyframes brush-write {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
+}
 .screen-title.is-active .brush-spots { animation: spots-in .6s ease-out 1.7s both; }
 @keyframes spots-in { from { opacity: 0; } }
 .screen-title.is-active .title-main { animation: title-soak 1.4s var(--ease-out) 1s both; }
@@ -927,6 +942,51 @@ button { font: inherit; color: inherit; }
   .tube-wrap { width: min(240px, 100%); }
   .poem { font-size: 17px; }
 }
+
+/* 矮窗口（笔记本浏览器、小屏手机）：收紧间距与大块元素，让一屏尽量放得下；
+   放不下时，主要的按钮仍固定在底部（见下），不必往下滑才点得到 */
+@media (max-height: 780px) {
+  .screen { gap: 12px; padding-bottom: 28px; }
+  .screen:not(.screen-title) { padding-top: calc(var(--mei-h) + 4px); }
+  .screen-title { padding-top: calc(var(--mei-h) - 14px); }
+  .title-block { height: 210px; }
+  .h-brush { font-size: 38px; }
+  .jiao-board { min-height: 150px; gap: 16px; }
+  .jiao { height: 96px; }
+  .jiao-legend { gap: 0; }
+}
+@media (max-height: 700px) {
+  .cup-tag { display: none; }
+  .cup { padding: 3px 0; }
+  .jiao { height: 78px; }
+  .jiao-labels { margin-top: -2px; }
+  .jiao-legend { font-size: 12.5px; line-height: 1.5; }
+  .jiao-legend b { font-size: 15px; }
+  .note { line-height: 1.6; }
+  .seal-lg { --s: 78px; }
+  .title-actions { gap: 8px; }
+  .oracle-toggle { margin-top: 4px; }
+  .sign-name { font-size: 36px; }
+  .sign { gap: 10px; }
+  .poem { height: 8.6em; }
+}
+@media (max-height: 640px) {
+  .title-block { height: 160px; }
+  .h-brush { font-size: 34px; }
+  .jiao-board { min-height: 120px; gap: 12px; }
+  .tube-wrap { width: min(210px, 100%); }
+}
+
+/* 主要按钮：内容超出一屏时固定在底部。没超出时就待在原位 */
+#btn-ding, #btn-to-jiao { position: sticky; bottom: 12px; z-index: 2; }
+.jiao-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 10px 0 6px;
+}
+/* 不铺底色（纸有纹理，平涂的底会在按钮两侧显出一块发白的长条）：实心按钮自己就看得清，描边的按钮只加字周围的纸色柔光 */
+.jiao-actions .btn:not(.btn-primary) { text-shadow: 0 0 3px var(--gan), 0 0 6px var(--gan), 0 0 10px var(--gan); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

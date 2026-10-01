@@ -112,8 +112,29 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
   // 朱印
   const brush = "'Ma Shan Zheng','STKaiti','KaiTi',serif";
   const seal = el('g', { transform: `translate(${PX - 22} ${RIM + 72}) rotate(-6 22 22)` }, rig);
-  el('rect', { width: 44, height: 44, rx: 3, fill: '#b3261f' }, seal);
-  el('rect', { x: 4, y: 4, width: 36, height: 36, rx: 2, fill: 'none', stroke: '#efe6d0', 'stroke-width': 1.5, opacity: '.85' }, seal);
+  // 印面：外缘不规则、内框断续、朱面剥蚀。筒在转，不能用滤镜，所以用静态的路径与碎点，只在生成时算一次
+  const jag = () => rand(-0.9, 0.9);
+  let edge = '';
+  const sideTo = (ax, ay, bx, by) => {
+    const n = 11;
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      const nx = -(by - ay) / 44;
+      const ny = (bx - ax) / 44;
+      const j = jag();
+      edge += `${edge ? 'L' : 'M'}${(ax + (bx - ax) * t + nx * j).toFixed(1)} ${(ay + (by - ay) * t + ny * j).toFixed(1)} `;
+    }
+  };
+  sideTo(0, 0, 44, 0); sideTo(44, 0, 44, 44); sideTo(44, 44, 0, 44); sideTo(0, 44, 0, 0);
+  el('path', { d: `${edge}Z`, fill: '#b3261f', 'stroke-linejoin': 'round' }, seal);
+  el('rect', { x: 4, y: 4, width: 36, height: 36, rx: 2, fill: 'none', stroke: '#efe6d0', 'stroke-width': 1.5, opacity: '.85', 'stroke-dasharray': '24 2.5 14 2 20 3' }, seal);
+  for (let i = 0; i < 70; i++) {
+    const px = Math.random();
+    const py = Math.random();
+    const near = 1 - Math.min(px, 1 - px, py, 1 - py) * 2; // 中心 0，边缘 1
+    if (Math.random() > 0.05 + 0.85 * near ** 3) continue;
+    el('circle', { cx: (px * 44).toFixed(1), cy: (py * 44).toFixed(1), r: rand(0.35, 1).toFixed(2), fill: '#efe6d0', opacity: rand(0.5, 0.95).toFixed(2) }, seal);
+  }
   el('text', { x: 22, y: 20, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 15, fill: '#efe6d0' }, seal).textContent = '天';
   el('text', { x: 22, y: 37, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 15, fill: '#efe6d0' }, seal).textContent = '机';
   // 口沿前半圈
