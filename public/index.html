@@ -29,6 +29,10 @@
       <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .35 0"/>
       <feComposite in2="SourceGraphic" operator="in"/>
     </filter>
+    <filter id="seal-rough" x="-6%" y="-6%" width="112%" height="112%">
+      <feTurbulence type="fractalNoise" baseFrequency=".11" numOctaves="2" seed="8" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
     <path id="jiao-shape" d="M4 54 C4 14 36 4 60 4 C84 4 116 14 116 54 C96 46 24 46 4 54Z"/>
     <!-- 平面朝上：凸面着地，看上去像一只碗，顶上露出一块平整的漆面 -->
     <symbol id="jiao-ping" viewBox="0 0 120 60">
@@ -58,27 +62,14 @@
         <!-- 入卷 -->
         <section class="screen screen-title is-active" data-screen="title" aria-labelledby="t-title">
           <div class="title-block">
+            <img class="title-ink-img" src="img/title-ink.svg" alt="" aria-hidden="true">
             <svg class="title-ink" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
               <defs>
-                <filter id="dry" x="-10%" y="-30%" width="120%" height="160%">
-                  <feTurbulence type="fractalNoise" baseFrequency=".035 .6" numOctaves="3" seed="3" result="n"/>
-                  <feDisplacementMap in="SourceGraphic" in2="n" scale="26" xChannelSelector="R" yChannelSelector="G" result="d"/>
-                  <feTurbulence type="fractalNoise" baseFrequency=".02 1.4" numOctaves="2" seed="12" result="s"/>
-                  <feColorMatrix in="s" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 1.9" result="streak"/>
-                  <feComposite in="d" in2="streak" operator="in"/>
-                </filter>
                 <filter id="bleed" x="-50%" y="-50%" width="200%" height="200%">
                   <feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="2" seed="5" result="n"/>
                   <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
                 </filter>
-                <!-- 一笔自左下扫向右上：蒙版里的粗线沿笔路"走"一遍，墨痕就像被写出来 -->
-                <mask id="brush-path" maskUnits="userSpaceOnUse" x="-100" y="-100" width="640" height="520">
-                  <path class="brush-run" pathLength="1000" d="M-50 268 C 60 220, 230 150, 300 120 S 400 100, 460 98" fill="none" stroke="#fff" stroke-width="190" stroke-linecap="butt"/>
-                </mask>
               </defs>
-              <g filter="url(#dry)">
-                <path d="M-40 190 C 60 150, 170 100, 300 76 S 430 64, 440 52 L 440 150 C 360 152, 250 178, 150 232 S 10 312, -40 330 Z" fill="#1b1712" mask="url(#brush-path)"/>
-              </g>
               <g class="brush-spots" fill="#1b1712" filter="url(#bleed)">
                 <circle cx="330" cy="196" r="9"/><circle cx="350" cy="210" r="4"/><circle cx="314" cy="216" r="3"/><circle cx="46" cy="96" r="5"/>
               </g>

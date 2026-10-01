@@ -48,6 +48,26 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
   const top = H * 0.08 + ((slots - throws.length) * bandH) / 2;
   const center = (b) => top + throws.length * bandH - (b + 0.5) * bandH;
 
+  // 墨底：每一束丝下面先洇一片淡墨，丝落在湿纸上；被弃掉的那一掷更淡。阴杯的右半，淡淡地带朱
+  const soft = (cx, cy, rx, ry, c, a) => {
+    g.save();
+    g.translate(cx, cy);
+    g.scale(rx, ry);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gr.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${a})`);
+    gr.addColorStop(0.6, `rgba(${c[0]},${c[1]},${c[2]},${a * 0.45})`);
+    gr.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+    g.fillStyle = gr;
+    g.fillRect(-1, -1, 2, 2);
+    g.restore();
+  };
+  for (let b = 0; b < throws.length; b++) {
+    const { kind, kept } = throws[b];
+    const k = kept ? 1 : 0.4;
+    soft(W * 0.5, center(b), W * 0.62, thick * 0.95, GOLD, 0.06 * k);
+    if (kind === 'yin') soft(W * 0.74, center(b), W * 0.3, thick * 1.05, CINNABAR, 0.07 * k);
+  }
+
   const perBand = Math.round((58 + rand() * 14) * Math.min(1, 6 / slots + 0.3));
   const threads = [];
   for (let b = 0; b < throws.length; b++) {
@@ -60,6 +80,7 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
         k1: 1 + rand() * 3, p1: rand() * Math.PI * 2,
         k2: 5 + rand() * 6, p2: rand() * Math.PI * 2,
         ks: 0.5 + rand() * 1.5, ps: rand() * Math.PI * 2,
+        kp: 0.8 + rand() * 1.8, pp: rand() * Math.PI * 2, // 笔压：沿途时轻时重
         a: (stray ? 0.16 : 0.1 + rand() * 0.18) * (kept ? 1 : 0.4),
         w: (stray ? 0.9 : 0.5 + rand() * 0.7) * dpr,
         x: -8, y: center(b) + o * thick / 2,
@@ -91,7 +112,7 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
   };
 
   g.globalCompositeOperation = 'multiply'; // 墨线越密越浓
-  g.lineCap = 'round';
+  g.lineCap = 'butt'; // 平头：相邻线段的圆头叠在一起，透明度会叠出一串串小珠
   const step = W / 420;
 
   const advance = () => {
@@ -99,12 +120,17 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
       const nx = th.x + step;
       const ny = lerp(th.y, target(th, nx), 0.22);
       const c = colorAt(th, nx);
-      g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${th.a})`;
-      g.lineWidth = th.w;
-      g.beginPath();
-      g.moveTo(th.x, th.y);
-      g.lineTo(nx, ny);
-      g.stroke();
+      const press = 0.5 + 0.5 * Math.sin((nx / W) * Math.PI * 2 * th.kp + th.pp);
+      const tail = smoothstep(W * 0.86, W, nx); // 收笔：越到右端越细越淡
+      const dry = !th.stray && press < 0.1 && rand() < 0.55; // 笔压最轻处，丝断出一小截飞白
+      if (!dry) {
+        g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(th.a * (0.9 + 0.7 * press) * (1 - 0.5 * tail)).toFixed(3)})`;
+        g.lineWidth = th.w * (0.62 + 0.8 * press) * (1 - 0.55 * tail);
+        g.beginPath();
+        g.moveTo(th.x, th.y);
+        g.lineTo(nx, ny);
+        g.stroke();
+      }
       th.x = nx;
       th.y = ny;
     }

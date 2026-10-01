@@ -85,17 +85,143 @@ function inkSwash(g, seed) {
   g.restore();
 }
 
-function seal(g, cx, cy, s, ch) {
+// 淡墨远山：垫在分享图下半截，三层山脊由远及近渐浓，层与层之间一抹云气。
+// 一维值噪声叠三个八度生成山脊，山体用由脊线向下渐隐的淡墨填，脊线是断续的枯笔，山腰几笔短皴。
+function mountains(g, seed) {
+  const rand = mulberry32(seed ^ 0x9e3779b1);
+  const lattice = () => Array.from({ length: 64 }, () => rand());
+  const noise = (tab) => (x) => {
+    const i = Math.floor(x);
+    const f = x - i;
+    const u = f * f * (3 - 2 * f);
+    return tab[i & 63] * (1 - u) + tab[(i + 1) & 63] * u;
+  };
+  const n1 = noise(lattice());
+  const n2 = noise(lattice());
+  const n3 = noise(lattice());
+
+  g.save();
+  g.beginPath();
+  g.rect(48, 48, W - 96, H - 96); // 只画在内框之内
+  g.clip();
+
+  const layers = [
+    { base: H - 560, amp: 400, f: 1.4, fill: 0.08, line: 0.17, shift: rand() * 20 }, // 远
+    { base: H - 400, amp: 360, f: 1.9, fill: 0.115, line: 0.24, shift: rand() * 20 }, // 中
+    { base: H - 220, amp: 300, f: 2.5, fill: 0.17, line: 0.34, shift: rand() * 20 }, // 近
+  ];
+  for (const L of layers) {
+    const ridge = (x) => {
+      const t = x / W * L.f + L.shift;
+      const h = 0.58 * n1(t) + 0.28 * n2(t * 2.3) + 0.14 * n3(t * 5.1);
+      return L.base - L.amp * Math.max(0, h - 0.28) * 1.55; // 压低山谷，抬出几座主峰
+    };
+    const pts = [];
+    for (let x = 40; x <= W - 40; x += 6) pts.push([x, ridge(x)]);
+    const top = Math.min(...pts.map((p) => p[1]));
+
+    // 山体：脊线处最浓，向下渐隐
+    const gr = g.createLinearGradient(0, top, 0, L.base + 150);
+    gr.addColorStop(0, `rgba(27,23,18,${L.fill})`);
+    gr.addColorStop(0.55, `rgba(27,23,18,${L.fill * 0.55})`);
+    gr.addColorStop(1, 'rgba(27,23,18,0)');
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(40, H);
+    pts.forEach(([x, y]) => g.lineTo(x, y));
+    g.lineTo(W - 40, H);
+    g.closePath();
+    g.fill();
+
+    // 脊线：断续的枯笔
+    g.strokeStyle = `rgba(27,23,18,${L.line})`;
+    g.lineWidth = 2.2;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.setLineDash([60 + rand() * 80, 6 + rand() * 18, 24 + rand() * 40, 10]);
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.stroke();
+    g.setLineDash([]);
+
+    // 山腰几笔短皴
+    g.lineWidth = 1.6;
+    for (let k = 0; k < 26; k++) {
+      const [x, y] = pts[Math.floor(rand() * pts.length)];
+      const len = 22 + rand() * 46;
+      const ox = x + (rand() - 0.5) * 30;
+      const oy = y + 18 + rand() * 90;
+      g.strokeStyle = `rgba(27,23,18,${(L.line * 0.4 * (0.4 + rand() * 0.6)).toFixed(3)})`;
+      g.beginPath();
+      g.moveTo(ox, oy);
+      g.lineTo(ox - len * 0.28, oy + len);
+      g.stroke();
+    }
+
+    // 云气：这一层的山脚被一抹纸色盖住，把它与下一层隔开
+    const mist = g.createLinearGradient(0, L.base - 70, 0, L.base + 90);
+    mist.addColorStop(0, 'rgba(239,230,208,0)');
+    mist.addColorStop(0.55, 'rgba(239,230,208,.8)');
+    mist.addColorStop(1, 'rgba(239,230,208,0)');
+    g.fillStyle = mist;
+    g.fillRect(40, L.base - 70, W - 80, 160);
+  }
+  g.restore();
+}
+
+// 印：外缘不规则、内框断续、朱面剥蚀（越靠边越密）——与网页上 .seal 的做法一致
+function seal(g, cx, cy, s, ch, seed = 1) {
+  const rand = mulberry32(seed ^ 0x2f6e2b1);
+  const x0 = cx - s / 2;
+  const y0 = cy - s / 2;
+  const jit = () => (rand() - 0.5) * 5;
+
+  // 外缘：沿四边每隔几像素抖一下
   g.fillStyle = C.cinnabar;
-  g.fillRect(cx - s / 2, cy - s / 2, s, s);
-  g.strokeStyle = 'rgba(246,238,219,.7)';
+  g.beginPath();
+  const side = (ax, ay, bx, by) => {
+    const n = Math.round(s / 7);
+    const nx = -(by - ay) / s;
+    const ny = (bx - ax) / s;
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      const j = jit();
+      g.lineTo(ax + (bx - ax) * t + nx * j, ay + (by - ay) * t + ny * j);
+    }
+  };
+  g.moveTo(x0, y0);
+  side(x0, y0, x0 + s, y0);
+  side(x0 + s, y0, x0 + s, y0 + s);
+  side(x0 + s, y0 + s, x0, y0 + s);
+  side(x0, y0 + s, x0, y0);
+  g.closePath();
+  g.fill();
+
+  // 内框：断续
+  g.save();
+  g.strokeStyle = 'rgba(246,238,219,.72)';
   g.lineWidth = 3;
-  g.strokeRect(cx - s / 2 + 8, cy - s / 2 + 8, s - 16, s - 16);
+  g.setLineDash([s * 0.5, 5, s * 0.22, 3, s * 0.4, 7]);
+  g.strokeRect(x0 + 8, y0 + 8, s - 16, s - 16);
+  g.restore();
+
   g.fillStyle = C.ink;
   g.font = `${Math.round(s * 0.58)}px ${BRUSH}`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText(ch, cx, cy + s * 0.03);
+
+  // 剥蚀：纸色的碎点，越靠近边越密
+  for (let i = 0; i < s * s / 12; i++) {
+    const px = rand();
+    const py = rand();
+    const edge = 1 - Math.min(px, 1 - px, py, 1 - py) * 2; // 中心 0，边缘 1
+    if (rand() > 0.05 + 0.85 * edge ** 3) continue;
+    g.fillStyle = `rgba(239,230,208,${(0.45 + rand() * 0.5).toFixed(2)})`;
+    g.beginPath();
+    g.arc(x0 + px * s, y0 + py * s, 0.7 + rand() * 1.9, 0, Math.PI * 2);
+    g.fill();
+  }
 }
 
 function center(g, text, y, font, color) {
@@ -128,6 +254,7 @@ export async function drawPoster(d) {
   const g = cv.getContext('2d');
 
   paper(g, d.seed);
+  mountains(g, d.seed);
   inkSwash(g, d.seed);
   // 标题反白压在墨上
   g.save();
@@ -201,7 +328,7 @@ export async function drawPoster(d) {
   const nameW = g.measureText(d.ending.name).width;
   const blockW = 130 + 30 + nameW;
   const bx = W / 2 - blockW / 2;
-  seal(g, bx + 65, y, 130, d.ending.name[0]);
+  seal(g, bx + 65, y, 130, d.ending.name[0], d.seed);
   g.font = `100px ${BRUSH}`;
   g.fillStyle = C.gold;
   g.textAlign = 'left';
