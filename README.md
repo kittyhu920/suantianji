@@ -6,6 +6,12 @@
 
 单局约两分钟，有四种结局，手机和电脑都能玩。在线体验：https://suantianji.pages.dev
 
+<p align="center">
+  <img src="docs/img/title.jpg" width="260" alt="首页：枯笔墨痕上写着演算天机">
+  <img src="docs/img/jiao.jpg" width="260" alt="掷筊请示：掷出阴杯，选我偏要这支或重求一签">
+  <img src="docs/img/loom.jpg" width="260" alt="结局：用这一局的操作数据织成的命盘与四种结局">
+</p>
+
 ## 玩法
 
 1. 按朱印"问"入卷，选想问的方向（功名 / 尘缘 / 身心），可以写下具体的问题。
@@ -82,10 +88,17 @@ npx wrangler pages dev public --ai AI
 | `public/data/fortune-db.json` | 六十一支签、三领域建议、四种结局判词 |
 | `public/fonts/` | 按站内用字裁出的字体子集 |
 | `functions/api/oracle.js` | 通灵模式的 Pages Function |
-| `tools/subset-fonts.py` | 重新裁字体子集（改了中文文案后要跑） |
+| `tools/subset-fonts.py` | 重新裁字体子集（改了中文文案后要跑，依赖见 `requirements.txt`） |
+| `tools/check-db.mjs` | 校验签簿：七言四句、六十甲子顺序、五行与吉凶配平（CI 也跑） |
 | `docs/DESIGN.md` | 设计规范 |
+
+## 许可
+
+- 程序代码：[MIT](LICENSE)
+- 文案（签诗、解签、判词、眉批与界面文字、通灵提示词）：[CC BY-NC-SA 4.0](LICENSE-CONTENT)，可以改编、转载，但须署名、不得商用，改编后以相同许可发布
+- 字体：SIL Open Font License 1.1，见 [public/fonts/OFL.txt](public/fonts/OFL.txt)
 
 ## 致谢
 
-- 字体：[马善政楷书](https://github.com/googlefonts/mashanzheng)、[志莽行书](https://github.com/googlefonts/zhimangxing)、[刘建毛草](https://github.com/googlefonts/liujianmaocao)、[思源宋体](https://github.com/notofonts/noto-cjk)，均以 SIL Open Font License 1.1 发布。
+- 字体：[马善政楷书](https://github.com/googlefonts/mashanzheng)、[志莽行书](https://github.com/googlefonts/zhimangxing)、[思源宋体](https://github.com/notofonts/noto-cjk)。
 - 设计原则部分借鉴 [InkView](https://github.com/qybaihe/inkview)（MIT）。
