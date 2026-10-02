@@ -3,5 +3,8 @@ node_modules/
 .dev.vars
 .DS_Store
 .cache/
-docs/submission/ppt/render/
 __pycache__/
+
+# 本地私有目录（不入库）
+course/
+CLAUDE.local.md
