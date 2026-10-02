@@ -30,9 +30,3 @@
   font-display: swap;
   src: url("../fonts/zhi-mang-xing.woff2") format("woff2");
 }
-@font-face {
-  font-family: "Liu Jian Mao Cao";
-  font-weight: 400;
-  font-display: swap;
-  src: url("../fonts/liu-jian-mao-cao.woff2") format("woff2");
-}

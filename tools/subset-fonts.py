@@ -10,7 +10,7 @@
     事先无法预知用字。这个文件用 unicode-range 声明，只有页面真出现这些字时浏览器才会下载。
   两者都没有的生僻字，回落到系统字体。
 - 思源宋体 600（按钮、小标题）：只收页面与脚本里的字。
-- 志莽行书（大标题）、刘建毛草（朱批）：只收页面与脚本里的字。
+- 志莽行书（大标题）：只收页面与脚本里的字。
 
 源字体：马善政来自 Google Fonts 官方仓库，思源宋体来自 notofonts/noto-cjk 的简体中文静态字重
 （经 jsDelivr 下载，GitHub 直连太慢）。缓存在 .cache/fonts/（不入库），缺失时自动下载。
@@ -32,7 +32,6 @@ OUT = PUBLIC / 'fonts'
 SOURCES = {
     'MaShanZheng-Regular.ttf': 'https://github.com/google/fonts/raw/main/ofl/mashanzheng/MaShanZheng-Regular.ttf',
     'ZhiMangXing-Regular.ttf': 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zhimangxing/ZhiMangXing-Regular.ttf',
-    'LiuJianMaoCao-Regular.ttf': 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/liujianmaocao/LiuJianMaoCao-Regular.ttf',
     'NotoSerifSC-Regular.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf',
     'NotoSerifSC-SemiBold.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-SemiBold.otf',
 }
@@ -142,7 +141,6 @@ def main():
     title = TTFont(fetch('ZhiMangXing-Regular.ttf'))
     compose(title)
     write(title, ui_chars() | BASICS, 'zhi-mang-xing.woff2')
-    write(TTFont(fetch('LiuJianMaoCao-Regular.ttf')), ui_chars() | BASICS, 'liu-jian-mao-cao.woff2')
 
     css = '/* 由 tools/subset-fonts.py 生成，不要手改 */\n'
     css += FACE.format(family='Ma Shan Zheng', weight=400, file='ma-shan-zheng.woff2', range='')
@@ -151,7 +149,6 @@ def main():
                        range=f'\n  unicode-range: {unicode_range(extra)};')
     css += FACE.format(family='Noto Serif SC', weight=600, file='noto-serif-sc-600.woff2', range='')
     css += FACE.format(family='Zhi Mang Xing', weight=400, file='zhi-mang-xing.woff2', range='')
-    css += FACE.format(family='Liu Jian Mao Cao', weight=400, file='liu-jian-mao-cao.woff2', range='')
     (PUBLIC / 'css' / 'fonts.css').write_text(css, encoding='utf-8', newline='')
     print(f'fonts.css: {len(css) / 1024:.0f} KB')
 
