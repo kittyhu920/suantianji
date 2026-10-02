@@ -24,7 +24,7 @@
   --f-zhupi: "Liu Jian Mao Cao", "Ma Shan Zheng", "STKaiti", serif;
   --f-text: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
 
-  --mei-h: 94px;            /* 顶部眉批区（含角按钮）的高度：最新两条各至多两行，按 320 宽下最长的批语留足 */
+  --mei-h: 76px;            /* 顶部眉批槽（含角按钮）的高度：一个两行高的固定槽 */
   --ease-out: cubic-bezier(.2, .7, .2, 1);
 }
 
@@ -714,34 +714,33 @@ button { font: inherit; color: inherit; }
 .endings li.is-current b { color: var(--cinnabar-hi); }
 
 /* ───────── 眉批：大师写在天头的朱批 ───────── */
+/* 天头是一个固定大小的"槽"（两行高），同一时间只显示最新一条。
+   文字先整句排好版再逐字洇开，所以写字的过程中版面纹丝不动；换条时旧的原地淡出，新的接着写。 */
 .margin {
-  /* 眉批：透明的一条，只有每一行批语自带毛玻璃，不遮住底下的纸与墨痕 */
   position: absolute;
   top: 18px; left: 64px; right: 64px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  height: calc(2.7em + 6px);
+  font-size: 18px;
+  line-height: 1.35;
   pointer-events: none;
   z-index: 5;
 }
 .gloss {
-  flex: none;
-  max-width: 100%;
-  padding: 1px 4px;
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center; /* 一行或两行都在槽里居中，换条时不跳 */
+  justify-content: center;
   font-family: var(--f-brush);
-  font-size: 18px;
-  line-height: 1.35;
   letter-spacing: .04em;
   color: var(--cinnabar);
-  white-space: normal; /* 放不下就折行，绝不用省略号吃掉后半句 */
-  text-wrap: balance;
-  text-align: center;
   /* 不加底框：字的四周一圈纸色柔光，压住底下的朱丝栏与墨痕，字就读得清，又没有一块长方形 */
   text-shadow: 0 0 2px var(--gan), 0 0 4px var(--gan), 0 0 7px var(--gan), 0 0 12px rgba(239, 230, 208, .9), 0 0 18px rgba(239, 230, 208, .7);
-  transition: opacity .8s, font-size .4s;
-  animation: gloss-in .6s var(--ease-out) both;
+  transition: opacity .18s;
 }
+.gloss.is-out { opacity: 0; }
+.gloss-t { display: block; max-width: 100%; text-align: center; text-wrap: balance; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .corner-btn {
     background: rgba(239, 230, 208, .58);
@@ -749,22 +748,11 @@ button { font: inherit; color: inherit; }
     backdrop-filter: blur(7px);
   }
 }
-@keyframes gloss-in { from { opacity: 0; transform: translateY(-5px); filter: blur(2px); } }
 .ink-w { display: inline-block; max-width: 100%; } /* 一个语段：整体移到下一行，不在中间断开；比一行还长时才在段内折 */
-.gloss:not(:has(.caret)) .ink-w:last-of-type::after { content: " 〇"; font-family: var(--f-text); font-size: 11px; vertical-align: .2em; }
-.gloss:nth-child(2) { opacity: .42; font-size: 14px; } /* 上一条已淡去、字号缩小，但内容仍写全（至多两行） */
-.gloss:nth-child(n+3) { opacity: 0; }
+/* 句尾圈：版面里先占好位置（不显示），写完才显出来，免得最后一刻把末段挤到下一行 */
+.gloss .ink-w:last-of-type::after { content: " 〇"; font-family: var(--f-text); font-size: 11px; vertical-align: .2em; visibility: hidden; }
+.gloss.is-done .ink-w:last-of-type::after { visibility: visible; }
 .gloss.is-alarm { text-emphasis: filled dot; text-emphasis-color: var(--cinnabar); -webkit-text-emphasis: filled dot; -webkit-text-emphasis-color: var(--cinnabar); text-emphasis-position: under right; -webkit-text-emphasis-position: under; }
-.gloss .caret { /* 笔尖：一点将落未落的朱，随呼吸一胀一缩 */
-  display: inline-block;
-  width: .4em; height: .4em;
-  margin-left: 3px;
-  border-radius: 50%;
-  background: var(--cinnabar);
-  vertical-align: .08em;
-  animation: caret-pulse .9s ease-in-out infinite;
-}
-@keyframes caret-pulse { 0%, 100% { transform: scale(.5); opacity: .5; } 50% { transform: scale(1); opacity: 1; } }
 
 /* 角上的两个小按钮：左回卷首，右开关声音 */
 .corner-btn {
@@ -897,7 +885,7 @@ button { font: inherit; color: inherit; }
 
 /* ───────── 窄屏 ───────── */
 @media (max-width: 520px) {
-  :root { --mei-h: 96px; }
+  :root { --mei-h: 74px; }
   .wall { padding: 0; }
   .scroll { width: 100vw; height: 100dvh; filter: none; }
   .mount-top { height: 30px; }
@@ -905,11 +893,10 @@ button { font: inherit; color: inherit; }
   .mount-bottom { height: 18px; }
   .rod { margin: 0; height: 8px; border-radius: 0; }
   .screen { padding: calc(var(--mei-h) + 10px) 24px 36px; gap: 14px; } /* 让出版框与眉批 */
-  .margin { left: 66px; right: 66px; top: 16px; }
+  .margin { left: 66px; right: 66px; top: 16px; font-size: 17px; }
   .corner-btn { top: 16px; }
   .corner-home { left: 16px; }
   .corner-mute { right: 16px; }
-  .gloss { font-size: 17px; }
   .slips { gap: 10px; }
   .slip { width: 56px; height: 176px; }
   .jiao-block { width: 88px; height: 44px; }
@@ -929,14 +916,11 @@ button { font: inherit; color: inherit; }
   .poem { font-size: 20px; }
 }
 @media (max-width: 400px) {
-  :root { --mei-h: 98px; } /* 窄屏上批语更容易折成两行 */
-  .gloss { font-size: 16px; padding: 2px 8px; }
-  .gloss:nth-child(2) { font-size: 14px; }
+  :root { --mei-h: 72px; }
+  .margin { font-size: 16px; }
 }
 @media (max-width: 340px) {
-  .margin { left: 62px; right: 62px; }
-  .gloss { font-size: 15px; padding: 2px 6px; }
-  .gloss:nth-child(2) { font-size: 13px; }
+  .margin { left: 62px; right: 62px; font-size: 15px; }
 }
 @media (max-height: 700px) {
   .tube-wrap { width: min(240px, 100%); }

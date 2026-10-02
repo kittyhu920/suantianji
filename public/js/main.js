@@ -119,52 +119,63 @@ function freshState() {
 }
 
 /* ───────── 机器旁批 ───────── */
+// 天头是一个固定大小的槽，同一时间只显示最新一条（样式与理由见 style.css 的"眉批"一节）。
+// 文字先整句排好版（每个字都已在 DOM 里，只是被动画延迟压着没出现），再逐字洇开：
+// 写字的过程中不会因为一个个追加字而反复重排、折行、跳高度。
 const margin = $('margin');
 const glossQueue = [];
 let glossBusy = false;
-let glossCur = null; // 正在写的那一条
+let glossCur = null; // 正在显示的那一条
+const CLAUSE = /[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g;
 
-// key：同一类的批语只留最新一条。连点"功名、尘缘"时，排着队的、正在写的、已写好的旧批语都被新的顶替，
-// 眉批始终跟手，不会排出一条越来越长的队
+// key：同一类的批语只留最新一条。连点"功名、尘缘"时，排队的旧批语被剔掉，正在显示的马上让位给新的
 function gloss(text, { alarm = false, key = '' } = {}) {
   if (key) {
     for (let i = glossQueue.length - 1; i >= 0; i--) if (glossQueue[i].key === key) glossQueue.splice(i, 1);
-    if (glossCur?.key === key) glossCur.stale = true; // 正在写同一类的：停笔，换新的
+    if (glossCur?.key === key) glossCur.wake?.();
   }
   glossQueue.push({ text, alarm, key });
   if (!glossBusy) drainGloss();
 }
+
+// 等 ms 毫秒；被 wake() 叫醒就提前结束，并记下"被顶替了"
+const glossWait = (item, ms) => new Promise((resolve) => {
+  const t = setTimeout(resolve, ms);
+  item.wake = () => { item.woken = true; clearTimeout(t); resolve(); };
+});
+
 async function drainGloss() {
   glossBusy = true;
   while (glossQueue.length) {
     const item = glossQueue.shift();
     glossCur = item;
-    margin.querySelectorAll('.gloss.is-new').forEach((n) => n.classList.remove('is-new'));
-    if (item.key) margin.querySelectorAll('.gloss').forEach((n) => { if (n.dataset.key === item.key) n.remove(); });
+    const backlog = glossQueue.length; // 后面还排着几条：写快些、停得短些
+    const step = reducedMotion ? 0 : backlog > 1 ? 12 : backlog ? 24 : 36;
+
+    const old = [...margin.children];
+    old.forEach((n) => { n.classList.add('is-out'); setTimeout(() => n.remove(), 240); });
+    const lead = old.length && !reducedMotion ? 170 : 0; // 等旧的淡出再开始写
+
     const el = document.createElement('p');
-    el.className = 'gloss is-new' + (item.alarm ? ' is-alarm' : '');
-    el.style.margin = '0';
-    if (item.key) el.dataset.key = item.key;
-    margin.prepend(el);
-    while (margin.children.length > 3) margin.lastElementChild.remove(); // 眉批只留最近几条，其余淡出
-    const caret = document.createElement('span');
-    caret.className = 'caret';
-    el.append(caret);
+    el.className = 'gloss' + (item.alarm ? ' is-alarm' : '');
+    const box = document.createElement('span');
+    box.className = 'gloss-t';
+    let n = 0;
     // 按标点切成语段，每段是不可拆的一块：只在语段之间折行，不在"3.9 秒"或一个词中间断开
-    for (const clause of item.text.match(/[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g) ?? []) {
+    for (const clause of item.text.match(CLAUSE) ?? []) {
       const word = document.createElement('span');
       word.className = 'ink-w';
-      caret.before(word);
-      for (const ch of clause) {
-        if (item.stale) break;
-        word.append(inkChar(ch));
-        await sleep(glossQueue.length > 1 ? 10 : 38); // 后面排着队时写快些
-      }
-      if (item.stale) break;
+      for (const ch of clause) word.append(inkChar(ch, lead + n++ * step));
+      box.append(word);
     }
-    caret.remove();
-    if (item.stale) el.remove();
-    else await sleep(glossQueue.length ? 60 : 220);
+    el.append(box);
+    margin.append(el);
+
+    await glossWait(item, lead + n * step + 500); // 写完
+    if (!item.woken) {
+      el.classList.add('is-done');
+      await glossWait(item, backlog ? 120 : 650); // 停一会儿，让人读完
+    }
   }
   glossCur = null;
   glossBusy = false;
@@ -1102,6 +1113,7 @@ $('btn-home').addEventListener('click', () => {
   qian.stop();
   $('poster').hidden = true;
   glossQueue.length = 0;
+  glossCur?.wake?.();
   margin.replaceChildren();
   fx.clear();
   S = freshState();
