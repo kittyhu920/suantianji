@@ -3,3 +3,5 @@ node_modules/
 .dev.vars
 .DS_Store
 .cache/
+docs/submission/ppt/render/
+__pycache__/
