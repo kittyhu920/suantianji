@@ -1043,6 +1043,8 @@ a.corner-btn { text-decoration: none; }
 .screen-about p, .screen-about li { margin: 0; font-size: 15px; line-height: 1.85; color: var(--paper-ink); }
 .screen-about ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
 .screen-about li b { color: var(--gold); font-weight: 600; margin-right: .4em; }
+.screen-about p a { color: var(--gold); text-underline-offset: 4px; text-decoration-color: var(--gold-dim); overflow-wrap: anywhere; }
+.screen-about p a:hover { text-decoration-color: var(--gold); }
 .about-back { align-self: center; margin-top: 12px; text-decoration: none; display: inline-flex; align-items: center; }
 @media (max-width: 520px) {
   .screen-about { padding: 60px 24px 32px; }
