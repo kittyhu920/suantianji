@@ -1,5 +1,6 @@
 <script>
   // 行为账本：刚才的每一步都记下了；每行旁边可以有一句大师的朱批。只存在玩家自己的设备上。
+  import Note from '../Note.svelte';
   let { rows = [] } = $props();
 </script>
 
@@ -9,7 +10,7 @@
   <dl id="ledger">
     {#each rows as r}
       <dt>{r.k}</dt>
-      <dd>{r.v}{#if r.note}<span class="zhupi">{r.note}</span>{/if}</dd>
+      <dd>{r.v}{#if r.note}<span class="zhupi"><Note text={r.note} /></span>{/if}</dd>
     {/each}
   </dl>
 </section>

@@ -79,7 +79,7 @@
   <div class="title-actions">
     <Seal size="lg" id="btn-enter" aria-describedby="enter-note" onclick={game.begin}>问</Seal>
     <p id="enter-note" class="note">点红色的“问”字印章开始。<br>全程约两分钟，建议打开声音。</p>
-    <OracleToggle />
+    <OracleToggle desc={ctx.copy.oracleToggleDesc} />
     <p class="title-links">
       <a class="about-link" href="/qian/yuanliu/">签卷源流</a>
       <a class="about-link" href="/about/">关于这件作品</a>

@@ -19,6 +19,22 @@ export default {
   screens: { title: Title, ding: Ding, qian: Shake, jiao: Jiao, end: End },
   Defs: JiaoDefs, // 本卷的共享图形（筊杯的红漆）
   zhu, // 注疏
+  // 公共组件（通灵、分享图）要显示的文案
+  copy: {
+    oracleTitle: '通灵解签',
+    oracleAsk: '还想听我用大白话细说？我会把你这支签、掷筊的结果，连同你写下的问题，送去云端请 AI 解一解。',
+    oracleButton: '请大师细说',
+    oracleWait: '大师正在细看你的签',
+    oracleToggleDesc: '勾选后，由 AI 用大白话帮你解签、回答你写下的问题（需联网）',
+    oracleLimited: {
+      ip: '你今天已经找我细说过好几回了，明天再来吧。上面的解签，就是这次的结果。',
+      global: '今天来找我细说的人太多了，明天再来吧。上面的解签，就是这次的结果。',
+    },
+    oracleFail: 'AI 暂时没有回应。上面的解签就是这次的结果。',
+    posterTitle: '保存这一签',
+    posterAlt: '这一签的结果图',
+    posterWait: '正在为你装裱……',
+  },
   enter: (ctx) => createGame(ctx),
-  atlas: null, // 签谱，之后的批次接入
+  atlas: null, // 签谱，之后接入
 };

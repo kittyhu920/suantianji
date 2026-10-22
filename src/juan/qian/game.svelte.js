@@ -5,10 +5,13 @@ import db from './fortune-db.json';
 import { castJiao, CUP_NAMES, CUP_SHORT, CUP_LABELS } from './jiao.js';
 import { createQian } from './tube.js';
 import { trueRandom } from '../../core/rng.js';
-import { readSure, readDisappoint, readPortrait, ledgerNotes, questionMood } from '../../core/profile.js';
+import { readSure, questionMood } from '../../core/profile.js';
+import { readDisappoint, readPortrait, ledgerNotes } from './profile.js';
 import { createShake } from '../../core/shake.svelte.js';
-import { oracle, consultOracle, offerOracle, resetOracle } from '../../core/oracle.svelte.js';
+import { consultOracle, resetOracle } from '../../core/oracle.svelte.js';
 import { drawPoster } from '../../core/poster.js';
+import { posterSpec } from './poster.js';
+import { finishRound } from '../../core/round.js';
 import { ATTITUDE } from '../../core/ending.js';
 
 export { db, CUP_NAMES, CUP_LABELS };
@@ -39,10 +42,6 @@ function freshState() {
     pending: null,
     draws: 0, // 一共摇出了几支签（重求一次加一）
     insist: false, // 阴杯时选了"我偏要这支"
-    doubt: false,
-    doubtShown: false,
-    idle: 0,
-    hidden: 0,
     dingEnterAt: 0,
     pickMs: null,
     shakeMs: 0,
@@ -54,7 +53,6 @@ function freshState() {
     aiShi: [], // 通灵返回的"实话"
     portrait: null,
     prevVisit: null, // 这一局之前的那一次
-    finished: false,
     end: null, // 结局时一次算好的东西
     // 掷筊屏
     jiao: { note: '', result: null, labels: ['', ''], mode: 'throw', again: false, busy: false, accept: '', reroll: '', focus: 0 },
@@ -62,35 +60,18 @@ function freshState() {
 }
 
 export function createGame(ctx) {
-  const { gloss, sec, sleep, store, sfx } = ctx;
+  const { gloss, sec, sleep, sfx } = ctx;
   const S = $state(freshState());
   const ui = $state({ posterOpen: false });
-  let lastVisit = store.get('stj-last', null); // 上一局的记录，只存在玩家本机
+  let lastVisit = ctx.memory.get(); // 上一局的记录，只存在玩家本机
   let tube = null;
   let tossFn = null; // 掷筊屏挂上来的"筊在空中翻转"
-  let ivIdle = 0;
+  let fin = null; // 收尾时算好的：整局用时、画像、签是否算数
+
+  // 观人术要读的行为状态：本局的状态，加上公共层替我们数的发呆、离开页面与存疑
+  const view = () => ({ ...S, idle: ctx.round.idle, hidden: ctx.round.hidden, doubt: ctx.round.doubted });
 
   const branch = () => db.branches[S.branchIdx];
-
-  /* ───────── 观测：发呆与离开页面 ───────── */
-  ivIdle = setInterval(() => {
-    if (S.finished || ctx.idleFlagged || shake.holding || (ctx.screen === 'qian' && tube?.active)) return;
-    if (!RITUAL.includes(ctx.screen)) return;
-    if (performance.now() - ctx.lastActive > 8000) {
-      ctx.idleFlagged = true;
-      S.idle++;
-      gloss('你停了八秒，我记为犹豫');
-      revealDoubt();
-    }
-  }, 1000);
-  const onVisible = () => {
-    if (ctx.screen === 'title' || S.finished) return;
-    if (document.visibilityState === 'visible') {
-      S.hidden++;
-      gloss('你走开了一会儿，我记下了');
-    }
-  };
-  document.addEventListener('visibilitychange', onVisible);
 
   /* ───────── 摇动控制（公共层） ───────── */
   const shake = createShake(ctx, {
@@ -99,31 +80,12 @@ export function createGame(ctx) {
     onTry: () => { S.shakeTries += 1; },
   });
 
-  /* ───────── 存疑 ───────── */
-  function revealDoubt() {
-    if (S.doubtShown) return;
-    S.doubtShown = true;
-    gloss('不信我，就按左下角那枚印');
-  }
-
-  async function doubt() {
-    if (S.finished) return;
-    S.doubt = true;
-    ctx.el.huaxin.classList.add('is-broken');
-    gloss('你打断了我', { alarm: true });
-    gloss('你不想被我算');
-    sfx.bronze(220, 2.6, 0.16);
-    await sleep(1600);
-    ctx.el.huaxin.classList.remove('is-broken');
-    finish();
-  }
-
   /* ───────── 入卷 ───────── */
   function daysAgoText(iso) { return ctx.daysAgo(iso); }
 
   // 来访次数按"真的开始求签"计，刷新页面不算
   function bootTitle() {
-    const visits = store.get('stj-visits', 0) + 1;
+    const visits = ctx.visits.get() + 1;
     gloss('我开始留意你了');
     gloss(`你用的是${ctx.coarse ? '手机' : '电脑'}`);
     if (visits > 1) gloss(`你第 ${visits} 次来找我了`);
@@ -132,7 +94,7 @@ export function createGame(ctx) {
 
   function begin() {
     shake.requestMotion(); // iOS 只允许在点击里申请"动作与方向"权限，所以在这里就申请，摇签时才能直接晃
-    store.set('stj-visits', store.get('stj-visits', 0) + 1);
+    ctx.visits.bump();
     sfx.initAudio();
     sfx.startDrone();
     sfx.bronze(330, 2.2, 0.14);
@@ -218,7 +180,7 @@ export function createGame(ctx) {
       ctx.fx.wash(p.x, p.y, { R: 110, a: 0.1, grow: 1.0, hold: 0.2, fade: 1.4 });
       ctx.fx.ripple(p.x, p.y, { r: 90, rings: 2, a: 0.2 });
     }, 480);
-    const d = readDisappoint(S, sign, lastVisit, db.signs);
+    const d = readDisappoint(view(), sign, lastVisit, db.signs);
     S.reads.disappoint = d;
     gloss(`${sign.level}签，我猜你 ${d.pct}% 会失望`, { alarm: d.pct > 60 });
     if (lastVisit?.name === sign.name) gloss('又是这支签。我记得');
@@ -234,7 +196,7 @@ export function createGame(ctx) {
     S.pending = null;
     Object.assign(S.jiao, { labels: ['', ''], result: null, mode: 'throw', again: false, busy: false, note: '三杯都由你亲手掷。连得三个圣杯，这支签才算数。' });
     if (!S.reads.sure) {
-      const r = readSure(S);
+      const r = readSure(view());
       S.reads.sure = r;
       gloss(`我有 ${r.pct}% 的把握猜中你`);
     }
@@ -312,7 +274,7 @@ export function createGame(ctx) {
     const n = S.draws;
     gloss(`你不认，重求一签 ×${n}`, { alarm: true });
     if (n === 2) gloss('我越来越懂你了……');
-    revealDoubt();
+    ctx.revealDoubt();
     S.throws.forEach((t) => { t.kept = false; });
     S.sign = null;
     S.cups = [];
@@ -324,7 +286,7 @@ export function createGame(ctx) {
   /* ───────── 结局 ───────── */
   // 四态结局的映射：破 > 迷 > 逆 > 遵（公共层只认这四个键）
   function attitude() {
-    if (S.doubt) return ATTITUDE.po; // 不信这一套：按了存疑
+    if (ctx.round.doubted) return ATTITUDE.po; // 不信这一套：按了存疑
     if (S.draws >= 3) return ATTITUDE.mi; // 求到第三支签：不停地刷，想要一个更好的答案
     if (S.insist) return ATTITUDE.ni; // 神明说不，你偏要这支
     return ATTITUDE.zun;
@@ -351,45 +313,44 @@ export function createGame(ctx) {
     return `${[...S.question].length} 字，${S.oracleSent ? '我已把原文送去云端' : '原文没有离开你的设备'}`;
   }
 
+  // 收尾：算出整局用时与画像，剩下的编排交给公共层的 finishRound（它会回调下面的 ledgerData / memory / onEnd）
   function finish() {
-    if (S.finished) return;
-    S.finished = true;
+    if (ctx.round.finished) return;
     S.prevVisit = lastVisit;
-    const endKey = attitude();
-    const ending = db.endings[endKey];
-    const tone = S.sign ? db.levels[S.sign.level] : 'ping';
     const totalMs = performance.now() - S.t0;
-    const portrait = readPortrait(S);
+    const portrait = readPortrait(view());
     S.portrait = portrait;
-    const state = signState();
+    fin = { totalMs, portrait, state: signState() };
+    gloss(`你是${portrait.who}，把握 ${Math.round(portrait.conf * 100)}%`);
+    finishRound(ctx, game);
+  }
 
-    const ledgerData = {
+  // 行为账本的原始数据：公共层用它定命盘的种子
+  function ledgerData() {
+    const { totalMs } = fin;
+    const r = ctx.round;
+    return {
       branch: branch().zhi, clock: S.clock.toTimeString().slice(0, 5),
       device: ctx.coarse ? 'touch' : 'mouse',
       domain: S.domain, qlen: [...S.question].length, pick: Math.round(S.pickMs ?? -1),
       shake: Math.round(S.shakeMs), tries: S.shakeTries, sign: S.sign?.no ?? 0,
-      hes: S.hesitations.map(Math.round), draws: S.draws, idle: S.idle, hidden: S.hidden,
-      throws: S.throws.map((t) => t.kind + (t.kept ? '' : '~')), doubt: S.doubt, total: Math.round(totalMs),
+      hes: S.hesitations.map(Math.round), draws: S.draws, idle: r.idle, hidden: r.hidden,
+      throws: S.throws.map((t) => t.kind + (t.kept ? '' : '~')), doubt: r.doubted, total: Math.round(totalMs),
     };
-    const seed = ctx.ledger.seed(ledgerData);
-    const notes = ledgerNotes(S, { domain: S.domain && db.domains[S.domain], sign: S.sign, totalMs, portrait });
+  }
 
-    gloss(`你是${portrait.who}，把握 ${Math.round(portrait.conf * 100)}%`);
+  // 留给“大师记得你”的一条：只有抽出了签才记
+  function memory(endKey) {
+    if (!S.sign) return null;
+    lastVisit = { no: S.sign.no, name: S.sign.name, ending: db.endings[endKey].name, at: new Date().toISOString() };
+    return lastVisit;
+  }
 
-    if (S.sign) {
-      lastVisit = { no: S.sign.no, name: S.sign.name, ending: ending.name, at: new Date().toISOString() };
-      store.set('stj-last', lastVisit);
-    }
-    const got = new Set(store.get('stj-endings', []));
-    got.add(endKey);
-    store.set('stj-endings', [...got]);
-
-    S.end = { endKey, tone, totalMs, state, seed, fields: Object.keys(ledgerData).length, notes, got: [...got], who: portrait.who };
-    ctx.show('end');
-
-    sfx.bronze(262, 3.2, 0.16);
-    if (oracle.enabled) askOracle();
-    else offerOracle(!!S.sign);
+  function onEnd({ endKey, seed, ledgerData: data, got }) {
+    const { totalMs, portrait, state } = fin;
+    const tone = S.sign ? db.levels[S.sign.level] : 'ping';
+    const notes = ledgerNotes(view(), { domain: S.domain && db.domains[S.domain], sign: S.sign, totalMs, portrait });
+    S.end = { endKey, tone, totalMs, state, seed, fields: Object.keys(data).length, notes, got, who: portrait.who };
   }
 
   // 交给大师细看的行为账本：只给他需要察言观色的东西
@@ -402,9 +363,9 @@ export function createGame(ctx) {
       摇签: S.shakeTries ? `${sec(S.shakeMs)} 秒，摇了 ${S.shakeTries} 次` : '',
       每次掷前犹豫: h.length ? h.map((x) => `${sec(x)} 秒`).join('、') : '',
       重求签: `${Math.max(0, S.draws - 1)} 次`,
-      发呆: `${S.idle} 次`,
-      离开页面: `${S.hidden} 次`,
-      第几次来: `${store.get('stj-visits', 1)}`,
+      发呆: `${ctx.round.idle} 次`,
+      离开页面: `${ctx.round.hidden} 次`,
+      第几次来: `${ctx.store.get('visits', 1)}`,
       上次的签: S.prevVisit ? `${S.prevVisit.name}（${S.prevVisit.ending}）` : '',
       我的判断: [S.reads.sure && `有 ${S.reads.sure.pct}% 把握猜中他`, S.reads.disappoint && `猜他 ${S.reads.disappoint.pct}% 会失望`, S.portrait && `画像：${S.portrait.who}`].filter(Boolean).join('；'),
     };
@@ -412,6 +373,7 @@ export function createGame(ctx) {
 
   async function askOracle() {
     const sign = S.sign;
+    S.oracleSent = !!S.question; // 发请求前就设好：账本里“原文有没有离开设备”马上就对
     const res = await consultOracle(ctx, {
       question: S.question,
       body: {
@@ -424,6 +386,7 @@ export function createGame(ctx) {
       },
       onShi: (shi) => { S.aiShi = shi; },
     });
+    if (res.stale) return; // 玩家已经开了新的一局
     S.oracleSent = res.sent;
   }
 
@@ -457,8 +420,8 @@ export function createGame(ctx) {
       ['每次掷前犹豫', h.length ? h.map((x) => sec(x)).join(' / ') + ' 秒' : '—'],
       ['重求签', `${Math.max(0, S.draws - 1)} 次`],
       ['掷筊', S.throws.length ? cupsRecord() : '—'],
-      ['静止超过八秒', `${S.idle} 次`],
-      ['离开页面', `${S.hidden} 次`],
+      ['静止超过八秒', `${ctx.round.idle} 次`],
+      ['离开页面', `${ctx.round.hidden} 次`],
       ['总用时', `${Math.floor(e.totalMs / 60000)} 分 ${Math.round((e.totalMs % 60000) / 1000)} 秒`],
       ['我给你的画像', `${S.portrait.who}，把握 ${Math.round(S.portrait.conf * 100)}%`],
       ['图的编号', e.seed.toString(16).padStart(8, '0')],
@@ -481,19 +444,20 @@ export function createGame(ctx) {
       throws: S.throws,
       seed,
       date: `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`,
-    });
+    }, posterSpec);
     gloss('你想把我给的命带走');
     return { blob, name: `演算天机-${sign ? sign.name : ending.name}.png` };
   }
 
   /* ───────── 回卷首 / 再来一局 ───────── */
-  function resetAll() {
+  function resetAll({ clear = true } = {}) {
     shake.holdEnd();
     ui.posterOpen = false;
-    ctx.clearGloss();
-    ctx.fx.clear();
+    if (clear) { ctx.clearGloss(); ctx.fx.clear(); } // 回卷首才清眉批与墨；“再求一签”不清，大师接着记
     ctx.el.huaxin.classList.remove('is-broken');
     resetOracle();
+    ctx.resetRound();
+    fin = null;
     Object.assign(S, freshState());
   }
 
@@ -506,16 +470,15 @@ export function createGame(ctx) {
   }
 
   function again() {
-    const visits = store.get('stj-visits', 0) + 1;
-    store.set('stj-visits', visits);
-    resetAll();
+    const visits = ctx.visits.bump();
+    resetAll({ clear: false });
     gloss(`你又来问了，第 ${visits} 次`);
     enterDing();
   }
 
   bootTitle();
 
-  return {
+  const game = {
     S,
     db,
     shake,
@@ -523,16 +486,17 @@ export function createGame(ctx) {
     // 屏要用的
     begin, pickDomain, confirmDing, attachTube, registerToss, enterJiao, playerThrow, accept, reroll, again, toStart,
     signState, signNo, signFull, confessItems, ledgerRows, askOracle,
-    // 公共层要用的
-    attitude, doubt, makePoster,
-    get doubtVisible() { return RITUAL.includes(ctx.screen) && S.doubtShown && !S.doubt && !S.finished; },
+    // 公共层要用的（接口见 src/juan/index.js）
+    attitude, ledgerData, memory, onEnd, finish, makePoster,
+    canDoubt: () => RITUAL.includes(ctx.screen), // 在定盘、摇签、掷筊时可以存疑
+    busy: () => shake.holding || (ctx.screen === 'qian' && !!tube?.active), // 正在摇签，不算发呆
+    canOracle: () => !!S.sign,
     get posterOpen() { return ui.posterOpen; },
     set posterOpen(v) { ui.posterOpen = v; },
     destroy() {
-      clearInterval(ivIdle);
-      document.removeEventListener('visibilitychange', onVisible);
       shake.destroy();
       tube?.stop();
     },
   };
+  return game;
 }

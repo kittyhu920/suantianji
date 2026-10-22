@@ -1,6 +1,13 @@
-// 本地存储：只存在玩家自己的设备上。键名沿用旧版（stj-last / stj-visits / stj-endings），老玩家的记录不丢。
+// 本地存储：只存在玩家自己的设备上。
+//
+//   store.get(key, 默认) / store.set(key, 值)    原始键，跨卷共用的东西用它（例如之后的生辰档案）
+//   store.juan('qian')                           一卷自己的命名空间：get(name, 默认) / set(name, 值)
+//   store.getJuan('qian', name, 默认)            跨卷读别的卷的记录（“上回你来卜，这回换成求签了”）
+//
+// 命名：新卷的键是 stj-<卷id>-<name>。签卷是最早的一卷，沿用旧版的键名 stj-last / stj-visits / stj-endings，
+// 不迁移，老玩家的记录不丢。
 
-export const store = {
+const raw = {
   get(k, d) {
     try {
       const v = localStorage.getItem(k);
@@ -15,6 +22,22 @@ export const store = {
     } catch {
       /* 隐私模式下忽略 */
     }
+  },
+};
+
+const LEGACY = new Set(['qian']); // 沿用无卷名前缀的旧键名的卷
+const keyOf = (id, name) => (LEGACY.has(id) ? `stj-${name}` : `stj-${id}-${name}`);
+
+export const store = {
+  ...raw,
+  juan(id) {
+    return {
+      get: (name, d) => raw.get(keyOf(id, name), d),
+      set: (name, v) => raw.set(keyOf(id, name), v),
+    };
+  },
+  getJuan(id, name, d) {
+    return raw.get(keyOf(id, name), d);
   },
 };
 

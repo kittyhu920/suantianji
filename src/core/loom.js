@@ -1,24 +1,28 @@
-// 数纬：把每一次掷筊织成一幅锦
-// 每掷一次是一束丝，自下而上按先后排列。左半是你来时，右半是筊的回答：
-// 圣杯的丝平直穿过；笑杯的丝在右半绞成一个结，又回到原位；
-// 阴杯的丝过了中缝向上下分开，并由墨转为朱。
-// 被你"不服，再掷"弃掉的那一掷也织进去，只是淡一些——重掷越多，锦越乱。
+// 数纬：把每一次操作织成一幅锦（织法的框架在这里，各卷只提供"每一种操作的丝是什么形态"）
+// 每一次操作是一束丝，自下而上按先后排列。左半是你来时，右半是"回答"。
+// 被你弃掉的那一次（kept 为 false）也织进去，只是淡一些——重来越多，锦越乱。
 // 所有丝线都连续穿过中缝，织它的始终是同一个人。
+//
+// 各卷的织法 style（可选，缺省时所有丝都是平直的墨线；签卷见 src/juan/qian/loom-style.js）：
+//   halos(kind)                  这一束丝底下除了墨底之外的晕：[{ cx, rx, ry, color, a }]，cx、rx 是画布宽的倍数，ry 是丝带厚度的倍数
+//   offset(kind, off, o, x, g)   丝在横坐标 x 处的纵向偏移（off 为默认值，o 为丝在带内的位置 -1..1，g = { W, thick }）
+//   color(kind, x, W)            丝在 x 处的颜色 [r,g,b]；返回 null 用墨色
 
 import { mulberry32 } from './rng.js';
 
 const GOLD = [27, 23, 18]; // 墨（沿用旧名）
 const CINNABAR = [179, 38, 31];
+export const LOOM = { ink: GOLD, zhu: CINNABAR }; // 供各卷的织法取色
 const INK = [120, 108, 90]; // 游离的淡墨丝
 
-const smoothstep = (e0, e1, x) => {
+export const smoothstep = (e0, e1, x) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
 };
-const lerp = (a, b, t) => a + (b - a) * t;
+export const lerp = (a, b, t) => a + (b - a) * t;
 
 // width：直接指定像素宽度（分享图离屏重织时用），缺省按页面上的显示宽度
-export function weave(canvas, { seed, throws, reduced = false, width }) {
+export function weave(canvas, { seed, throws, reduced = false, width, style = {} }) {
   // 指定宽度时，按页面上约 380px 宽的命盘等比放大丝线粗细
   const dpr = width ? width / 380 : Math.min(window.devicePixelRatio || 1, 2);
   const W = Math.round(width ?? canvas.clientWidth * dpr);
@@ -65,7 +69,7 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
     const { kind, kept } = throws[b];
     const k = kept ? 1 : 0.4;
     soft(W * 0.5, center(b), W * 0.62, thick * 0.95, GOLD, 0.06 * k);
-    if (kind === 'yin') soft(W * 0.74, center(b), W * 0.3, thick * 1.05, CINNABAR, 0.07 * k);
+    for (const h of style.halos?.(kind) ?? []) soft(W * h.cx, center(b), W * h.rx, thick * h.ry, h.color, h.a * k);
   }
 
   const perBand = Math.round((58 + rand() * 14) * Math.min(1, 6 / slots + 0.3));
@@ -90,14 +94,7 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
 
   const target = (th, x) => {
     let off = th.o * thick / 2;
-    if (th.kind === 'yin') {
-      const f = smoothstep(W * 0.5, W * 0.62, x);
-      const parted = Math.sign(th.o || 1) * (thick * 0.52 + Math.abs(th.o) * thick * 0.14);
-      off = lerp(off, parted, f);
-    } else if (th.kind === 'xiao') {
-      const t = Math.min(1, Math.max(0, (x - W * 0.52) / (W * 0.3)));
-      off *= Math.cos(t * Math.PI * 2); // 绞成一个结，再回到原位
-    }
+    if (style.offset) off = style.offset(th.kind, off, th.o, x, { W, thick });
     const u = (x / W) * Math.PI * 2;
     const wob = Math.sin(u * th.k1 + th.p1) * thick * 0.05 + Math.sin(u * th.k2 + th.p2) * thick * 0.015;
     const drift = th.stray ? Math.sin(u * th.ks + th.ps) * bandH * 1.1 : 0;
@@ -106,9 +103,7 @@ export function weave(canvas, { seed, throws, reduced = false, width }) {
 
   const colorAt = (th, x) => {
     if (th.stray) return INK;
-    if (th.kind !== 'yin') return GOLD;
-    const t = smoothstep(W * 0.44, W * 0.56, x);
-    return [0, 1, 2].map((i) => Math.round(lerp(GOLD[i], CINNABAR[i], t)));
+    return style.color?.(th.kind, x, W) ?? GOLD;
   };
 
   g.globalCompositeOperation = 'multiply'; // 墨线越密越浓

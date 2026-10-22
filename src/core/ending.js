@@ -5,9 +5,6 @@
 //   po  破：不信这一套        公共：按左下角的印"存疑"
 //   mi  迷：一直重来          签：求到第三支签
 //
-// 键名沿用旧版结局键（本地存储 stj-endings 里存的就是它们），不要改。
+// 键名沿用旧版结局键（各卷已得结局的本地记录里存的就是它们），不要改。
 
 export const ATTITUDE = Object.freeze({ zun: 'zun', ni: 'ni', po: 'po', mi: 'mi' });
-
-/** 结局页上四种结局的排列顺序（与 fortune-db.json 的 endings 键序一致） */
-export const ATTITUDES = ['zun', 'ni', 'po', 'mi'];

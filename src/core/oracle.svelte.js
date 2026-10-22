@@ -1,5 +1,6 @@
-// 通灵：把这一局送去云端（functions/api/oracle.js，Workers AI），请 AI 用大白话解签。
-// 这里管状态：开关、今日剩余次数、请求与等待；怎么拼请求体由各卷自己决定。
+// 通灵：把这一局送去云端（functions/api/oracle.js，Workers AI），请 AI 用大白话解读。
+// 这里管状态：开关、今日剩余次数、请求与等待；怎么拼请求体、说什么话由各卷决定（见 src/juan/index.js 的 copy）。
+// 回复回来时要与发出请求时的局号比对：玩家已经开了新的一局，就把迟到的回复丢掉。
 
 export const oracle = $state({
   enabled: false, // 勾了"通灵模式"
@@ -8,11 +9,6 @@ export const oracle = $state({
   phase: 'hidden', // hidden | offer（可以请大师细说）| loading | text
   text: '',
 });
-
-const LIMITED = {
-  ip: '你今天已经找我细说过好几回了，明天再来吧。上面的解签，就是这次的结果。',
-  global: '今天来找我细说的人太多了，明天再来吧。上面的解签，就是这次的结果。',
-};
 
 export async function refreshQuota() {
   try {
@@ -40,10 +36,11 @@ export function offerOracle(has) {
 }
 
 // 解签文字一段段写出来，像在纸上落笔
-async function inkReveal(ctx, text) {
+async function inkReveal(ctx, text, stale) {
   oracle.text = '';
   if (ctx.reduced) { oracle.text = text; return; }
   for (let i = 0; i < text.length; i += 2) {
+    if (stale()) return;
     oracle.text = text.slice(0, i + 2);
     await ctx.sleep(22);
   }
@@ -51,7 +48,7 @@ async function inkReveal(ctx, text) {
 
 /**
  * 请大师细说。body 由卷拼好；question 是玩家写的问题（用来判断原文有没有离开设备）。
- * 返回 { sent, shi }：sent 为原文是否已送去云端，shi 为 AI 看出的"实话"。
+ * 返回 { sent, shi }：sent 为原文是否已送去云端，shi 为 AI 看出的"实话"；局已经换了则返回 { stale: true }。
  */
 export async function consultOracle(ctx, { body, question, onShi }) {
   oracle.phase = 'loading';
@@ -59,6 +56,9 @@ export async function consultOracle(ctx, { body, question, onShi }) {
   ctx.gloss('我把你的画像送去了云端');
   let sent = !!question;
   let shi = [];
+  const rid = ctx.round.id;
+  const stale = () => ctx.round.id !== rid;
+  const STALE = { stale: true };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 25000); // 白话解签较长，云端偶尔要十几秒
   try {
@@ -68,28 +68,33 @@ export async function consultOracle(ctx, { body, question, onShi }) {
       signal: ctrl.signal,
       body: JSON.stringify(body),
     });
+    if (stale()) return STALE;
     if (res.status === 429) {
       sent = false; // 限流在读请求体之前拦下，问题没有被读取
       const { scope } = await res.json().catch(() => ({}));
+      if (stale()) return STALE;
+      const limited = ctx.copy.oracleLimited ?? {};
       oracle.phase = 'text';
-      oracle.text = LIMITED[scope] ?? LIMITED.global;
+      oracle.text = limited[scope] ?? limited.global ?? '';
       ctx.gloss('云端没回话，以我的为准');
       return { sent, shi };
     }
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
+    if (stale()) return STALE;
     if (!data.text) throw new Error('empty');
     ctx.gloss('云端回话了');
     if (Array.isArray(data.shi) && data.shi.length) { shi = data.shi.slice(0, 3); onShi?.(shi); }
     oracle.phase = 'text';
-    await inkReveal(ctx, data.text);
+    await inkReveal(ctx, data.text, stale);
   } catch {
+    if (stale()) return STALE;
     oracle.phase = 'text';
-    oracle.text = 'AI 暂时没有回应。上面的解签就是这次的结果。';
+    oracle.text = ctx.copy.oracleFail ?? '';
     ctx.gloss('云端没回话，以我的为准');
   } finally {
     clearTimeout(timer);
     refreshQuota();
   }
-  return { sent, shi };
+  return stale() ? STALE : { sent, shi };
 }

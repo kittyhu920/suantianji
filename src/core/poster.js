@@ -233,18 +233,23 @@ function center(g, text, y, font, color) {
 }
 
 /**
+ * 纸面、远山、标题、结局印、命盘、落款与二维码在这里；"这一卷自己的内容"由各卷的 spec 提供。
  * @param {object} d
- * @param {{no:string,name:string,level:string,poem:string[],bai:string}|null} d.sign
- * @param {string} d.cups  三杯结果，如"圣杯 · 圣杯 · 阴杯"
- * @param {string} d.state 签是否算数
  * @param {{name:string,sub:string}} d.ending
- * @param {object[]} d.throws 每一掷的记录，用来按海报尺寸重织命盘
+ * @param {object[]} d.throws 每一次操作的记录，用来按海报尺寸重织命盘
  * @param {number} d.seed
  * @param {string} d.date
+ * （各卷自己的字段，如签卷的 sign、cups、state，原样交给 spec.body）
+ * @param {object} v 本卷的海报 spec
+ * @param {string} v.tagline    标题下的一行字
+ * @param {string} v.turn       结局之后的点破
+ * @param {string} v.qrLabel    二维码旁的字
+ * @param {(d:object)=>string} v.sample  用来预载字体的文字
+ * @param {object} v.style      命盘的织法（见 loom.js）
+ * @param {(g, y:number, d, h)=>number} v.body  画本卷的内容，返回新的 y；h = { W, C, TEXT, BRUSH, center, wrap }
  */
-export async function drawPoster(d) {
-  const sample = [d.sign?.name, d.sign?.no, d.sign?.level, ...(d.sign?.poem ?? []), d.sign?.bai, d.cups, d.state,
-    d.ending.name, d.ending.sub, '演算天机你求签我算这支签在说什么在你求签的时候我也在给你算命扫码来求一签'].join('');
+export async function drawPoster(d, v) {
+  const sample = [v.sample(d), d.ending.name, d.ending.sub, '演算天机', v.tagline, v.turn, v.qrLabel].join('');
   await Promise.all([document.fonts.load(`48px ${BRUSH}`, sample), document.fonts.load(`38px ${TEXT}`, sample),
     document.fonts.load(`84px ${TITLE}`, '演算天机')]);
 
@@ -272,55 +277,10 @@ export async function drawPoster(d) {
   g.font = `44px ${BRUSH}`;
   g.fillStyle = C.gold;
   g.textAlign = 'center';
-  g.fillText('你 求 签 ， 我 算 你', W / 2, y);
+  g.fillText(v.tagline, W / 2, y);
   g.restore();
 
-  if (d.sign) {
-    y += 110;
-    center(g, d.sign.no, y, `34px ${TEXT}`, C.goldSoft);
-    y += 118;
-    center(g, d.sign.name, y, `108px ${BRUSH}`, C.gold);
-    // 等级
-    y += 36;
-    g.font = `38px ${BRUSH}`;
-    const lw = g.measureText(d.sign.level).width + 40;
-    g.strokeStyle = C.goldDim;
-    g.lineWidth = 2;
-    g.strokeRect(W / 2 - lw / 2, y, lw, 58);
-    g.fillStyle = C.gold;
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText(d.sign.level, W / 2, y + 31);
-
-    // 签诗：竖排，自右向左
-    y += 118;
-    g.font = `52px ${TEXT}`;
-    g.fillStyle = C.gold;
-    const colGap = 96;
-    const x0 = W / 2 + colGap * 1.5;
-    d.sign.poem.forEach((line, i) => {
-      [...line].forEach((ch, j) => g.fillText(ch, x0 - i * colGap, y + j * 66));
-    });
-    y += 66 * 7 + 40;
-
-    // 白话大意
-    g.textBaseline = 'alphabetic';
-    center(g, '这支签在说什么', y, `40px ${BRUSH}`, C.gold);
-    y += 70;
-    g.font = `38px ${TEXT}`;
-    g.fillStyle = C.gold;
-    for (const line of wrap(g, d.sign.bai, 860)) {
-      g.textAlign = 'center';
-      g.fillText(line, W / 2, y);
-      y += 62;
-    }
-  }
-
-  // 三杯
-  y += 50;
-  center(g, d.cups, y, `50px ${BRUSH}`, C.gold);
-  y += 56;
-  center(g, d.state, y, `32px ${TEXT}`, d.stateNo ? C.cinnabarHi : C.goldSoft);
+  y = v.body(g, y, d, { W, C, TEXT, BRUSH, center, wrap });
 
   // 结局
   y += 110;
@@ -340,7 +300,7 @@ export async function drawPoster(d) {
 
   // 点破
   y += 170;
-  center(g, '在你求签的时候，我也在给你算命。', y, `44px ${BRUSH}`, C.gold);
+  center(g, v.turn, y, `44px ${BRUSH}`, C.gold);
 
   // 命盘
   y += 50;
@@ -352,7 +312,7 @@ export async function drawPoster(d) {
   const mh = lh2 * scale;
   // 用同一个种子和掷筊记录重织一遍：图案与页面上的一致，但按海报尺寸绘制，更清晰
   const loom = document.createElement('canvas');
-  await weave(loom, { seed: d.seed, throws: d.throws, reduced: true, width: Math.round(mw) });
+  await weave(loom, { seed: d.seed, throws: d.throws, reduced: true, width: Math.round(mw), style: v.style });
   g.drawImage(loom, W / 2 - mw / 2, y, mw, mh);
   g.strokeStyle = C.goldFaint;
   g.lineWidth = 2;
@@ -371,7 +331,7 @@ export async function drawPoster(d) {
   g.textBaseline = 'alphabetic';
   g.font = `46px ${BRUSH}`;
   g.fillStyle = C.gold;
-  g.fillText('扫码来求一签', qx - 50, qy + qs * 0.42);
+  g.fillText(v.qrLabel, qx - 50, qy + qs * 0.42);
   g.font = `26px ${TEXT}`;
   g.fillStyle = C.goldDim;
   g.fillText(SITE, qx - 50, qy + qs * 0.42 + 56);

@@ -5,9 +5,9 @@
 // 正文是淡墨；朱色只给句尾的"〇"、关键数字和警示句的着重点。
 
 import { inkChar } from './inkchars.js';
+import { numberIndexes } from './marks.js';
 
 const CLAUSE = /[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g;
-const NUMBER = /\d+(?:\.\d+)?%?/g; // 关键数字：用朱点出
 
 export function createGloss(host, { reduced = false } = {}) {
   const queue = [];
@@ -46,8 +46,7 @@ export function createGloss(host, { reduced = false } = {}) {
       el.className = 'gloss' + (item.alarm ? ' is-alarm' : '');
       const box = document.createElement('span');
       box.className = 'gloss-t';
-      const hot = new Set(); // 数字所在的字序
-      for (const m of item.text.matchAll(NUMBER)) for (let k = 0; k < m[0].length; k++) hot.add(m.index + k);
+      const hot = numberIndexes(item.text); // 数字所在的字序，点朱
       let n = 0;
       let pos = 0;
       // 按标点切成语段，每段是不可拆的一块：只在语段之间折行，不在"3.9 秒"或一个词中间断开

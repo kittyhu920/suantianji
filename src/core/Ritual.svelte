@@ -38,7 +38,7 @@
     let alive = true;
     (async () => {
       const g = await juan.enter(ctx);
-      if (alive) game = g;
+      if (alive) { game = g; ctx.watch(g); }
       refreshQuota();
     })();
     return () => {
@@ -83,8 +83,8 @@
 
 <button class="corner-btn corner-home" id="btn-home" type="button" aria-label={atStart ? '回到目录' : '回到卷首'} onclick={home}>{atStart ? '目录' : '卷首'}</button>
 <button class="corner-btn corner-mute" id="btn-mute" type="button" aria-pressed={muted} aria-label={muted ? '取消静音' : '静音'} onclick={toggleMute}>声</button>
-{#if game?.doubtVisible}
-  <Seal size="sm" class="seal-doubt" id="btn-doubt" aria-label="存疑：不再相信这场推演" onclick={() => game.doubt()}>存疑</Seal>
+{#if game && ctx.doubtVisible(game)}
+  <Seal size="sm" class="seal-doubt" id="btn-doubt" aria-label="存疑：不再相信这场推演" onclick={() => ctx.pressDoubt(game)}>存疑</Seal>
 {/if}
 
 {#if game?.makePoster}

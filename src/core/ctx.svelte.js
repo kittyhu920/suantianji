@@ -6,11 +6,16 @@
 //   fx / fxPoint(el,ax,ay)   墨与水的画布，与把某元素上的一点换算成画布坐标
 //   reduced / coarse         减少动效、触屏
 //   sleep / sec              延时（减少动效下压到 60ms 以内）、毫秒换秒
-//   store / daysAgo          本地存储
+//   store / storeAll         本卷的本地存储命名空间（get/set）、与跨卷的 store（store.getJuan 读别的卷）
+//   visits / memory / endings  来访次数、“大师记得你”的上一局记录、已得的结局（都存在本卷命名空间里）
+//   copy                     本卷提供的、公共组件要显示的文案（通灵、分享图），见 src/juan/index.js
+//   round                    一局里公共层替你数的东西：idle（发呆次数）、hidden（离开页面次数）、
+//                            doubtShown / doubted（存疑印是否出现、是否被按下）、finished、id（局号）
+//   resetRound() / revealDoubt() / watch(game) / pressDoubt(game)  发呆与离开页面的计数、存疑印的出现与收尾
 //   touch() / lastActive     "玩家刚刚动过"的记号，发呆（静止八秒）由此判断
 //   profile                  观人术（profile.js）
 //   ledger.seed(data)        行为账本 → 命盘种子
-//   birth                    生辰档案（之后的批次接入，现为 null）
+//   birth                    生辰档案（之后接入，现为 null）
 //   zhu                      注疏（术语出现时注栏同步出注）
 //   el                       { huaxin, stage }：画心与可滚动的舞台
 
@@ -30,6 +35,8 @@ export function createCtx(juan) {
   const debug = location.search.includes('debug');
 
   const ui = $state({ screen: juan.start ?? 'title', n: 0 });
+  const round = $state({ idle: 0, hidden: 0, doubtShown: false, doubted: false, finished: false, id: 0 });
+  const ns = store.juan(juan.id);
   let glossEngine = null;
   let cleanups = [];
 
@@ -38,8 +45,25 @@ export function createCtx(juan) {
     reduced,
     coarse,
     sfx,
-    store,
+    store: ns,
+    storeAll: store,
     daysAgo,
+    copy: juan.copy ?? {},
+    round,
+    visits: {
+      get: () => ns.get('visits', 0),
+      bump() { const n = ns.get('visits', 0) + 1; ns.set('visits', n); return n; },
+    },
+    memory: { get: () => ns.get('last', null), set: (r) => ns.set('last', r) },
+    endings: {
+      get: () => ns.get('endings', []),
+      record(key) {
+        const got = new Set(ns.get('endings', []));
+        got.add(key);
+        ns.set('endings', [...got]);
+        return [...got];
+      },
+    },
     profile,
     zhu,
     birth: null,
@@ -77,6 +101,58 @@ export function createCtx(juan) {
     touch() {
       ctx.lastActive = performance.now();
       ctx.idleFlagged = false;
+    },
+
+    /* ───────── 一局里的观测：发呆、离开页面、存疑印 ───────── */
+    // 新的一局：计数清零，局号加一（通灵等迟到的回复据此判断是不是上一局的）
+    resetRound() {
+      Object.assign(round, { idle: 0, hidden: 0, doubtShown: false, doubted: false, finished: false, id: round.id + 1 });
+    },
+
+    // 存疑印出现（只出现一次）。各卷在“玩家不认答案”的时刻调用
+    revealDoubt() {
+      if (round.doubtShown) return;
+      round.doubtShown = true;
+      ctx.gloss('不信我，就按左下角那枚印');
+    },
+
+    doubtVisible(game) {
+      return round.doubtShown && !round.doubted && !round.finished && !!game.canDoubt?.();
+    },
+
+    // 按下存疑印：画心撕开一瞬，收尾后交给卷的 finish()
+    async pressDoubt(game) {
+      if (round.finished) return;
+      round.doubted = true;
+      ctx.el.huaxin.classList.add('is-broken');
+      ctx.gloss('你打断了我', { alarm: true });
+      ctx.gloss('你不想被我算');
+      sfx.bronze(220, 2.6, 0.16);
+      await ctx.sleep(1600);
+      ctx.el.huaxin.classList.remove('is-broken');
+      game.finish();
+    },
+
+    // 发呆（静止八秒）与离开页面的计数。卷只需实现 game.canDoubt()（现在是否在仪式中）与可选的 game.busy()
+    watch(game) {
+      const iv = setInterval(() => {
+        if (round.finished || ctx.idleFlagged || game.busy?.() || !game.canDoubt?.()) return;
+        if (performance.now() - ctx.lastActive > 8000) {
+          ctx.idleFlagged = true;
+          round.idle++;
+          ctx.gloss('你停了八秒，我记为犹豫');
+          ctx.revealDoubt();
+        }
+      }, 1000);
+      const onVisible = () => {
+        if (round.finished || !game.canDoubt?.()) return;
+        if (document.visibilityState === 'visible') {
+          round.hidden++;
+          ctx.gloss('你走开了一会儿，我记下了');
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      cleanups.push(() => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible); });
     },
 
     /** 新的一屏挂上之后调用：滚回顶部，必要时从指尖处洇开 */

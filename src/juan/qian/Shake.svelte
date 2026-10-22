@@ -28,7 +28,7 @@
 </script>
 
 <section class="screen screen-qian is-active" data-screen="qian" aria-labelledby="q-h">
-  <h2 id="q-h" class="h-brush">摇签</h2>
+  {#if !S.signShown}<h2 id="q-h" class="h-brush">摇签</h2>{/if}
   <p class="note" id="qian-note">{note}</p>
   <div class="tube-wrap" id="tube-wrap" hidden={S.signShown}>
     <button class="tube" id="tube" bind:this={button} aria-label="签筒：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃">
@@ -37,7 +37,8 @@
   </div>
   {#if S.signShown && S.sign}
     {@const sign = S.sign}
-    <article class="sign" id="sign">
+    <article class="sign" id="sign" aria-labelledby="q-h">
+      <h2 id="q-h" class="h-brush sign-title">摇签</h2>
       <header class="sign-head">
         <p class="sign-no" id="sign-no">
           {#if sign.no}{signNo(sign)} · <Zhu term="六十甲子">{sign.gz}</Zhu> · <Zhu term="纳音">{sign.nayin}</Zhu>{:else}<Zhu term="签头" />{/if}
