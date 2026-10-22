@@ -3,7 +3,7 @@
   import { zhu, closePop } from './zhu.svelte.js';
 
   let { class: cls = '' } = $props();
-  const kindLabel = { 古籍: '出自古籍', 民俗: '出自民俗', 原创: '本作原创' };
+  const kindLabel = { 古籍: '出自古籍', 民俗: '出自民俗', 考古: '出自考古', 原创: '本作原创' };
   const pop = $derived(zhu.pop && zhu.notes[zhu.pop.term] ? { ...zhu.pop, note: zhu.notes[zhu.pop.term] } : null);
 
   // 浮注的位置：贴着术语，尽量在它下面；下面放不下就放上面；左右不出画心

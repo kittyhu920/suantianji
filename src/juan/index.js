@@ -53,8 +53,9 @@ export const juans = [
     href: '/gua/', source: '/gua/yuanliu/',
   },
   {
-    id: 'bu', name: '卜', title: '甲骨灼卜', page: '三十三', open: false,
+    id: 'bu', name: '卜', title: '甲骨灼卜', page: '三十三', open: true,
     intro: '灼龟甲，看裂纹，王占曰吉凶。',
+    href: '/bu/', source: '/bu/yuanliu/',
   },
   {
     id: 'niao', name: '鸟', title: '文鸟抽卡', page: '四十九', open: false,
