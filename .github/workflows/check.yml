@@ -19,9 +19,11 @@ jobs:
         run: node tools/check-gua.mjs
       - name: 卜卷校验
         run: node tools/check-bu.mjs
+      - name: 统计接口测试
+        run: node --no-warnings tests/stat.test.mjs
       - name: 安装依赖
         run: npm ci
       - name: 构建
         run: npm run build
       - name: 脚本语法检查
-        run: for f in functions/api/*.js tools/*.mjs; do node --check "$f"; done
+        run: for f in functions/api/*.js tools/*.mjs tests/*.mjs; do node --check "$f"; done

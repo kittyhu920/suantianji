@@ -12,7 +12,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check:db": "node tools/check-db.mjs && node tools/check-gua.mjs && node tools/check-bu.mjs",
-    "check": "npm run check:db && astro build"
+    "test:stat": "node --no-warnings tests/stat.test.mjs",
+    "check": "npm run check:db && npm run test:stat && astro build"
   },
   "dependencies": {
     "@astrojs/svelte": "^9.0.1",
