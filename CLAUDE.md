@@ -9,12 +9,12 @@
 《演算天机》是一部收录多种民间算命法的书，一卷一卷地开：签（已开）、卦、卜、鸟、字、历（后五卷"未开卷"）。Astro + Svelte 5，纯静态输出到 `dist/`。
 
 - `src/pages/`：路由。`index.astro` 卷首目录；`qian/index.astro` 签卷仪式；`qian/yuanliu.md` 签卷源流；`about.astro`；`404.astro`。
-- `src/core/`：公共层（纸面 `Paper.astro`、仪式外壳 `Ritual.svelte`、眉批 `gloss.js`、`Seal.svelte`、`ink.js`、`audio.js`、`shake.svelte.js`、`profile.js`、`loom.js`、`poster.js`、`oracle.svelte.js`、注疏 `Zhu.svelte` / `ZhuPanel.svelte`、`end/` 结局各部分、`styles/`）。
+- `src/core/`：公共层（纸面 `Paper.astro`、仪式外壳 `Ritual.svelte`、眉批 `gloss.js`、`Seal.svelte`、`ink.js`、`audio.js`、`shake.svelte.js`、`profile.js`、`loom.js`、`poster.js`、`oracle.svelte.js`、注疏 `Zhu.svelte` / `ZhuPanel.svelte`、`end/` 结局各部分、`styles/`、`paper/` 案上字盘 / 纸背透字 / 开卷，见 `docs/DESIGN.md` §13）。
 - `src/juan/index.js`：卷的注册表，文件头注释写明卷的接口（`id / name / title / open / screens / zhu / enter(ctx) / atlas`，以及 `enter` 返回的 game：`attitude()` 返回遵逆破迷之一）。新增一卷：在这里加一行，再写自己的 `src/juan/<id>/`，在 `src/pages/<id>/` 挂页面。
 - `src/juan/qian/`：签卷。`game.svelte.js` 是一局的流程与结局映射（`attitude()`：破 > 迷 > 逆 > 遵），`fortune-db.json` 是签簿，`zhu.json` 是注。
 - `public/`：原样发布的静态资源（`fonts/`、`img/title-ink.svg`）。
 - `functions/api/oracle.js`：通灵模式，Pages Function + Workers AI（GLM-4.7 Flash，已关闭思考模式）。用 D1 库 `suantianji`（绑定 `DB`）按天限流，建表见 `migrations/`。
-- 页面加 `?debug` 可用 `window.__fx`（墨与水）、`window.__qian`（签筒）手动推进。
+- 页面加 `?debug` 可用 `window.__fx`（墨与水）、`window.__qian`（签筒）、`window.__zipan`（字盘）手动推进。
 
 ## 更新日志
 
