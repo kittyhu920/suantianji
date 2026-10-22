@@ -16,6 +16,9 @@
 - `functions/api/oracle.js`：通灵模式，Pages Function + Workers AI（GLM-4.7 Flash，已关闭思考模式）。用 D1 库 `suantianji`（绑定 `DB`）按天限流，建表见 `migrations/`。
 - 页面加 `?debug` 可用 `window.__fx`（墨与水）、`window.__qian`（签筒）、`window.__zipan`（字盘）手动推进。
 
+- `functions/api/stat.js`：匿名统计。`POST` 每局结束记一行（`rounds` 表，字段枚举见 `src/core/stat-schema.js`），`GET ?juan=&days=1|7` 返回聚合（缓存 5 分钟）。单个 IP 哈希每天 60 局、全站每天 5000 局，超限静默丢弃（204），计数复用 `hits` 表。前端在 `src/core/stat.js`（上报）、`peer.svelte.js` / `peer-lines.js`（结局坦白里"和你一样的人"那句，模板集中在 `peer-lines.js`）；问题在浏览器本地归类（词表只在 `src/core/question-class.js`），原文不上报。各卷 `game.statData()` 交出结果标识。隐私说明（账本、关于页）要与上报字段保持一致，见 `docs/DESIGN.md` §16。
+- `functions/api/stats-admin.js` 与 `src/pages/admin/`：只给作者看的统计页，令牌放 `Authorization: Bearer`，与环境变量 `STATS_TOKEN` 常量时间比较，没设置就一律拒绝。页面 noindex，不在任何地方链接。
+
 ## 更新日志
 
 有玩家可见变化的改动，顺手记进根目录 `CHANGELOG.md` 的 `## [Unreleased]`（Keep a Changelog 1.1.0，中文，写给玩家看，不照搬 commit）。
@@ -29,6 +32,10 @@ npm run preview                                        # 预览构建结果
 node tools/check-db.mjs                                # 签簿校验
 python tools/subset-fonts.py                           # 改了中文文案后重裁字体
 npx wrangler pages dev dist --ai AI                    # 连同 Function 调试（会计费，先 build）
+npm run test:stat                                      # 统计接口测试（校验、限流、令牌；用 node:sqlite 做 D1 替身，已在 npm run check 里）
+npx wrangler d1 migrations apply suantianji --local    # 本地 D1 建表（连同 Function 调试前先做）
+npx wrangler d1 migrations apply suantianji --remote   # 线上建表：新增迁移后执行一次
+npx wrangler pages secret put STATS_TOKEN --project-name suantianji   # 设置作者统计页令牌（自己定一个长随机串，不要写进仓库）
 npx wrangler pages deploy dist --project-name suantianji --branch main --commit-dirty=true
 ```
 
