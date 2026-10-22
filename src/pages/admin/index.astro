@@ -1,0 +1,226 @@
+---
+// 作者统计页：输入令牌后读 /api/stats-admin。不走公共纸面，自带样式；不在任何地方链接；noindex。
+// 令牌只放在 sessionStorage，关掉标签页就没了。
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>统计</title>
+<style is:global>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #f2ecdc; color: #1b1712; font: 15px/1.7 "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { font-size: 22px; letter-spacing: .1em; margin: 0 0 14px; font-weight: 600; }
+  h2 { font-size: 17px; margin: 28px 0 8px; border-bottom: 1px solid rgba(27, 23, 18, .25); padding-bottom: 4px; }
+  h3 { font-size: 14px; margin: 14px 0 4px; font-weight: 600; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  input, select, button { font: inherit; padding: 5px 10px; border: 1px solid rgba(27, 23, 18, .5); background: #fbf7ea; color: inherit; }
+  input[type=password] { min-width: 18em; }
+  button { background: #9e2a2b; color: #f2e6cc; border-color: #9e2a2b; cursor: pointer; }
+  #msg { margin: 10px 0 0; min-height: 1.6em; }
+  #msg.err { color: #9e2a2b; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px 28px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 2px 8px 2px 0; border-bottom: 1px dotted rgba(27, 23, 18, .25); }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  svg { display: block; max-width: 100%; height: auto; }
+  svg text { font: 12px "Songti SC", "Noto Serif SC", serif; fill: #1b1712; }
+  .bar { fill: #3d3a34; }
+  .bar.c1 { fill: #6b645a; } .bar.c2 { fill: #9e2a2b; }
+  .note { font-size: 13px; opacity: .7; }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>统计</h1>
+  <form id="f" autocomplete="off">
+    <input id="tok" type="password" placeholder="令牌" aria-label="令牌" required>
+    <select id="days" aria-label="范围">
+      <option value="7">近 7 天</option>
+      <option value="30" selected>近 30 天</option>
+      <option value="90">近 90 天</option>
+      <option value="365">近一年</option>
+    </select>
+    <button type="submit">查看</button>
+    <button type="button" id="out" hidden style="background:none;color:inherit;border-color:rgba(27,23,18,.5)">忘掉令牌</button>
+  </form>
+  <p id="msg" role="status"></p>
+  <div id="out-box" hidden></div>
+  <p class="note">日期按 UTC 计。这里只有匿名统计：没有问题原文，没有 IP。</p>
+</main>
+
+<script>
+  import {
+    JUAN_IDS, ENDING_LABEL, DOMAIN_LABEL, DUR_LABEL, DUR_KEYS, TONE_LABEL, TOPIC_LABEL, THEME_LABEL, OMEN_LABEL,
+  } from '../../core/stat-schema.js';
+
+  const KEY = 'stj-admin-token';
+  const JUAN_NAME = { qian: '签', gua: '卦', bu: '卜' };
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+
+  const label = (dim, juan, k) => {
+    if (k == null) return '（空）';
+    const map = {
+      domain: DOMAIN_LABEL, ending: ENDING_LABEL, qtopic: TOPIC_LABEL, qtone: TONE_LABEL, dur: DUR_LABEL, theme: THEME_LABEL,
+      asked: { 0: '没写', 1: '写了' },
+    }[dim];
+    if (map) return map[k] ?? String(k);
+    if (dim === 'result') return juan === 'qian' ? `第 ${k} 签` : juan === 'gua' ? `第 ${k} 卦` : (OMEN_LABEL[k] ?? String(k));
+    return String(k);
+  };
+  const DIM_TITLE = {
+    domain: '领域', ending: '结局', result: '本局结果', qtopic: '问题主题', qtone: '问题语气', dur: '用时分档', theme: '主题', asked: '是否写了问题',
+  };
+
+  function el(tag, attrs = {}, text) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  // 横向柱状图：rows = [{ name, n }]
+  function barChart(rows, cls = '') {
+    const W = 460, rowH = 22, padL = 96, padR = 44;
+    const max = Math.max(1, ...rows.map((r) => r.n));
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${rows.length * rowH + 4}`);
+    svg.setAttribute('role', 'img');
+    rows.forEach((r, i) => {
+      const y = i * rowH + 2;
+      const w = ((W - padL - padR) * r.n) / max;
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', padL - 6); t.setAttribute('y', y + 14); t.setAttribute('text-anchor', 'end'); t.textContent = r.name;
+      const b = document.createElementNS(NS, 'rect');
+      b.setAttribute('x', padL); b.setAttribute('y', y + 2); b.setAttribute('width', Math.max(1, w)); b.setAttribute('height', rowH - 7);
+      b.setAttribute('class', `bar ${cls}`);
+      const v = document.createElementNS(NS, 'text');
+      v.setAttribute('x', padL + Math.max(1, w) + 5); v.setAttribute('y', y + 14); v.textContent = String(r.n);
+      svg.append(t, b, v);
+    });
+    return svg;
+  }
+
+  // 按天的柱状图（纵向）
+  function dayChart(days) {
+    const W = 920, H = 150, padB = 24, padT = 16;
+    const max = Math.max(1, ...days.map((d) => d.n));
+    const bw = Math.min(28, (W - 20) / Math.max(1, days.length));
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('role', 'img');
+    days.forEach((d, i) => {
+      const h = ((H - padB - padT) * d.n) / max;
+      const x = 10 + i * bw;
+      const r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', x + 2); r.setAttribute('y', H - padB - h); r.setAttribute('width', bw - 4); r.setAttribute('height', Math.max(1, h));
+      r.setAttribute('class', 'bar');
+      const v = document.createElementNS(NS, 'text');
+      v.setAttribute('x', x + bw / 2); v.setAttribute('y', H - padB - h - 3); v.setAttribute('text-anchor', 'middle'); v.textContent = String(d.n);
+      svg.append(r, v);
+      if (days.length <= 31 || i % Math.ceil(days.length / 31) === 0) {
+        const t = document.createElementNS(NS, 'text');
+        t.setAttribute('x', x + bw / 2); t.setAttribute('y', H - 8); t.setAttribute('text-anchor', 'middle'); t.textContent = d.day.slice(5);
+        svg.append(t);
+      }
+    });
+    return svg;
+  }
+
+  function table(head, rows) {
+    const t = el('table');
+    const tr = el('tr');
+    head.forEach((h, i) => tr.append(el('th', i === head.length - 1 ? { class: 'n' } : {}, h)));
+    t.append(tr);
+    rows.forEach((r) => {
+      const row = el('tr');
+      r.forEach((c, i) => row.append(el('td', i === r.length - 1 ? { class: 'n' } : {}, String(c))));
+      t.append(row);
+    });
+    return t;
+  }
+
+  function render(data) {
+    const box = $('out-box');
+    box.replaceChildren();
+    box.append(el('h2', {}, `共 ${data.total} 局（${data.from} 起，${data.days} 天）`));
+
+    // 按天
+    const total = new Map();
+    data.byDay.forEach((r) => total.set(r.day, (total.get(r.day) ?? 0) + r.n));
+    const days = [...total].map(([day, n]) => ({ day, n }));
+    box.append(el('h2', {}, '按天'));
+    if (days.length) box.append(dayChart(days));
+    box.append(table(['日期', '卷', '局数'], data.byDay.map((r) => [r.day, JUAN_NAME[r.juan] ?? r.juan, r.n])));
+
+    // 各维度：按卷分开，各给一张图和一张表
+    for (const [dim, rows] of Object.entries(data.dims)) {
+      box.append(el('h2', {}, DIM_TITLE[dim] ?? dim));
+      const grid = el('div', { class: 'grid' });
+      for (const id of JUAN_IDS) {
+        const mine = rows.filter((r) => r.juan === id);
+        if (!mine.length) continue;
+        if (dim === 'dur') mine.sort((a, b) => DUR_KEYS.indexOf(a.k) - DUR_KEYS.indexOf(b.k));
+        if (dim === 'result') mine.sort((a, b) => b.n - a.n);
+        const part = el('div');
+        part.append(el('h3', {}, `${JUAN_NAME[id] ?? id}卷`));
+        const shown = dim === 'result' ? mine.slice(0, 16) : mine; // 结果太多时图只画前 16 名，表里是全部
+        part.append(barChart(shown.map((r) => ({ name: label(dim, id, r.k), n: r.n })), dim === 'ending' ? 'c1' : ''));
+        if (dim === 'result') part.append(table(['结果', '局数'], mine.map((r) => [label(dim, id, r.k), r.n])));
+        else part.append(table(['', '局数'], mine.map((r) => [label(dim, id, r.k), r.n])));
+        grid.append(part);
+      }
+      box.append(grid);
+    }
+    box.hidden = false;
+  }
+
+  async function load() {
+    const token = sessionStorage.getItem(KEY);
+    if (!token) return;
+    $('msg').className = '';
+    $('msg').textContent = '读取中……';
+    try {
+      const res = await fetch(`/api/stats-admin?days=${encodeURIComponent($('days').value)}`, {
+        headers: { authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem(KEY);
+        $('out-box').hidden = true; $('out').hidden = true;
+        $('msg').className = 'err';
+        $('msg').textContent = '令牌不对，或者服务器还没有设置令牌。';
+        return;
+      }
+      if (!res.ok) throw new Error(String(res.status));
+      render(await res.json());
+      $('out').hidden = false;
+      $('msg').textContent = '';
+    } catch (e) {
+      $('msg').className = 'err';
+      $('msg').textContent = `读取失败（${e.message}）。本地预览没有接口，请用 wrangler pages dev。`;
+    }
+  }
+
+  $('f').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = $('tok').value.trim();
+    if (v) sessionStorage.setItem(KEY, v);
+    $('tok').value = '';
+    load();
+  });
+  $('out').addEventListener('click', () => {
+    sessionStorage.removeItem(KEY);
+    $('out-box').replaceChildren(); $('out-box').hidden = true; $('out').hidden = true;
+    $('msg').textContent = '已忘掉令牌。';
+  });
+  $('days').addEventListener('change', load);
+  if (sessionStorage.getItem(KEY)) load();
+</script>
+</body>
+</html>
