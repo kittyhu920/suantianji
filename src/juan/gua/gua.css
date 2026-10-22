@@ -64,4 +64,5 @@
 .jie-actions .btn:not(.btn-primary) { text-shadow: 0 0 3px var(--gan), 0 0 6px var(--gan), 0 0 10px var(--gan); }
 
 /* 器物直接放在纸上，不加框（docs/DESIGN.md：墨线用来分隔，不用来包框）；键盘聚焦时靠龟壳自己的晃动示意 */
-.shell:focus, .shell:focus-visible { outline: none; }
+.shell:focus { outline: none; }
+.shell:focus-visible { outline: 1px dashed rgba(27, 23, 18, .4); outline-offset: 8px; border-radius: 50%; }
