@@ -44,7 +44,7 @@
 .oracle-quota::before { content: "· "; }
 .oracle-toggle input:disabled ~ .oracle-row { opacity: .5; }
 .oracle-state::after { content: "未开启"; }
-.oracle-toggle input:checked ~ .oracle-row .oracle-state { color: var(--cinnabar); }
+.oracle-toggle input:checked ~ .oracle-row .oracle-state { color: var(--gold); }
 .oracle-toggle input:checked ~ .oracle-row .oracle-state::after { content: "已开启"; }
 .oracle-toggle .seal { cursor: pointer; opacity: .75; }
 .oracle-toggle input:checked ~ .oracle-row .seal {

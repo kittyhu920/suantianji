@@ -21,14 +21,16 @@
   /* 签卡：签号与签诗在左，解说在右 */
   .sign {
     display: grid;
+    width: fit-content; /* 与上面的“摇签”标题同在整屏的中轴上 */
     grid-template-columns: auto 22em;
-    grid-template-areas: "head bai" "poem wait" "poem btn";
+    grid-template-areas: "title title" "head bai" "poem wait" "poem btn";
     justify-content: center;
     justify-items: start;
     align-items: center;
     column-gap: 52px;
     row-gap: 14px;
   }
+  .sign-title { grid-area: title; justify-self: center; margin: 0 0 4px; } /* 标题在签卡的正上方，与整张卡同一条中轴 */
   .sign-head { grid-area: head; justify-self: center; }
   .sign .poem { grid-area: poem; justify-self: center; }
   .sign-bai { grid-area: bai; }

@@ -10,7 +10,7 @@
   place-items: center;
   padding: 12px 0 8px;
 }
-.an-board { /* 留给"案上字盘"（之后的批次在这里铺反刻活字阵）；现在只是空着 */
+.an-board { /* 留给"案上字盘"（之后在这里铺反刻活字阵）；现在只是空着 */
   position: absolute;
   inset: 0;
   z-index: 0;
