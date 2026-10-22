@@ -2,7 +2,7 @@
 // 一平一凸为圣杯（神明应允），两平为笑杯（笑而不答，须再掷），两凸为阴杯（神明不允）
 // 去掉须再掷的笑杯，每一杯终归圣杯 2/3、阴杯 1/3
 
-import { trueRandom } from './rng.js';
+import { trueRandom } from '../../core/rng.js';
 
 export const CUP_NAMES = { sheng: '圣杯', xiao: '笑杯', yin: '阴杯' };
 export const CUP_SHORT = { sheng: '圣', xiao: '笑', yin: '阴' };

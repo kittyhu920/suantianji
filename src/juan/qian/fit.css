@@ -1,0 +1,125 @@
+/* 签卷的适配：桌面（≥960px）把内容左右展开；窄屏、矮窗口逐级收紧。
+   桌面以 1440×900 与 1366×768 为主，手机以 375 宽为底线。（docs/DESIGN.md §11、§12） */
+
+.title-block { width: min(100%, 460px); }
+.title-links { margin: 0; display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+
+/* 掷筊与结局：手机上是一列，桌面上分两栏 */
+.jiao-cols, .jiao-intro, .jiao-play, .end-cols, .end-col { display: contents; }
+
+/* ───────── 桌面 ───────── */
+@media (min-width: 960px) {
+  .screen { padding: calc(var(--mei-h) + 8px) 48px 40px; gap: 18px; }
+  .h-brush { font-size: 48px; }
+  .note { max-width: 32em; }
+  /* 墨痕在手机上顶着纸边出血；桌面上纸宽，它的两端改为渐渐淡去（枯笔收锋） */
+  .title-block {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  }
+
+  /* 签卡：签号与签诗在左，解说在右 */
+  .sign {
+    display: grid;
+    grid-template-columns: auto 22em;
+    grid-template-areas: "head bai" "poem wait" "poem btn";
+    justify-content: center;
+    justify-items: start;
+    align-items: center;
+    column-gap: 52px;
+    row-gap: 14px;
+  }
+  .sign-head { grid-area: head; justify-self: center; }
+  .sign .poem { grid-area: poem; justify-self: center; }
+  .sign-bai { grid-area: bai; }
+  .sign-wait { grid-area: wait; text-align: left; max-width: 22em; }
+  #btn-to-jiao { grid-area: btn; }
+
+  /* 掷筊：左边讲规矩，右边掷 */
+  .jiao-cols { display: flex; gap: 56px; align-items: flex-start; justify-content: center; width: 100%; max-width: 880px; }
+  .jiao-intro, .jiao-play { display: flex; flex-direction: column; align-items: center; gap: 16px; flex: 1 1 0; min-width: 0; }
+  .jiao-intro { align-items: flex-start; text-align: left; padding-top: 14px; }
+  .jiao-intro .note { text-align: left; }
+  .jiao-rule { margin: 0; }
+  .jiao-board { min-height: 0; }
+  .jiao-play { padding-top: 6px; }
+
+  /* 结局：两栏 */
+  .end-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 64px; width: 100%; max-width: 920px; align-items: start; }
+  .end-col { display: flex; flex-direction: column; align-items: center; gap: 20px; min-width: 0; }
+  .jieqian, .confess, .critique, .ledger, .endings, .oracle { max-width: 24em; }
+}
+
+/* ───────── 平板与手机 ───────── */
+@media (max-width: 520px) {
+  .screen { padding: calc(var(--mei-h) + 10px) 24px 36px; gap: 14px; } /* 让出版框与眉批 */
+  .corner-btn { top: 16px; }
+  .corner-home { left: 16px; }
+  .corner-mute { right: 16px; }
+  .slips { gap: 10px; }
+  .slip { width: 56px; height: 176px; }
+  .jiao-block { width: 88px; height: 44px; }
+  .jiao-labels span { width: 88px; }
+  .seal-doubt { left: 12px; bottom: 12px; }
+}
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .note, .shichen, .sign-wait, .ask-label { font-size: 15px; }
+  .sign-bai, .jq-row, .confess li, .critique, .oracle p, .screen-about p, .screen-about li, .lost-text { font-size: 16px; line-height: 1.85; }
+  .jiao-legend, .jiao-rule, .oracle-desc, .ledger-intro, .oracle .oracle-ask-note { font-size: 14px; }
+  .ledger dl { font-size: 15px; }
+  .endings li { font-size: 14px; }
+  .loom-legend, .loom figcaption, .cup-tag { font-size: 13px; }
+  .cup-name, .jq-state { font-size: 14px; }
+  .slip-desc { font-size: 12px; }
+  .poem { font-size: 20px; }
+}
+
+/* ───────── 矮窗口（笔记本浏览器、小屏手机）─────────
+   收紧间距与大块元素，让一屏尽量放得下；放不下时，主要的按钮仍固定在底部，不必往下滑才点得到 */
+@media (max-height: 700px) {
+  .tube-wrap { width: min(240px, 100%); }
+  .poem { font-size: 17px; }
+}
+@media (max-height: 780px) {
+  .screen { gap: 12px; padding-bottom: 28px; }
+  .screen:not(.screen-title) { padding-top: calc(var(--mei-h) + 4px); }
+  .screen-title { padding-top: calc(var(--mei-h) - 14px); }
+  .title-block { height: 210px; }
+  .h-brush { font-size: 38px; }
+  .jiao-board { min-height: 150px; gap: 16px; }
+  .jiao { height: 96px; }
+  .jiao-legend { gap: 0; }
+}
+@media (max-height: 700px) {
+  .cup-tag { display: none; }
+  .cup { padding: 3px 0; }
+  .jiao { height: 78px; }
+  .jiao-labels { margin-top: -2px; }
+  .jiao-legend { font-size: 12.5px; line-height: 1.5; }
+  .jiao-legend b { font-size: 15px; }
+  .note { line-height: 1.6; }
+  .seal-lg { --s: 78px; }
+  .title-actions { gap: 8px; }
+  .oracle-toggle { margin-top: 4px; }
+  .sign-name { font-size: 36px; }
+  .sign { gap: 10px; }
+  .poem { height: 8.6em; }
+}
+@media (max-height: 640px) {
+  .title-block { height: 160px; }
+  .h-brush { font-size: 34px; }
+  .jiao-board { min-height: 120px; gap: 12px; }
+  .tube-wrap { width: min(210px, 100%); }
+}
+
+/* 主要按钮：内容超出一屏时固定在底部。没超出时就待在原位 */
+#btn-ding, #btn-to-jiao { position: sticky; bottom: 12px; z-index: 2; }
+.jiao-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 10px 0 6px;
+}
+/* 不铺底色（纸有纹理，平涂的底会在按钮两侧显出一块发白的长条）：实心按钮自己就看得清，描边的按钮只加字周围的纸色柔光 */
+.jiao-actions .btn:not(.btn-primary) { text-shadow: 0 0 3px var(--gan), 0 0 6px var(--gan), 0 0 10px var(--gan); }
