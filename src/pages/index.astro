@@ -40,7 +40,7 @@ import { juans } from '../juan/index.js';
       </div>
 
       <p class="toc-foot">
-        <a class="about-link" href="/qian/yuanliu/">签卷源流</a>
+        {juans.filter((j) => j.open && j.source).map((j) => <a class="about-link" href={j.source}>{j.name}卷源流</a>)}
         <a class="about-link" href="/about/">关于这件作品</a>
       </p>
     </article>
