@@ -325,6 +325,11 @@ export function createGame(ctx) {
     finishRound(ctx, game);
   }
 
+  // 匿名统计要的一局（stat.js 会把 question 在本地归类，原文不会上报）
+  function statData() {
+    return { domain: S.domain, result: S.sign ? S.sign.no : null, question: S.question, asked: !!S.question, ms: performance.now() - S.t0 };
+  }
+
   // 行为账本的原始数据：公共层用它定命盘的种子
   function ledgerData() {
     const { totalMs } = fin;
@@ -487,7 +492,7 @@ export function createGame(ctx) {
     begin, pickDomain, confirmDing, attachTube, registerToss, enterJiao, playerThrow, accept, reroll, again, toStart,
     signState, signNo, signFull, confessItems, ledgerRows, askOracle,
     // 公共层要用的（接口见 src/juan/index.js）
-    attitude, ledgerData, memory, onEnd, finish, makePoster,
+    attitude, ledgerData, memory, onEnd, finish, makePoster, statData,
     canDoubt: () => RITUAL.includes(ctx.screen), // 在定盘、摇签、掷筊时可以存疑
     busy: () => shake.holding || (ctx.screen === 'qian' && !!tube?.active), // 正在摇签，不算发呆
     canOracle: () => !!S.sign,
