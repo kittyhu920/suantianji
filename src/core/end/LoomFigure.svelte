@@ -3,9 +3,10 @@
   import { onMount } from 'svelte';
   import { weave } from '../loom.js';
 
-  let { ctx, seed, throws, caption, children } = $props();
+  // style：本卷的织法（可选，见 loom.js），不给就是平直的墨线
+  let { ctx, seed, throws, caption, style = {}, children } = $props();
   let canvas;
-  onMount(() => { weave(canvas, { seed, throws, reduced: ctx.reduced }); });
+  onMount(() => { weave(canvas, { seed, throws, reduced: ctx.reduced, style }); });
 </script>
 
 <figure class="loom">

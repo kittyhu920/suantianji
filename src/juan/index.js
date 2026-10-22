@@ -41,8 +41,9 @@ export const juans = [
     href: '/qian/', source: '/qian/yuanliu/',
   },
   {
-    id: 'gua', name: '卦', title: '金钱卦', page: '十七', open: false,
+    id: 'gua', name: '卦', title: '金钱卦', page: '十七', open: true,
     intro: '三枚铜钱掷六回，画出一卦。',
+    href: '/gua/', source: '/gua/yuanliu/',
   },
   {
     id: 'bu', name: '卜', title: '甲骨灼卜', page: '三十三', open: false,
