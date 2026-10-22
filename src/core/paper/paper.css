@@ -1,0 +1,159 @@
+/* 纸面的活动部分：案上字盘、纸背透字、卷首开卷（docs/DESIGN.md §13）
+   共同的约束：静止时零开销；动起来只用 transform 与 opacity；页面隐藏时暂停；减少动效下静止。 */
+
+/* ───────── 案上字盘 ───────── */
+.an-board {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 50% 45%, #2b2620 0%, #1d1a16 70%, #14120f 100%);
+}
+.an-board::after { /* 盘边收暗，字像沉在案上的灯影里 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 100% at 50% 50%, transparent 55%, rgba(8, 7, 5, .55) 100%);
+  pointer-events: none;
+}
+.zp-roll {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  opacity: 0;
+  transition: opacity 1.6s ease-out;
+  will-change: transform;
+}
+.zp-roll-top { pointer-events: none; }
+.zp-roll.is-ready {
+  opacity: 1;
+  animation: zp-roll var(--roll-dur, 90s) linear infinite;
+}
+.zp-tile { display: block; }
+@keyframes zp-roll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, calc(var(--tile-h) * -1), 0); }
+}
+/* 悬停、按住、页面隐藏：整盘暂停 */
+@media (hover: hover) {
+  .an-board:hover .zp-roll { animation-play-state: paused; }
+}
+.an-board.is-held .zp-roll,
+.an-board.is-away .zp-roll { animation-play-state: paused; }
+
+.zp-ink { /* 点字时洇开的墨（ink.js），在字之上、盘边之下 */
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* 拓出来的小朱印：把反字拓回正字，阴文 */
+.zp-stamp {
+  position: absolute;
+  width: var(--sz); height: var(--sz);
+  margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2);
+  display: grid;
+  place-items: center;
+  border-radius: 3px 2px 4px 2px;
+  background: var(--cinnabar);
+  color: var(--on-zhu);
+  font-family: var(--f-text);
+  font-size: calc(var(--sz) * .66);
+  line-height: 1;
+  box-shadow: inset 0 0 0 2px var(--cinnabar), inset 0 0 0 3px rgba(246, 238, 219, .6);
+  filter: url(#seal-rough);
+  transform: rotate(var(--rot, 0deg));
+  pointer-events: none;
+  animation:
+    zp-print .5s cubic-bezier(.2, .9, .3, 1.15) both,
+    zp-fade 1.6s ease-in 5s forwards;
+}
+@keyframes zp-print {
+  0% { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(1.7); }
+  55% { opacity: .95; transform: rotate(var(--rot, 0deg)) scale(.92); }
+  100% { opacity: .92; transform: rotate(var(--rot, 0deg)) scale(1); }
+}
+@keyframes zp-fade { to { opacity: 0; } }
+
+/* 减少动效：字盘静止，点击仍有朱印，只是没有动画 */
+@media (prefers-reduced-motion: reduce) {
+  .zp-roll { transition: none; }
+  .zp-roll.is-ready { animation: none; }
+  .zp-stamp { animation: none; opacity: .92; }
+}
+
+/* ───────── 纸背透字 ─────────
+   画心里的镜像大字，像纸背洇过来的字。极淡（约 5%）、极慢地漂，压在正文之下，不抢视线。 */
+.tou {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tou-ch {
+  position: absolute;
+  font-family: var(--f-text);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--gold);
+  opacity: .05;
+  transform: scaleX(-1);
+  will-change: transform;
+  user-select: none;
+}
+.tou-ch:nth-child(1) { right: 4%; top: 6%; font-size: clamp(220px, 34vh, 380px); animation: tou-a 140s ease-in-out infinite alternate; }
+.tou-ch:nth-child(2) { left: 5%; bottom: -2%; font-size: clamp(180px, 28vh, 320px); animation: tou-b 170s ease-in-out infinite alternate; }
+.tou-ch:nth-child(3) { left: 30%; top: 34%; font-size: clamp(120px, 20vh, 220px); opacity: .04; animation: tou-a 200s ease-in-out infinite alternate-reverse; }
+@keyframes tou-a { from { transform: scaleX(-1) translate3d(0, 0, 0); } to { transform: scaleX(-1) translate3d(-26px, 34px, 0); } }
+@keyframes tou-b { from { transform: scaleX(-1) translate3d(0, 0, 0); } to { transform: scaleX(-1) translate3d(30px, -28px, 0); } }
+:root.is-away .tou-ch { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .tou-ch { animation: none; }
+}
+@media (max-width: 520px) {
+  .tou-ch:nth-child(3) { display: none; }
+}
+
+/* ───────── 卷首开卷 ─────────
+   进入目录页的第一次：纸从中缝向两边展开，两根卷轴一路滚到边上。
+   用 clip-path 揭开画心（只重绘，约 1.1 秒）；减少动效与再次进入时不播。 */
+.zhou { display: none; }
+.kaijuan .zhou {
+  display: block;
+  position: absolute;
+  top: -6px; bottom: -6px;
+  width: 16px;
+  z-index: 8;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, #120f0b 0%, #4a3b2b 28%, #7b6446 46%, #3a2e21 72%, #120f0b 100%);
+  box-shadow: 0 0 14px rgba(0, 0, 0, .45);
+  pointer-events: none;
+  animation: zhou-move 1.15s cubic-bezier(.5, .05, .25, 1) both;
+}
+.kaijuan .zhou-l { animation-name: zhou-l; }
+.kaijuan .zhou-r { animation-name: zhou-r; }
+@keyframes zhou-l { /* 卷轴本身的位移只有这两个小元素，不影响别的布局 */
+  from { left: calc(50% - 16px); opacity: 1; }
+  82% { opacity: 1; }
+  to { left: 0; opacity: 0; }
+}
+@keyframes zhou-r {
+  from { left: 50%; opacity: 1; }
+  82% { opacity: 1; }
+  to { left: calc(100% - 16px); opacity: 0; }
+}
+.kaijuan .huaxin {
+  animation: kaijuan-open 1.15s cubic-bezier(.5, .05, .25, 1) both;
+}
+@keyframes kaijuan-open {
+  from { clip-path: inset(0 50% 0 50%); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kaijuan .zhou { display: none; }
+  .kaijuan .huaxin { animation: none; }
+}

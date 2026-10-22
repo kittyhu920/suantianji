@@ -8,6 +8,7 @@ import End from './End.svelte';
 import JiaoDefs from './JiaoDefs.svelte';
 import zhu from './zhu.json';
 import { createGame } from './game.svelte.js';
+import db from './fortune-db.json';
 
 export default {
   id: 'qian',
@@ -19,6 +20,7 @@ export default {
   screens: { title: Title, ding: Ding, qian: Shake, jiao: Jiao, end: End },
   Defs: JiaoDefs, // 本卷的共享图形（筊杯的红漆）
   zhu, // 注疏
+  zipan: () => db.signs.map((s) => s.poem.join('')).join(''), // 案上字盘的用字：本卷六十一首签诗
   // 公共组件（通灵、分享图）要显示的文案
   copy: {
     oracleTitle: '通灵解签',
