@@ -8,13 +8,13 @@
   z-index: 0;
   overflow: hidden;
   background:
-    radial-gradient(90% 70% at 50% 45%, #2b2620 0%, #1d1a16 70%, #14120f 100%);
+    radial-gradient(90% 70% at 50% 45%, var(--board-hi) 0%, var(--board-mid) 70%, var(--board-lo) 100%);
 }
 .an-board::after { /* 盘边收暗，字像沉在案上的灯影里 */
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(130% 100% at 50% 50%, transparent 55%, rgba(8, 7, 5, .55) 100%);
+  background: radial-gradient(130% 100% at 50% 50%, transparent 55%, var(--board-vignette) 100%);
   pointer-events: none;
 }
 .zp-roll {
@@ -41,6 +41,15 @@
 }
 .an-board.is-held .zp-roll,
 .an-board.is-away .zp-roll { animation-play-state: paused; }
+
+.zp-gl { /* 3D 铅字字盘与绢帛的画布（core/scene/board3d.js） */
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+/* 深色主题且 3D 场景在跑时，画心是半透的墨底：后面的写经绢帛隐约起伏。2D 退回时仍是实底 */
+:root[data-theme="dark"].has-silk .huaxin { background-color: rgba(21, 19, 15, .88); }
 
 .zp-ink { /* 点字时洇开的墨（ink.js），在字之上、盘边之下 */
   position: absolute;
@@ -98,7 +107,7 @@
   font-family: var(--f-text);
   font-weight: 400;
   line-height: 1;
-  color: var(--gold);
+  color: var(--ink);
   opacity: .05;
   transform: scaleX(-1);
   will-change: transform;
