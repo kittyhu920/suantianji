@@ -1,0 +1,165 @@
+/* ───────── 观象 ───────── */
+.screen-end { gap: 20px; }
+.loom { margin: 0; width: 100%; }
+.loom canvas {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: block;
+  box-shadow: 0 0 0 1px var(--gold-faint);
+}
+.loom figcaption { margin-top: 6px; font-size: 12px; color: var(--gold-dim); }
+.cups-pair {
+  margin: 0;
+  font-family: var(--f-brush);
+  font-size: 22px;
+  letter-spacing: .08em;
+}
+.cups-pair small { font-family: var(--f-text); font-size: 12px; color: var(--gold-dim); letter-spacing: 0; display: block; }
+.jieqian {
+  width: 100%;
+  max-width: 21em;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jieqian h3 {
+  margin: 0;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: .1em;
+}
+.jq-state { margin: 0; font-size: 13px; color: var(--gold-soft); }
+.jq-state[data-state="no"] { color: var(--cinnabar-hi); }
+.jq-title {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-family: var(--f-brush);
+  font-size: 24px;
+  letter-spacing: .06em;
+}
+.jq-title .sign-level { margin: 0; font-size: 15px; white-space: nowrap; }
+.jq-row { margin: 0; font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
+.jq-row b {
+  display: block;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--gold);
+}
+.turn {
+  margin: 8px 0 0;
+  font-family: var(--f-brush);
+  font-size: 20px;
+  line-height: 1.6;
+  letter-spacing: .06em;
+  color: var(--gold);
+}
+.ending-head { display: flex; align-items: center; gap: 14px; text-align: left; }
+.ending-name {
+  margin: 0;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1.1;
+  letter-spacing: .12em;
+}
+.ending-sub { margin: 0; font-size: 14px; letter-spacing: .4em; color: var(--gold-soft); }
+.ending-lead { margin: 0; font-size: 16px; }
+.poem-end { font-size: 18px; }
+.confess {
+  width: 100%;
+  max-width: 21em;
+  text-align: left;
+}
+.confess h3 {
+  margin: 0 0 8px;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: .1em;
+}
+.confess ul { margin: 0; padding: 0 0 0 1.1em; display: flex; flex-direction: column; gap: 8px; }
+.confess li { font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
+.confess li::marker { color: var(--cinnabar-hi); }
+.confess li.from-ai { font-family: var(--f-brush); font-size: 17px; color: var(--cinnabar); }
+.loom-legend { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--gold-dim); text-align: left; }
+.loom-legend span { color: var(--cinnabar-hi); }
+.about-link {
+  font-size: 13px;
+  color: var(--gold-soft);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--gold-faint);
+}
+.about-link:hover { color: var(--gold); }
+.critique {
+  margin: 0;
+  max-width: 21em;
+  text-align: left;
+  font-size: 15px;
+  color: var(--paper-ink);
+  opacity: .88;
+  padding-left: 14px;
+  border-left: 2px solid var(--cinnabar);
+}
+.oracle {
+  width: 100%;
+  max-width: 21em;
+  text-align: left;
+  padding: 12px 14px;
+  background: rgba(27,23,18,.04);
+}
+.oracle h3, .ledger h3, .endings h3 {
+  margin: 0 0 8px;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: .1em;
+}
+.oracle p { margin: 0; font-size: 15px; color: var(--gold); white-space: pre-line; }
+.oracle.is-loading p { color: var(--gold-dim); }
+.oracle-ask { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.oracle { margin-bottom: 6px; }
+.btn-zhu-line {
+  color: var(--cinnabar);
+  border: 1px solid rgba(179, 38, 31, .55);
+  background: transparent;
+  letter-spacing: .1em;
+}
+.btn-zhu-line:hover:not(:disabled) { background: rgba(179, 38, 31, .06); border-color: var(--cinnabar); }
+.ink-dots { display: inline-flex; gap: 5px; margin-left: 8px; vertical-align: middle; }
+.ink-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: ink-drop 1.2s ease-in-out infinite; }
+.ink-dots i:nth-child(2) { animation-delay: .2s; }
+.ink-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes ink-drop { 0%, 100% { transform: scale(.4); opacity: .25; } 45% { transform: scale(1); opacity: .9; } }
+.oracle.is-loading p { color: var(--gold-soft); }
+.ink-rule {
+  width: 72%;
+  height: 16px;
+  margin: 10px auto 2px;
+  border: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 16' preserveAspectRatio='none'%3E%3Cfilter id='d' x='-5%25' y='-50%25' width='110%25' height='200%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.02 .9' numOctaves='2' seed='4'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='5'/%3E%3C/filter%3E%3Cpath d='M4 9 C 80 5, 190 11, 296 7 L 296 9 C 190 13, 80 8, 4 11 Z' fill='%231b1712' filter='url(%23d)' opacity='.8'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+.oracle .oracle-ask-note { font-size: 14px; color: var(--gold-soft); }
+
+.ledger, .endings { width: 100%; max-width: 21em; text-align: left; }
+.ledger-intro { margin: 0 0 10px; font-size: 13px; color: var(--gold-dim); }
+.ledger dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px; }
+.ledger dt { color: var(--gold-dim); }
+.ledger dd { margin: 0; color: var(--gold); font-variant-numeric: tabular-nums; }
+.ledger .zhupi { display: block; margin-top: 1px; font-family: var(--f-brush); font-size: 15px; line-height: 1.5; color: var(--cinnabar); }
+.ledger dl { row-gap: 8px; }
+
+.endings ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.endings li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--gold-dim); line-height: 1.5; }
+.endings li .seal { --s: 40px; font-size: 18px; flex: none; cursor: default; }
+.endings li.is-locked .seal { background: transparent; color: var(--gold-faint); box-shadow: inset 0 0 0 1px var(--gold-faint); }
+.endings li.is-locked .seal::after { display: none; }
+.endings li b { display: block; font-weight: 600; color: var(--gold); }
+.endings li.is-current b { color: var(--cinnabar-hi); }
+

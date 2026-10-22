@@ -1,0 +1,154 @@
+/* 卷首目录：古籍目录页的样子。竖排，自右向左，每一卷一列：卷名、全称、点线、页码，旁边是一句简介。
+   朱色只给印章：开了卷的那一卷盖一枚"入"字小印；未开卷的墨色更淡，不可进入。 */
+
+.screen-toc {
+  justify-content: center;
+  gap: 22px;
+  padding-top: 36px;
+}
+.toc {
+  display: flex;
+  flex-direction: row-reverse; /* 第一个在最右 */
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(18px, 3vw, 44px);
+  max-width: 100%;
+}
+
+.toc-head {
+  writing-mode: vertical-rl;
+  display: flex;
+  flex-direction: column; /* 竖排里，column 是块方向：自右向左 */
+  align-items: flex-start;
+  gap: 14px;
+  height: var(--toc-h);
+  padding-left: clamp(8px, 2vw, 28px);
+  border-left: 1px solid var(--gold-faint);
+}
+.toc { --toc-h: min(500px, calc(100dvh - var(--mei-h) - 170px)); }
+.toc-title {
+  margin: 0;
+  font-family: var(--f-title);
+  font-weight: 400;
+  font-size: clamp(54px, 6vw, 80px);
+  line-height: 1.15;
+  letter-spacing: .12em;
+  color: var(--gold);
+}
+.toc-sub {
+  margin: 0;
+  padding-top: .6em;
+  font-family: var(--f-brush);
+  font-size: 18px;
+  letter-spacing: .3em;
+  color: var(--gold-soft);
+}
+.toc-mulu {
+  margin: 0;
+  padding-top: 1.4em;
+  font-size: 14px;
+  letter-spacing: .6em;
+  color: var(--gold-dim);
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: clamp(14px, 2.4vw, 36px);
+}
+.toc-item {
+  writing-mode: vertical-rl;
+  height: var(--toc-h);
+  display: flex;
+  flex-direction: column; /* 竖排里，column 是块方向：自右向左；先卷名，后简介 */
+  align-items: flex-start;
+  gap: 10px;
+}
+.toc-entry {
+  display: flex;
+  flex-direction: row; /* 行内方向：自上而下 */
+  align-items: center;
+  height: 100%;
+  gap: 8px;
+  padding: 2px 6px;
+  color: var(--gold);
+  text-decoration: none;
+  text-shadow: 0 0 .6px rgba(27, 23, 18, .28);
+}
+.toc-name {
+  font-family: var(--f-brush);
+  font-size: 52px;
+  line-height: 1.1;
+}
+.toc-full {
+  font-size: 14px;
+  letter-spacing: .24em;
+  color: var(--gold-soft);
+}
+.toc-leader { /* 点线：卷名到页码之间 */
+  flex: 1;
+  min-height: 24px;
+  width: 0;
+  border-left: 2px dotted var(--gold-dim);
+}
+.toc-page {
+  font-size: 15px;
+  letter-spacing: .1em;
+  color: var(--gold);
+}
+.toc-seal { --s: 34px; font-size: 15px; margin-top: 6px; cursor: pointer; writing-mode: horizontal-tb; }
+.toc-tag {
+  margin-top: 6px;
+  padding: 6px 1px;
+  font-size: 12px;
+  letter-spacing: .2em;
+  color: var(--gold-dim);
+  border: 1px solid var(--gold-faint);
+}
+.toc-intro {
+  margin: 0;
+  padding-top: 8px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  letter-spacing: .12em;
+  color: var(--gold-soft);
+  max-height: 100%;
+}
+
+a.toc-entry:hover .toc-name, a.toc-entry:focus-visible .toc-name { text-shadow: 0 0 10px rgba(27, 23, 18, .3); }
+a.toc-entry:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+a.toc-entry:hover .toc-leader { border-left-color: var(--gold); }
+
+/* 未开卷：墨色更淡，不可点 */
+.is-closed .toc-entry { cursor: default; }
+.is-closed .toc-name, .is-closed .toc-full, .is-closed .toc-page, .is-closed .toc-intro { color: rgba(27, 23, 18, .34); }
+.is-closed .toc-leader { border-left-color: rgba(27, 23, 18, .2); }
+
+.toc-foot { margin: 0; display: flex; gap: 22px; justify-content: center; }
+
+@media (max-width: 959px) {
+  .toc { flex-direction: column; align-items: center; gap: 22px; --toc-h: 262px; }
+  .toc-head { height: auto; writing-mode: horizontal-tb; flex-direction: column; align-items: center; gap: 4px; padding: 0 0 16px; border-left: 0; border-bottom: 1px solid var(--gold-faint); width: 100%; }
+  .toc-title { font-size: 56px; }
+  .toc-sub { padding: 0; }
+  .toc-mulu { display: none; }
+  .toc-list { display: grid; grid-template-columns: repeat(3, auto); direction: rtl; row-gap: 22px; column-gap: 14px; justify-content: center; max-width: 100%; }
+  .toc-item { direction: ltr; }
+  .toc-item { gap: 4px; }
+  .toc-name { font-size: 40px; }
+  .toc-full { font-size: 12px; letter-spacing: .12em; }
+  .toc-intro { font-size: 12px; letter-spacing: .06em; }
+  .toc-page { font-size: 13px; }
+  .toc-seal { --s: 28px; font-size: 13px; }
+}
+@media (max-width: 520px) {
+  .screen-toc { padding-left: 14px; padding-right: 14px; }
+  .toc-list { column-gap: 8px; }
+  .toc-entry { padding: 2px 3px; }
+}
+@media (max-height: 700px) and (min-width: 960px) {
+  .toc-name { font-size: 44px; }
+}

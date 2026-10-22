@@ -1,0 +1,19 @@
+---
+// Markdown 讲解页的版式（例如各卷的“源流”）：frontmatter 里写 title、lead、back。
+import Paper from './Paper.astro';
+const { frontmatter } = Astro.props;
+const back = frontmatter.back ?? '/';
+---
+<Paper title={`${frontmatter.title} · 演算天机`} description={frontmatter.lead}>
+  <a class="corner-btn corner-home" href={back} aria-label="返回">返回</a>
+  <div class="stage">
+    <article class="screen screen-about screen-doc is-active" aria-labelledby="doc-h">
+      <h1 id="doc-h" class="h-brush">{frontmatter.title}</h1>
+      <p class="about-lead">{frontmatter.lead}</p>
+      <div class="doc">
+        <slot />
+      </div>
+      <a class="btn btn-primary about-back" href={back}>返回</a>
+    </article>
+  </div>
+</Paper>
