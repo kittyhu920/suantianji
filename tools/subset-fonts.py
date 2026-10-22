@@ -1,4 +1,5 @@
-"""按站内实际用字，把两款字体裁成子集，输出到 public/fonts/。
+"""按站内实际用字（扫描 src/ 下的 .astro / .svelte / .js / .css / .md / .json），把几款字体裁成子集，
+输出到 public/fonts/（Astro 原样发布），并生成 src/core/styles/fonts.css。
 
 改了任何中文文案之后都要重跑一次：python tools/subset-fonts.py
 
@@ -25,9 +26,12 @@ from fontTools.ttLib import TTFont
 from compose_glyph import compose  # 给书法字体补造"筊"等缺字
 
 ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / 'src'
 PUBLIC = ROOT / 'public'
 CACHE = ROOT / '.cache' / 'fonts'
 OUT = PUBLIC / 'fonts'
+FONTS_CSS = SRC / 'core' / 'styles' / 'fonts.css'
+DB = SRC / 'juan' / 'qian' / 'fortune-db.json'
 
 SOURCES = {
     'MaShanZheng-Regular.ttf': 'https://github.com/google/fonts/raw/main/ofl/mashanzheng/MaShanZheng-Regular.ttf',
@@ -35,6 +39,9 @@ SOURCES = {
     'NotoSerifSC-Regular.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf',
     'NotoSerifSC-SemiBold.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-SemiBold.otf',
 }
+
+CODE = {'.astro', '.svelte', '.js', '.css'}  # 界面里的字
+TEXT = {'.md', '.json'}  # 讲解、注疏与签簿：正文与小标题
 
 
 def fetch(name):
@@ -46,27 +53,34 @@ def fetch(name):
     return path
 
 
-def site_chars():
+def scan(suffixes, skip=()):
     chars = set()
-    for p in PUBLIC.rglob('*'):
-        if p.suffix in {'.html', '.js', '.json', '.css'} and OUT not in p.parents:
+    for p in SRC.rglob('*'):
+        if p.suffix in suffixes and p.name not in skip and p != FONTS_CSS:
             chars.update(p.read_text(encoding='utf-8'))
     return {c for c in chars if not c.isspace()}
+
+
+def site_chars():
+    """src/ 下全部文件里的字（含签簿、注疏、讲解页）。"""
+    return scan(CODE | TEXT)
 
 
 def ui_chars():
-    """页面与脚本里的字（不含签簿数据）。"""
-    chars = set()
-    for p in PUBLIC.rglob('*'):
-        if p.suffix in {'.html', '.js', '.css'} and OUT not in p.parents:
-            chars.update(p.read_text(encoding='utf-8'))
-    return {c for c in chars if not c.isspace()}
+    """界面里的字（.astro / .svelte / .js / .css），再加注疏与讲解页的小标题字（宋体 600 用）。"""
+    return scan(CODE)
+
+
+def heading_chars():
+    """注疏的术语名、讲解页的标题：用宋体 600。"""
+    chars = scan({'.md', '.json'}, skip={'fortune-db.json'})
+    return chars
 
 
 def brush_chars():
-    """行楷用字：页面与脚本，加签簿里会以行楷显示的字段。"""
+    """行楷用字：界面里的字，加签簿里会以行楷显示的字段。"""
     import json
-    db = json.loads((PUBLIC / 'data' / 'fortune-db.json').read_text(encoding='utf-8'))
+    db = json.loads(DB.read_text(encoding='utf-8'))
     chars = ui_chars()
     for s in db['signs']:
         chars.update(s['name'] + s['level'])
@@ -123,7 +137,7 @@ FACE = '''@font-face {{
   font-family: "{family}";
   font-weight: {weight};
   font-display: swap;
-  src: url("../fonts/{file}") format("woff2");{range}
+  src: url("/fonts/{file}") format("woff2");{range}
 }}
 '''
 
@@ -137,7 +151,7 @@ def main():
     write(brush, brush_chars() | BASICS, 'ma-shan-zheng.woff2')
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), used, 'noto-serif-sc-400.woff2')
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), extra, 'noto-serif-sc-400-extra.woff2')
-    write(TTFont(fetch('NotoSerifSC-SemiBold.otf')), ui_chars() | BASICS, 'noto-serif-sc-600.woff2')
+    write(TTFont(fetch('NotoSerifSC-SemiBold.otf')), ui_chars() | heading_chars() | BASICS, 'noto-serif-sc-600.woff2')
     title = TTFont(fetch('ZhiMangXing-Regular.ttf'))
     compose(title)
     write(title, ui_chars() | BASICS, 'zhi-mang-xing.woff2')
@@ -149,7 +163,7 @@ def main():
                        range=f'\n  unicode-range: {unicode_range(extra)};')
     css += FACE.format(family='Noto Serif SC', weight=600, file='noto-serif-sc-600.woff2', range='')
     css += FACE.format(family='Zhi Mang Xing', weight=400, file='zhi-mang-xing.woff2', range='')
-    (PUBLIC / 'css' / 'fonts.css').write_text(css, encoding='utf-8', newline='')
+    FONTS_CSS.write_text(css, encoding='utf-8', newline='')
     print(f'fonts.css: {len(css) / 1024:.0f} KB')
 
 

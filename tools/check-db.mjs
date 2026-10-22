@@ -1,9 +1,9 @@
-// 校验签簿 public/data/fortune-db.json：签诗七言四句、六十甲子顺序、五行与吉凶配平、字段齐全。
+// 校验签簿 src/juan/qian/fortune-db.json：签诗七言四句、六十甲子顺序、五行与吉凶配平、字段齐全。
 // 用法：node tools/check-db.mjs（零依赖；CI 也跑它）
 
 import { readFile } from 'node:fs/promises';
 
-const db = JSON.parse(await readFile(new URL('../public/data/fortune-db.json', import.meta.url), 'utf8'));
+const db = JSON.parse(await readFile(new URL('../src/juan/qian/fortune-db.json', import.meta.url), 'utf8'));
 const errors = [];
 const fail = (msg) => errors.push(msg);
 const chars = (s) => [...s];
