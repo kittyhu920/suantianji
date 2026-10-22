@@ -265,6 +265,12 @@ export function createGame(ctx) {
     return cast.lines.map((l, i) => `${CN_YAO[i][0]} ${faceText(l.faces[0])}${faceText(l.faces[1])}${faceText(l.faces[2])}→${YAO[l.v].name} ${l.v}`).join(' / ');
   }
 
+  // 匿名统计要的一局（stat.js 会把 question 在本地归类，原文不会上报）
+  function statData() {
+    const c = lastCast();
+    return { domain: S.domain, result: c ? c.hex.no : null, question: S.question, asked: !!S.question, ms: performance.now() - S.t0 };
+  }
+
   // 行为账本的原始数据：公共层用它定命盘的种子
   function ledgerData() {
     const { totalMs } = fin;
@@ -392,7 +398,7 @@ export function createGame(ctx) {
     begin, pickDomain, confirmDing, attachShell, registerCast, toJie, accept, recast, again, toStart, settle,
     confessItems, ledgerRows, lastCast, bitOf,
     // 公共层要用的（接口见 src/juan/index.js）
-    attitude, ledgerData, memory, onEnd, finish, makePoster,
+    attitude, ledgerData, memory, onEnd, finish, makePoster, statData,
     canDoubt: () => RITUAL.includes(ctx.screen), // 在问事、起卦、解卦时可以存疑
     busy: () => shake.holding || (ctx.screen === 'cast' && !!shell?.active) || S.rolling,
     canOracle: () => false, // 本卷不接通灵

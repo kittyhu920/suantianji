@@ -156,7 +156,7 @@
 .ledger .zhupi { display: block; margin-top: 1px; font-family: var(--f-brush); font-size: 15px; line-height: 1.5; color: rgba(var(--ink-rgb), .72); }
 /* 旁注的圈点：数字点朱，句尾一个朱“〇”（与眉批同一套，见 core/marks.js） */
 .ink-note .is-num { color: var(--cinnabar-hi); }
-.ink-note::after { content: " 〇"; font-family: var(--f-text); font-size: .8em; color: var(--cinnabar-hi); }
+.ink-note::after { content: "\2060〇"; margin-left: .2em; font-family: var(--f-text); font-size: .8em; color: var(--cinnabar-hi); }
 .ledger dl { row-gap: 8px; }
 
 .endings ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

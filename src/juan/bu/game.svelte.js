@@ -418,6 +418,12 @@ export function createGame(ctx) {
     finishRound(ctx, game);
   }
 
+  // 匿名统计要的一局（stat.js 会把 question 在本地归类，原文不会上报）。没写命辞时本卷自拟的那条不算
+  function statData() {
+    const z = decisive();
+    return { domain: S.domain, result: z ? z.omen : null, question: S.questionIsDefault ? '' : S.question, asked: !S.questionIsDefault, ms: performance.now() - S.t0 };
+  }
+
   function ledgerData() {
     const r = ctx.round;
     return {
@@ -574,7 +580,7 @@ export function createGame(ctx) {
     pending: () => pendingYan,
     lastVisit: () => lastVisit,
     // 公共层要用的（接口见 src/juan/index.js）
-    attitude, ledgerData, memory, onEnd, makePoster,
+    attitude, ledgerData, memory, onEnd, makePoster, statData,
     askOracle: () => {}, // 卜卷不接通灵
     canOracle: () => false,
     canDoubt: () => RITUAL.includes(ctx.screen),
