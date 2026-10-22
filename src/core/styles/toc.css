@@ -23,7 +23,7 @@
   gap: 14px;
   height: var(--toc-h);
   padding-left: clamp(8px, 2vw, 28px);
-  border-left: 1px solid var(--gold-faint);
+  border-left: 1px solid var(--ink-faint);
 }
 .toc { --toc-h: min(500px, calc(100dvh - var(--mei-h) - 170px)); }
 .toc-title {
@@ -33,7 +33,7 @@
   font-size: clamp(54px, 6vw, 80px);
   line-height: 1.15;
   letter-spacing: .12em;
-  color: var(--gold);
+  color: var(--ink);
 }
 .toc-sub {
   margin: 0;
@@ -41,14 +41,14 @@
   font-family: var(--f-brush);
   font-size: 18px;
   letter-spacing: .3em;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
 }
 .toc-mulu {
   margin: 0;
   padding-top: 1.4em;
   font-size: 14px;
   letter-spacing: .6em;
-  color: var(--gold-dim);
+  color: var(--ink-dim);
 }
 
 .toc-list {
@@ -74,9 +74,9 @@
   height: 100%;
   gap: 8px;
   padding: 2px 6px;
-  color: var(--gold);
+  color: var(--ink);
   text-decoration: none;
-  text-shadow: 0 0 .6px rgba(27, 23, 18, .28);
+  text-shadow: 0 0 .6px rgba(var(--ink-rgb), .28);
 }
 .toc-name {
   font-family: var(--f-brush);
@@ -86,18 +86,18 @@
 .toc-full {
   font-size: 14px;
   letter-spacing: .24em;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
 }
 .toc-leader { /* 点线：卷名到页码之间 */
   flex: 1;
   min-height: 24px;
   width: 0;
-  border-left: 2px dotted var(--gold-dim);
+  border-left: 2px dotted var(--ink-dim);
 }
 .toc-page {
   font-size: 15px;
   letter-spacing: .1em;
-  color: var(--gold);
+  color: var(--ink);
 }
 .toc-seal { --s: 34px; font-size: 15px; margin-top: 6px; cursor: pointer; writing-mode: horizontal-tb; }
 .toc-tag {
@@ -105,8 +105,8 @@
   padding: 6px 1px;
   font-size: 12px;
   letter-spacing: .2em;
-  color: var(--gold-dim);
-  border: 1px solid var(--gold-faint);
+  color: var(--ink-dim);
+  border: 1px solid var(--ink-faint);
 }
 .toc-intro {
   margin: 0;
@@ -114,24 +114,24 @@
   font-size: 13.5px;
   line-height: 1.8;
   letter-spacing: .12em;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
   max-height: 100%;
 }
 
-a.toc-entry:hover .toc-name, a.toc-entry:focus-visible .toc-name { text-shadow: 0 0 10px rgba(27, 23, 18, .3); }
-a.toc-entry:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
-a.toc-entry:hover .toc-leader { border-left-color: var(--gold); }
+a.toc-entry:hover .toc-name, a.toc-entry:focus-visible .toc-name { text-shadow: 0 0 10px rgba(var(--ink-rgb), .3); }
+a.toc-entry:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+a.toc-entry:hover .toc-leader { border-left-color: var(--ink); }
 
 /* 未开卷：墨色更淡，不可点 */
 .is-closed .toc-entry { cursor: default; }
-.is-closed .toc-name, .is-closed .toc-full, .is-closed .toc-page, .is-closed .toc-intro { color: rgba(27, 23, 18, .34); }
-.is-closed .toc-leader { border-left-color: rgba(27, 23, 18, .2); }
+.is-closed .toc-name, .is-closed .toc-full, .is-closed .toc-page, .is-closed .toc-intro { color: rgba(var(--ink-rgb), .34); }
+.is-closed .toc-leader { border-left-color: rgba(var(--ink-rgb), .2); }
 
 .toc-foot { margin: 0; display: flex; gap: 22px; justify-content: center; }
 
 @media (max-width: 959px) {
   .toc { flex-direction: column; align-items: center; gap: 22px; --toc-h: 262px; }
-  .toc-head { height: auto; writing-mode: horizontal-tb; flex-direction: column; align-items: center; gap: 4px; padding: 0 0 16px; border-left: 0; border-bottom: 1px solid var(--gold-faint); width: 100%; }
+  .toc-head { height: auto; writing-mode: horizontal-tb; flex-direction: column; align-items: center; gap: 4px; padding: 0 0 16px; border-left: 0; border-bottom: 1px solid var(--ink-faint); width: 100%; }
   .toc-title { font-size: 56px; }
   .toc-sub { padding: 0; }
   .toc-mulu { display: none; }

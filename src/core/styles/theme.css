@@ -1,0 +1,152 @@
+/* 双主题（docs/DESIGN.md §17）
+   浅色"宣纸"是默认；深色"乌金拓"由 <html data-theme="dark"> 启用，只重定义变量。
+   所有颜色都走这里的变量。--ink-rgb / --paper-rgb 是三个通道，用来写 rgba(var(--ink-rgb), .3)。
+   泥金（--leaf）只在深色主题里出现，浅色下它就是墨。朱的规则两套主题相同：只给印、朱批圈点、阴杯、判词与关键按钮。 */
+
+:root {
+  color-scheme: light;
+
+  /* 纸与墨 */
+  --table: #cfc2a4;            /* 纸外的案几 */
+  --table-hi: #ddd1b6;
+  --table-lo: #b8aa8a;
+  --paper: #efe6d0;            /* 宣纸 */
+  --paper-rgb: 239, 230, 208;
+  --paper-deep: #e4d8bd;
+  --ink: #1b1712;              /* 墨 */
+  --ink-rgb: 27, 23, 18;
+  --ink-soft: rgba(var(--ink-rgb), .8);
+  --ink-dim: rgba(var(--ink-rgb), .68);
+  --ink-faint: rgba(var(--ink-rgb), .16);
+  --ink-ghost: rgba(var(--ink-rgb), .34);   /* 未开卷等"更淡"的状态 */
+  --paper-ink: var(--ink);     /* 正文 */
+
+  /* 朱 */
+  --cinnabar: #b3261f;         /* 印面、按钮底 */
+  --cinnabar-hi: #b3261f;      /* 朱字、朱圈、朱线（深色下提亮） */
+  --cinnabar-press: #9c1f19;
+  --zhu-rgb: 179, 38, 31;
+  --zhu-rule: rgba(179, 38, 31, .22);
+  --on-zhu: #f6eedb;           /* 朱印上的字 */
+  --seal-body: #7d1b16;        /* 印身（印面下缘那一道厚度） */
+  --seal-cast: rgba(60, 25, 15, .3);
+
+  /* 泥金：浅色主题不用，退回墨 */
+  --leaf: var(--ink);
+  --leaf-rgb: var(--ink-rgb);
+  --leaf-soft: var(--ink-soft);
+  --leaf-faint: var(--ink-faint);
+
+  --jade: #5c7f67;
+  --jade-deep: #46634f;
+  --silk: #d8c79f;
+
+  /* 案上字盘（浅色：旧木盒里的铅字；深色：墨底冷光） */
+  --board-hi: #2b2620;
+  --board-mid: #1d1a16;
+  --board-lo: #14120f;
+  --board-vignette: rgba(8, 7, 5, .55);
+
+  /* 画心上盖的纤维层与版框 */
+  --fiber-op: .5;
+  --frame: var(--ink);
+  --paper-shadow: rgba(0, 0, 0, .55);
+
+  /* 角按钮：小木牌 */
+  --wood-hi: #d8c497;
+  --wood-lo: #bda472;
+  --wood-grain: rgba(92, 64, 30, .16);
+  --wood-edge: rgba(70, 48, 22, .55);
+  --wood-light: rgba(255, 244, 214, .55);
+  --wood-ink: #2a2118;
+
+  /* 签卡、浮注、分享框的纸面 */
+  --card-edge: rgba(70, 48, 22, .28);
+  --card-shadow: rgba(40, 30, 18, .3);
+  --card-hi: rgba(255, 250, 236, .5);
+  --title-on-ink: #fffdf6;     /* 入卷标题反白压在墨痕上 */
+  --title-ink-filter: none;
+
+  /* 器物上的墨色（签筒、龟壳等 SVG 用） */
+  --obj-ink: #1b1712;
+  --obj-ink2: #2a241c;
+  --obj-ink3: #3a342b;
+  --obj-mid: #6b6254;
+  --obj-mid2: #8a8070;
+  --obj-body: #efe6d0;
+  --obj-hi: #efe6d0;
+  --obj-pool: #1b1712;
+
+  /* 旧名保留为别名：以防遗漏 */
+  --xuan: var(--table);
+  --gan: var(--paper);
+  --gan-deep: var(--paper-deep);
+  --gold: var(--ink);
+  --gold-soft: var(--ink-soft);
+  --gold-dim: var(--ink-dim);
+  --gold-faint: var(--ink-faint);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --table: #0b0a08;
+  --table-hi: #14120f;
+  --table-lo: #050504;
+  --paper: #15130f;
+  --paper-rgb: 21, 19, 15;
+  --paper-deep: #1e1b16;
+  --ink: #ece4d0;              /* 纸白 */
+  --ink-rgb: 236, 228, 208;
+  --ink-soft: rgba(236, 228, 208, .82);
+  --ink-dim: rgba(236, 228, 208, .64);
+  --ink-faint: rgba(236, 228, 208, .2);
+  --ink-ghost: rgba(236, 228, 208, .42);
+
+  --cinnabar: #b3261f;
+  --cinnabar-hi: #ef6b5d;
+  --cinnabar-press: #c92f26;
+  --seal-body: #680f0b;
+  --seal-cast: rgba(0, 0, 0, .6);
+  --zhu-rule: rgba(179, 38, 31, .3);
+
+  --leaf: #d0aa5e;             /* 泥金 */
+  --leaf-rgb: 208, 170, 94;
+  --leaf-soft: rgba(208, 170, 94, .78);
+  --leaf-faint: rgba(208, 170, 94, .3);
+
+  --jade: #86b093;
+  --jade-deep: #6f9a7d;
+  --silk: #2a251c;
+
+  --board-hi: #1a1b1d;
+  --board-mid: #0f1012;
+  --board-lo: #070708;
+  --board-vignette: rgba(0, 0, 0, .6);
+
+  --fiber-op: .55;
+  --frame: var(--leaf);
+  --paper-shadow: rgba(0, 0, 0, .8);
+
+  --wood-hi: #3a2f22;
+  --wood-lo: #241d15;
+  --wood-grain: rgba(0, 0, 0, .28);
+  --wood-edge: rgba(0, 0, 0, .7);
+  --wood-light: rgba(230, 196, 120, .22);
+  --wood-ink: #e0c27a;
+
+  --card-edge: rgba(208, 170, 94, .34);
+  --card-shadow: rgba(0, 0, 0, .6);
+  --card-hi: rgba(236, 228, 208, .08);
+  --title-on-ink: #15130f;
+  --title-ink-filter: invert(1) sepia(.75) saturate(2.4) brightness(.92);
+
+  --obj-ink: #ddd3ba;
+  --obj-ink2: #b9ae92;
+  --obj-ink3: #a39878;
+  --obj-mid: #6f6755;
+  --obj-mid2: #4d4739;
+  --obj-body: #1e1b16;
+  --obj-hi: #f4ecd6;
+  --obj-pool: #000;
+}

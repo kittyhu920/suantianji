@@ -9,11 +9,18 @@
 //   color(kind, x, W)            丝在 x 处的颜色 [r,g,b]；返回 null 用墨色
 
 import { mulberry32 } from './rng.js';
+import { isDark } from './theme.js';
 
-const GOLD = [27, 23, 18]; // 墨（沿用旧名）
-const CINNABAR = [179, 38, 31];
-export const LOOM = { ink: GOLD, zhu: CINNABAR }; // 供各卷的织法取色
-const INK = [120, 108, 90]; // 游离的淡墨丝
+// 两套配色：浅色是宣纸上的墨丝（正片叠底），深色是墨底上的淡金丝（滤色叠加）
+const PALETTE = {
+  light: { ink: [27, 23, 18], zhu: [179, 38, 31], stray: [120, 108, 90], paper: '#efe6d0', warp: 'rgba(179,38,31,0.05)', blend: 'multiply' },
+  dark: { ink: [226, 208, 160], zhu: [226, 84, 66], stray: [150, 140, 118], paper: '#15130f', warp: 'rgba(226,208,160,0.045)', blend: 'screen' },
+};
+let pal = PALETTE.light;
+export const LOOM = { // 供各卷的织法取色（织的过程中读，随这一幅的主题）
+  get ink() { return pal.ink; },
+  get zhu() { return pal.zhu; },
+};
 
 export const smoothstep = (e0, e1, x) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -22,7 +29,10 @@ export const smoothstep = (e0, e1, x) => {
 export const lerp = (a, b, t) => a + (b - a) * t;
 
 // width：直接指定像素宽度（分享图离屏重织时用），缺省按页面上的显示宽度
-export function weave(canvas, { seed, throws, reduced = false, width, style = {} }) {
+// dark：深色画面；缺省时按当前主题，但指定了 width（分享图的离屏重织）一律用浅色，因为分享图是要带走的一张纸
+export function weave(canvas, { seed, throws, reduced = false, width, style = {}, dark = width ? false : isDark() }) {
+  pal = dark ? PALETTE.dark : PALETTE.light;
+  const P = pal;
   // 指定宽度时，按页面上约 380px 宽的命盘等比放大丝线粗细
   const dpr = width ? width / 380 : Math.min(window.devicePixelRatio || 1, 2);
   const W = Math.round(width ?? canvas.clientWidth * dpr);
@@ -33,9 +43,9 @@ export function weave(canvas, { seed, throws, reduced = false, width, style = {}
   const rand = mulberry32(seed);
 
   // 宣纸底 + 经线
-  g.fillStyle = '#efe6d0'; // 宣纸
+  g.fillStyle = P.paper; // 宣纸（深色：墨底）
   g.fillRect(0, 0, W, H);
-  g.strokeStyle = 'rgba(179,38,31,0.05)'; // 经线用极淡的朱丝
+  g.strokeStyle = P.warp; // 经线用极淡的丝
   g.lineWidth = 1;
   const warp = 5 * dpr;
   for (let x = warp / 2; x < W; x += warp) {
@@ -68,7 +78,7 @@ export function weave(canvas, { seed, throws, reduced = false, width, style = {}
   for (let b = 0; b < throws.length; b++) {
     const { kind, kept } = throws[b];
     const k = kept ? 1 : 0.4;
-    soft(W * 0.5, center(b), W * 0.62, thick * 0.95, GOLD, 0.06 * k);
+    soft(W * 0.5, center(b), W * 0.62, thick * 0.95, P.ink, (dark ? 0.045 : 0.06) * k);
     for (const h of style.halos?.(kind) ?? []) soft(W * h.cx, center(b), W * h.rx, thick * h.ry, h.color, h.a * k);
   }
 
@@ -102,11 +112,11 @@ export function weave(canvas, { seed, throws, reduced = false, width, style = {}
   };
 
   const colorAt = (th, x) => {
-    if (th.stray) return INK;
-    return style.color?.(th.kind, x, W) ?? GOLD;
+    if (th.stray) return P.stray;
+    return style.color?.(th.kind, x, W) ?? P.ink;
   };
 
-  g.globalCompositeOperation = 'multiply'; // 墨线越密越浓
+  g.globalCompositeOperation = P.blend; // 墨线越密越浓（深色下是金线越密越亮）
   g.lineCap = 'butt'; // 平头：相邻线段的圆头叠在一起，透明度会叠出一串串小珠
   const step = W / 420;
 

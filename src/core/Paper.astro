@@ -5,6 +5,7 @@
 //   tou      纸背透字：画心里极淡的镜像大字（字符串，取前三个字）。目录页用；图谱页以后接。不传就没有
 //   kaijuan  卷首开卷：本次会话第一次进入时，纸像卷轴一样展开。目录页用
 import './styles/fonts.css';
+import './styles/theme.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/pages.css';
@@ -26,6 +27,17 @@ const touChars = tou ? Array.from(tou).slice(0, 3) : [];
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1A1C1E">
+<script is:inline>
+  // 主题：手动选过的优先，否则跟随系统；在首帧之前设好，免得闪一下
+  try {
+    var t = localStorage.getItem('stj-theme');
+    if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    if (t === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0b0a08');
+  } catch (e) {
+    try { if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark'; } catch (e2) {}
+  }
+</script>
 <title>{title}</title>
 <meta name="description" content={description}>
 {kaijuan && (
@@ -56,6 +68,7 @@ const touChars = tou ? Array.from(tou).slice(0, 3) : [];
     <div class="an-board" id="an-board" aria-hidden="true"></div>
     <div class="paper">
       <section class="huaxin" id="huaxin" class:list={{ 'has-zhu': zhu }}>
+        <button class="seal corner-theme" id="btn-theme" type="button" aria-label="切换到深色主题：乌金拓">昼</button>
         {touChars.length > 0 && (
           <div class="tou" aria-hidden="true">
             {touChars.map((c) => <span class="tou-ch">{c}</span>)}
@@ -69,6 +82,8 @@ const touChars = tou ? Array.from(tou).slice(0, 3) : [];
 
   <script>
     import { mountBoard } from './paper/board.js';
+    import { mountToggle } from './theme.js';
+    mountToggle(document.getElementById('btn-theme'));
     mountBoard(document.getElementById('an-board'));
   </script>
 </body>

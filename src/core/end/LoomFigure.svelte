@@ -2,11 +2,16 @@
   // 命盘：由这一局的行为数据织成的锦（loom.js）。图例由各卷自己写，放在 children 里。
   import { onMount } from 'svelte';
   import { weave } from '../loom.js';
+  import { onTheme } from '../theme.js';
 
   // style：本卷的织法（可选，见 loom.js），不给就是平直的墨线
   let { ctx, seed, throws, caption, style = {}, children } = $props();
   let canvas;
-  onMount(() => { weave(canvas, { seed, throws, reduced: ctx.reduced, style }); });
+  onMount(() => {
+    weave(canvas, { seed, throws, reduced: ctx.reduced, style });
+    // 换主题时，命盘按新的配色重织一遍（直接织成，不再重播）
+    return onTheme(() => { weave(canvas, { seed, throws, reduced: true, style }); });
+  });
 </script>
 
 <figure class="loom">

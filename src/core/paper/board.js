@@ -1,12 +1,19 @@
-// 案上字盘（docs/DESIGN.md §13）：画心之外的"案"上铺一盘反刻的阳文活字。
+// 案上字盘（docs/DESIGN.md §13、§18）：画心之外的"案"上铺一盘反刻的阳文活字。
 //
-// 做法：把一盘字预先排好、画在离屏画布上，只光栅化这一次；之后只用 CSS 的 transform 把它纵向循环滚动，
+// 两种实现，功能等价：
+//   3D（src/core/scene/board3d.js，three.js，按需动态 import）：桌面宽度、有鼠标、不减少动效、WebGL 可用时；
+//   2D（本文件的 mount2D）：其余一律退回——手机宽度（< 960px）、pointer: coarse、prefers-reduced-motion、WebGL 不可用。
+// mountBoard 按条件选一种，条件变了（窗口跨过 960px、系统设置变了）会换过去。
+//
+// 2D 的做法：把一盘字预先排好、画在离屏画布上，只光栅化这一次；之后只用 CSS 的 transform 把它纵向循环滚动，
 // 静止与滚动时都不逐帧重绘，也不跑 rAF。悬停整盘暂停；点一个字，那里"拓"出一枚小朱印，并洇开一团墨。
 //
 // 字从哪来：卷模块的可选字段 zipan（字符串，或返回字符串的函数，见 src/juan/index.js）；
 // 没有的卷（以及卷首目录页、关于页）用《说文》部首。
 
 import { createInk } from '../ink.js';
+import { isDark, onTheme } from '../theme.js';
+import { want3D, reducedQuery, coarseQuery } from '../scene/gate.js';
 import { SHUOWEN_BUSHOU_SHOWN } from './shuowen-bushou.js';
 
 const juanModules = import.meta.glob('../../juan/*/index.js');
@@ -16,7 +23,16 @@ const SPEED = 9; // 滚动速度，CSS 像素每秒
 const MAX_STAMPS = 8;
 const DARK = [6, 5, 4];
 const WATER = [214, 196, 150];
-const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
+const DARK_WASH = [214, 196, 150]; // 深色主题下"墨晕"是一团淡金
+// 铅字两套配色：浅色是旧木盒里的铅字（灰褐、暖光）；深色是墨底冷光，偶见泥金
+const TILE_LIGHT = {
+  a: '#312c25', b: '#25211b', hi: 'rgba(255, 238, 200, .09)', lo: 'rgba(0, 0, 0, .42)',
+  shade: 'rgba(0, 0, 0, .6)', rim: 'rgba(255, 238, 200, .11)', face: 'rgba(206, 190, 150, .2)', gold: 'rgba(206, 190, 150, .2)',
+};
+const TILE_DARK = {
+  a: '#1b1d21', b: '#121316', hi: 'rgba(190, 210, 240, .1)', lo: 'rgba(0, 0, 0, .55)',
+  shade: 'rgba(0, 0, 0, .7)', rim: 'rgba(190, 210, 240, .12)', face: 'rgba(150, 172, 210, .22)', gold: 'rgba(212, 172, 96, .42)',
+};
 
 // 只留 BMP 里的汉字：扩展 B 区以后的字几乎没有字形，回落到系统字体会显示成方框
 const isDrawable = (ch) => {
@@ -47,6 +63,13 @@ const hash = (n) => { // 确定性的小散列：哪些位置留作"空铅"
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 
+// 点字时洇开的墨与水。深底上，浅色主题的墨晕要比底更黑才看得见；深色主题里是一团淡金
+function boardWash(fx, x, y, R) {
+  const dark = isDark();
+  fx.wash(x, y, { color: dark ? DARK_WASH : DARK, R, a: dark ? 0.34 : 0.9, grow: 0.9, hold: 0.8, fade: 2.2 });
+  fx.ripple(x, y, { color: dark ? DARK_WASH : WATER, r: R, rings: 2, a: dark ? 0.2 : 0.16 }); // 水纹是一圈淡淡的亮痕
+}
+
 function roundRect(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);
@@ -57,8 +80,10 @@ function roundRect(g, x, y, w, h, r) {
   g.closePath();
 }
 
-export function mountBoard(board) {
-  if (!board) return () => {};
+let charsCache = null;
+const getChars = async () => (charsCache ??= await pickChars());
+
+function mount2D(board) {
   const roll = document.createElement('div');
   roll.className = 'zp-roll';
   const inkCanvas = document.createElement('canvas');
@@ -98,6 +123,7 @@ export function mountBoard(board) {
     g.textBaseline = 'middle';
     g.font = `400 ${fontPx}px ${FONT}`;
 
+    const P = isDark() ? TILE_DARK : TILE_LIGHT;
     const start = Math.floor(Math.random() * chars.length);
     const cells = [];
     let k = 0;
@@ -114,15 +140,15 @@ export function mountBoard(board) {
 
         // 铅字的身子：略有明暗，亮边在左上，暗边在右下
         const gr = g.createLinearGradient(x, y, x + slug, y + slug);
-        gr.addColorStop(0, '#312c25');
-        gr.addColorStop(1, '#25211b');
+        gr.addColorStop(0, P.a);
+        gr.addColorStop(1, P.b);
         g.fillStyle = gr;
         roundRect(g, x, y, slug, slug, 2);
         g.fill();
         g.lineWidth = 1;
-        g.strokeStyle = 'rgba(255, 238, 200, .09)';
+        g.strokeStyle = P.hi;
         g.beginPath(); g.moveTo(x + 1, y + slug - 2); g.lineTo(x + 1, y + 1); g.lineTo(x + slug - 2, y + 1); g.stroke();
-        g.strokeStyle = 'rgba(0, 0, 0, .42)';
+        g.strokeStyle = P.lo;
         g.beginPath(); g.moveTo(x + slug - 0.5, y + 2); g.lineTo(x + slug - 0.5, y + slug - 0.5); g.lineTo(x + 2, y + slug - 0.5); g.stroke();
         if (!ch) continue;
 
@@ -132,11 +158,11 @@ export function mountBoard(board) {
         g.save();
         g.translate(cx, cy);
         g.scale(-1, 1);
-        g.fillStyle = 'rgba(0, 0, 0, .6)';
+        g.fillStyle = P.shade;
         g.fillText(ch, -1.1, 1.1);
-        g.fillStyle = 'rgba(255, 238, 200, .11)';
+        g.fillStyle = P.rim;
         g.fillText(ch, 0.8, -0.8);
-        g.fillStyle = 'rgba(206, 190, 150, .2)';
+        g.fillStyle = isDark() && hash(r * 977 + i * 31 + 7) < 0.045 ? P.gold : P.face; // 深色下偶见泥金
         g.fillText(ch, 0, 0);
         g.restore();
       }
@@ -150,7 +176,7 @@ export function mountBoard(board) {
 
   async function render() {
     const id = ++renderId;
-    if (!chars) chars = await pickChars();
+    if (!chars) chars = await getChars();
     if (dead || id !== renderId) return;
     const r = board.getBoundingClientRect();
     if (!r.width || !r.height) return;
@@ -192,8 +218,7 @@ export function mountBoard(board) {
     const cx = margin + col * cell + cell / 2;
     const cyContent = rAbs * cell + cell / 2;
 
-    fx.wash(cx, cyContent + ty, { color: DARK, R: cell * 1.7, a: 0.9, grow: 0.9, hold: 0.8, fade: 2.2 }); // 深底上要比底更黑才看得见
-    fx.ripple(cx, cyContent + ty, { color: WATER, r: cell * 1.7, rings: 2, a: 0.16 }); // 水纹在深底上是一圈淡淡的亮痕
+    boardWash(fx, cx, cyContent + ty, cell * 1.7);
     if (!ch) return;
 
     // 印放进同步滚动的上层，跟着那一枚铅字一起走；上下两幅各放一枚，循环到头时也在
@@ -229,6 +254,7 @@ export function mountBoard(board) {
   board.addEventListener('pointerleave', release);
   document.addEventListener('visibilitychange', onVis);
   addEventListener('resize', onResize);
+  const offTheme = onTheme(() => render()); // 换主题：铅字按新配色重画一次
   onVis();
   render();
 
@@ -244,6 +270,81 @@ export function mountBoard(board) {
     board.removeEventListener('pointerleave', release);
     document.removeEventListener('visibilitychange', onVis);
     removeEventListener('resize', onResize);
+    offTheme();
     fx.destroy();
+  };
+}
+
+/** 选 2D 或 3D 并挂上；返回卸载函数。条件变了（窗口宽度、系统设置）会换过去。 */
+export function mountBoard(board) {
+  if (!board) return () => {};
+  let mode = null;
+  let stop = () => {};
+  let dead = false;
+  let ticket = 0;
+  let timer = 0;
+  const debug = new URLSearchParams(location.search).has('debug');
+
+  function use2D() {
+    mode = '2d';
+    stop = mount2D(board);
+  }
+
+  async function use3D(id) {
+    const chars = await getChars();
+    const { createBoard3D } = await import('../scene/board3d.js'); // three.js 的包在这里才下载
+    if (dead || id !== ticket) return;
+    const inkCanvas = document.createElement('canvas');
+    inkCanvas.className = 'zp-ink';
+    const fx = createInk(inkCanvas, { reduced: false });
+    let scene;
+    try {
+      scene = await createBoard3D(board, { chars, debug, wash: (x, y) => boardWash(fx, x, y, 62) });
+    } catch (e) {
+      console.warn('3D 字盘不可用，退回 2D：', e);
+      fx.destroy();
+      if (!dead && id === ticket) use2D();
+      return;
+    }
+    if (dead || id !== ticket) { scene.destroy(); fx.destroy(); return; }
+    board.append(inkCanvas);
+    board.addEventListener('zp-gl-lost', fallback);
+    mode = '3d';
+    stop = () => { board.removeEventListener('zp-gl-lost', fallback); scene.destroy(); fx.destroy(); };
+  }
+
+  function fallback() { ticket++; reset(); use2D(); }
+  function reset() {
+    stop();
+    stop = () => {};
+    board.replaceChildren();
+    mode = null;
+  }
+
+  function apply() {
+    if (dead) return;
+    const want = want3D() ? '3d' : '2d';
+    if (want === mode || (want === '3d' && mode === 'pending')) return;
+    const id = ++ticket;
+    reset();
+    if (want === '3d') {
+      mode = 'pending';
+      use3D(id).catch((e) => { console.warn('3D 字盘加载失败，退回 2D：', e); if (!dead && id === ticket) { reset(); use2D(); } });
+    } else use2D();
+  }
+
+  const onChange = () => { clearTimeout(timer); timer = setTimeout(apply, 200); };
+  addEventListener('resize', onChange);
+  reducedQuery.addEventListener?.('change', onChange);
+  coarseQuery.addEventListener?.('change', onChange);
+  apply();
+
+  return () => {
+    dead = true;
+    clearTimeout(timer);
+    removeEventListener('resize', onChange);
+    reducedQuery.removeEventListener?.('change', onChange);
+    coarseQuery.removeEventListener?.('change', onChange);
+    stop();
   };
 }

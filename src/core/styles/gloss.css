@@ -5,8 +5,8 @@
 .margin {
   position: absolute;
   top: 18px;
-  left: 64px;
-  right: calc(var(--zhu-w) + 64px);
+  left: 104px; /* 右角并排着主题印与声牌，两边对称地让出来 */
+  right: calc(var(--zhu-w) + 104px);
   height: calc(2.7em + 6px);
   font-size: 20px;
   line-height: 1.35;
@@ -22,35 +22,27 @@
   justify-content: center;
   font-family: var(--f-brush);
   letter-spacing: .04em;
-  color: rgba(27, 23, 18, .72);
+  color: rgba(var(--ink-rgb), .72);
   /* 不加底框：字的四周一圈纸色柔光，压住底下的朱丝栏与墨痕，字就读得清，又没有一块长方形 */
-  text-shadow: 0 0 2px var(--gan), 0 0 4px var(--gan), 0 0 7px var(--gan), 0 0 12px rgba(239, 230, 208, .9), 0 0 18px rgba(239, 230, 208, .7);
+  text-shadow: 0 0 2px var(--paper), 0 0 4px var(--paper), 0 0 7px var(--paper), 0 0 12px rgba(var(--paper-rgb), .9), 0 0 18px rgba(var(--paper-rgb), .7);
   transition: opacity .18s;
 }
 .gloss.is-out { opacity: 0; }
 .gloss-t { display: block; max-width: 100%; text-align: center; text-wrap: balance; }
 .ink-w { display: inline-block; max-width: 100%; } /* 一个语段：整体移到下一行，不在中间断开；比一行还长时才在段内折 */
-.gloss .is-num { color: var(--cinnabar); } /* 关键数字：朱 */
+.gloss .is-num { color: var(--cinnabar-hi); } /* 关键数字：朱 */
 /* 句尾圈：版面里先占好位置（不显示），写完才显出来，免得最后一刻把末段挤到下一行 */
-.gloss .ink-w:last-of-type::after { content: " 〇"; font-family: var(--f-text); font-size: 12px; vertical-align: .2em; color: var(--cinnabar); visibility: hidden; }
+.gloss .ink-w:last-of-type::after { content: " 〇"; font-family: var(--f-text); font-size: 12px; vertical-align: .2em; color: var(--cinnabar-hi); visibility: hidden; }
 .gloss.is-done .ink-w:last-of-type::after { visibility: visible; }
 /* 警示句：着重点用朱 */
-.gloss.is-alarm { text-emphasis: filled dot; text-emphasis-color: var(--cinnabar); -webkit-text-emphasis: filled dot; -webkit-text-emphasis-color: var(--cinnabar); text-emphasis-position: under right; -webkit-text-emphasis-position: under; }
+.gloss.is-alarm { text-emphasis: filled dot; text-emphasis-color: var(--cinnabar-hi); -webkit-text-emphasis: filled dot; -webkit-text-emphasis-color: var(--cinnabar-hi); text-emphasis-position: under right; -webkit-text-emphasis-position: under; }
 .gloss .ink-ch { animation-duration: .5s; }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .corner-btn {
-    background: rgba(239, 230, 208, .58);
-    -webkit-backdrop-filter: blur(7px);
-    backdrop-filter: blur(7px);
-  }
-}
-
 @media (max-width: 959px) {
-  .margin { right: 66px; }
+  .margin { left: 106px; right: 106px; }
 }
 @media (max-width: 520px) {
-  .margin { left: 66px; right: 66px; top: 16px; font-size: 17px; }
+  .margin { left: 66px; right: 66px; top: 16px; font-size: 17px; } /* 手机上主题印叠在声牌下面 */
 }
 @media (max-width: 400px) {
   .margin { font-size: 16px; }

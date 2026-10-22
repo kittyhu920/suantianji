@@ -21,7 +21,7 @@
   height: calc(100dvh - 20px);
   display: flex;
   flex-direction: column;
-  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .55));
+  filter: drop-shadow(0 14px 30px var(--paper-shadow));
 }
 .huaxin {
   --zhu-w: 0px; /* 注栏宽度；折叠时为 0 */
@@ -41,11 +41,11 @@
     top: 14px; right: 14px; bottom: 14px;
     width: calc(var(--zhu-w) - 14px);
     padding: 12px 6px 12px 20px;
-    border-left: 3px double var(--gold-faint);
+    border-left: 3px double var(--ink-faint);
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: var(--gold-faint) transparent;
+    scrollbar-color: var(--ink-faint) transparent;
     z-index: 5;
   }
 }
@@ -53,27 +53,27 @@
 .zhu-h {
   margin: 0 0 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--gold-faint);
+  border-bottom: 1px solid var(--ink-faint);
   font-weight: 600;
   font-size: 20px;
   letter-spacing: .5em;
   text-indent: .5em;
   text-align: center;
-  color: var(--gold);
+  color: var(--ink);
 }
-.zhu-empty { margin: 10px 0; font-size: 13px; line-height: 1.8; color: var(--gold-dim); text-align: center; }
+.zhu-empty { margin: 10px 0; font-size: 13px; line-height: 1.8; color: var(--ink-dim); text-align: center; }
 .zhu-list { display: flex; flex-direction: column; gap: 16px; }
 .zhu-note {
   padding: 2px 0 2px 10px;
   border-left: 2px solid transparent;
   font-size: 14px;
   line-height: 1.8;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
   animation: ink-in .9s var(--ease-out) both;
   transition: opacity .5s, border-color .4s, background .4s;
 }
 .zhu-note.is-old { opacity: .66; }
-.zhu-note.is-focus { opacity: 1; border-left-color: var(--gold); background: rgba(27, 23, 18, .05); }
+.zhu-note.is-focus { opacity: 1; border-left-color: var(--ink); background: rgba(var(--ink-rgb), .05); }
 .zhu-note h3, .zhu-pop h3 {
   margin: 0 0 3px;
   display: flex;
@@ -81,7 +81,7 @@
   gap: 8px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--gold);
+  color: var(--ink);
 }
 .zhu-kind {
   font-size: 11px;
@@ -89,11 +89,11 @@
   line-height: 1.6;
   padding: 0 5px;
   letter-spacing: .04em;
-  color: var(--gold-dim);
-  border: 1px solid var(--gold-faint);
+  color: var(--ink-dim);
+  border: 1px solid var(--ink-faint);
 }
 .zhu-note p, .zhu-pop p { margin: 0; }
-.zhu-cite { margin-top: 4px !important; font-size: 12.5px; line-height: 1.7; color: var(--gold-dim); }
+.zhu-cite { margin-top: 4px !important; font-size: 12.5px; line-height: 1.7; color: var(--ink-dim); }
 
 /* 术语：下加点线 */
 .zhu-term {
@@ -106,11 +106,11 @@
   color: inherit;
   cursor: help;
   text-decoration: underline dotted;
-  text-decoration-color: var(--gold-dim);
+  text-decoration-color: var(--ink-dim);
   text-decoration-thickness: 2px;
   text-underline-offset: .28em;
 }
-.zhu-term:hover { text-decoration-color: var(--gold); }
+.zhu-term:hover { text-decoration-color: var(--ink); }
 .h-brush .zhu-term { text-underline-offset: .16em; text-decoration-thickness: 3px; }
 
 /* 手机浮注 */
@@ -118,12 +118,12 @@
   position: absolute;
   z-index: 9;
   padding: 12px 14px 12px;
-  background: var(--gan);
-  border: 1px solid var(--gold-dim);
+  background: var(--paper);
+  border: 1px solid var(--ink-dim);
   box-shadow: 0 8px 24px rgba(40, 30, 18, .28);
   font-size: 15px;
   line-height: 1.8;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
   animation: ink-in .35s var(--ease-out) both;
 }
 
@@ -144,6 +144,8 @@
 .corner-mute { right: calc(var(--zhu-w) + 18px); }
 @media (max-width: 520px) {
   .corner-mute { right: 16px; }
+  .corner-theme, .huaxin:has(.corner-mute) .corner-theme { top: 16px; right: 16px; }
+  .huaxin:has(.corner-mute) .corner-theme { top: 58px; } /* 手机上两枚叠着放：上声牌，下主题印 */
 }
 
 @media (prefers-reduced-motion: reduce) {
