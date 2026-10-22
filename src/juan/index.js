@@ -14,6 +14,13 @@
 //                        （不接通灵与分享图的卷可以省略）
 //   enter(ctx)           开始一局，返回 game
 //   Defs, atlas          可选：本卷的共享 SVG 图形；本卷的图谱数据
+//   zipan                可选：案上字盘（桌面上纸两侧、手机上天头地脚那盘反刻活字）用本卷什么字。
+//                        字符串，或返回字符串（可以是 Promise）的函数，取自本卷的典籍原文：签＝签诗，卦＝《周易》经文，
+//                        卜＝甲骨卜辞释文，字＝《说文》，历＝历书宜忌用语。不写就用《说文》部首（src/core/paper/shuowen-bushou.js）。
+//                        字盘按页面路径的第一段找卷（/qian/ 找 src/juan/qian/index.js），所以卷页面要挂在 /<id>/ 下。
+//                        只取 BMP 里的汉字（标点、空白、扩展 B 区以后的字会被忽略）；总共少于 40 个字就当没写。
+//                        字盘用思源宋体，字要在站内字体子集里：本字段写在 src/ 下，重跑 tools/subset-fonts.py 就会收进去，
+//                        思源宋体本身没有字形的生僻字请别用。例：zipan: () => db.signs.map((s) => s.poem.join('')).join('')
 //
 // game（enter 的返回值）必须有：
 //   attitude()           本卷的映射，返回 'zun' 遵 | 'ni' 逆 | 'po' 破 | 'mi' 迷（src/core/ending.js）

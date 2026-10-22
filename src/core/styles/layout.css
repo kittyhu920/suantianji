@@ -10,22 +10,18 @@
   place-items: center;
   padding: 12px 0 8px;
 }
-.an-board { /* 留给"案上字盘"（之后在这里铺反刻活字阵）；现在只是空着 */
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
+/* 案上字盘（.an-board）的样式在 core/paper/paper.css；这里只管它与纸的位置关系 */
 
 /* ───────── 纸 ───────── */
 .paper {
   position: relative;
   z-index: 1;
-  width: min(1240px, calc(100vw - 48px));
+  /* 桌面：纸收窄一些，两侧露出字盘（1440 宽两侧各 160px，1366 宽各 123px），中栏也不再那么空 */
+  width: min(1120px, calc(100vw - clamp(48px, 12vw, 220px)));
   height: calc(100dvh - 20px);
   display: flex;
   flex-direction: column;
-  filter: drop-shadow(0 18px 36px rgba(60, 42, 20, .28));
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .55));
 }
 .huaxin {
   --zhu-w: 0px; /* 注栏宽度；折叠时为 0 */
@@ -137,8 +133,9 @@
 }
 @media (max-width: 520px) {
   .huaxin { --mei-h: 74px; }
-  .an { padding: 0; }
-  .paper { width: 100vw; height: 100dvh; filter: none; }
+  /* 手机：画心几乎占满全屏，字盘只在天头、地脚各露一窄条 */
+  .an { padding: 0; --strip: 22px; }
+  .paper { width: 100vw; height: calc(100dvh - var(--strip) * 2); filter: none; }
 }
 @media (max-width: 400px) {
   .huaxin { --mei-h: 72px; }
