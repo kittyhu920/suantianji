@@ -11,7 +11,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check:db": "node tools/check-db.mjs",
+    "check:db": "node tools/check-db.mjs && node tools/check-gua.mjs",
     "check": "npm run check:db && astro build"
   },
   "dependencies": {
