@@ -1,0 +1,325 @@
+/* ───────── 入卷 ───────── */
+.screen-title { justify-content: space-between; padding-top: 40px; }
+.screen-title { padding-top: 34px; }
+.title-block {
+  position: relative;
+  width: 100%;
+  height: 270px;
+}
+.title-ink, .title-ink-img { position: absolute; top: 0; bottom: 0; left: -44px; width: calc(100% + 88px); height: 100%; }
+.title-main {
+  position: absolute;
+  left: 50%; top: 46%;
+  transform: translate(-50%, -50%) rotate(-13deg);
+  margin: 0;
+  font-family: var(--f-title);
+  font-weight: 400;
+  font-size: clamp(56px, 17vw, 84px);
+  line-height: 1;
+  white-space: nowrap;
+  color: #fffdf6; /* 内容层与纸正片叠底，字色要比纸亮一档才显得是反白 */
+  text-shadow: none;
+}
+.title-sub {
+  margin: -6px 0 0;
+  font-family: var(--f-brush);
+  font-size: 22px;
+  letter-spacing: .3em;
+  padding-left: .3em;
+  color: var(--gold);
+}
+.title-actions {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.oracle-toggle {
+  margin-top: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+.oracle-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.oracle-row { display: inline-flex; align-items: center; gap: 10px; }
+.oracle-name { font-size: 16px; color: var(--gold); letter-spacing: .1em; }
+.oracle-state { font-size: 13px; color: var(--gold-dim); }
+.oracle-quota { font-size: 13px; color: var(--gold-dim); font-variant-numeric: tabular-nums; }
+.oracle-quota::before { content: "· "; }
+.oracle-toggle input:disabled ~ .oracle-row { opacity: .5; }
+.oracle-state::after { content: "未开启"; }
+.oracle-toggle input:checked ~ .oracle-row .oracle-state { color: var(--gold); }
+.oracle-toggle input:checked ~ .oracle-row .oracle-state::after { content: "已开启"; }
+.oracle-toggle .seal { cursor: pointer; opacity: .75; }
+.oracle-toggle input:checked ~ .oracle-row .seal {
+  background: var(--cinnabar); color: var(--on-zhu); box-shadow: none; opacity: 1;
+}
+.oracle-toggle input:focus-visible ~ .oracle-row .seal { outline: 2px solid var(--gold); outline-offset: 3px; }
+.oracle-desc { max-width: 19em; font-size: 13px; line-height: 1.7; color: var(--gold-dim); text-align: center; }
+
+/* ───────── 定盘 ───────── */
+.shichen {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gold-soft);
+  min-height: 1.75em;
+}
+.shichen b { font-family: var(--f-brush); font-weight: 400; font-size: 20px; color: var(--gold); }
+.slips {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.slip {
+  width: 64px;
+  height: 196px;
+  padding: 16px 0 12px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 3px 3px 10px 10px;
+  background: linear-gradient(90deg, rgba(27,23,18,.03), rgba(27,23,18,.07) 50%, rgba(27,23,18,.03));
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: transform .25s var(--ease-out), background .25s, border-color .25s;
+}
+.slip-name, .slip-desc { white-space: nowrap; flex: none; }
+.slip-name {
+  writing-mode: vertical-rl;
+  font-family: var(--f-brush);
+  font-size: 30px; line-height: 1;
+}
+.slip-desc {
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  letter-spacing: .2em;
+  color: var(--gold-dim);
+}
+.slip:hover { border-color: var(--gold); }
+.slip[aria-checked="true"] {
+  transform: translateY(-10px);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--gan);
+}
+.slip[aria-checked="true"] .slip-desc { color: rgba(239,230,208,.78); }
+
+.ask { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 300px; }
+.ask-label { font-size: 13px; color: var(--gold-dim); }
+.ask input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--gold-dim);
+  color: var(--gold);
+  font: inherit;
+  font-size: 15px;
+  text-align: center;
+  padding: 6px 4px;
+}
+.ask input::placeholder { color: rgba(27,23,18,.32); }
+.ask input:focus { outline: none; border-bottom-color: var(--gold); }
+
+/* ───────── 摇签：仿真签筒（js/qian.js） ───────── */
+.tube-wrap { width: min(300px, 100%); aspect-ratio: 320 / 440; margin-top: 4px; }
+.tube {
+  width: 100%; height: 100%;
+  padding: 0; border: 0; background: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.tube:active { cursor: grabbing; }
+.tube svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+.sign {
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  animation: ink-in 1s var(--ease-out) both;
+}
+.sign-head { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sign-no { margin: 0; font-size: 13px; letter-spacing: .3em; color: var(--gold-dim); }
+.sign-name {
+  margin: 0;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1.2;
+  letter-spacing: .1em;
+}
+.sign-level {
+  margin: 4px 0 0;
+  padding: 0 10px;
+  font-family: var(--f-brush);
+  font-size: 18px;
+  color: var(--on-zhu);
+  background: var(--cinnabar);
+  border-radius: 2px;
+}
+.sign-level[data-tone="ping"] { background: transparent; color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold-dim); }
+.sign-level[data-tone="xiong"] { background: transparent; color: var(--gold-dim); box-shadow: inset 0 0 0 1px var(--gold-faint); }
+
+.poem {
+  writing-mode: vertical-rl;
+  display: block;
+  font-size: 19px;
+  line-height: 1.9;
+  letter-spacing: .28em;
+  color: var(--gold);
+  height: 9.6em;
+  padding: 4px 0;
+}
+.poem > span { display: block; margin-left: .45em; }
+.poem > span:last-child { margin-left: 0; }
+.sign-jie, .sign-domain {
+  margin: 0;
+  max-width: 21em;
+  font-size: 14px;
+  color: var(--gold-soft);
+  text-align: left;
+}
+.sign-jie b { font-family: var(--f-brush); font-weight: 400; font-size: 17px; color: var(--gold); margin-right: .6em; }
+.sign-domain { color: var(--gold); }
+
+/* ───────── 掷筊 ───────── */
+.sign-bai {
+  margin: 0;
+  max-width: 21em;
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--paper-ink);
+}
+.sign-bai b {
+  display: block;
+  font-family: var(--f-brush);
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--gold);
+}
+.jiao-legend {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--gold-soft);
+  text-align: left;
+}
+.jiao-legend b { font-family: var(--f-brush); font-weight: 400; font-size: 16px; color: var(--gold); margin-right: .6em; }
+.jiao-legend .is-yin b { color: var(--cinnabar-hi); }
+.jiao-pair { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.jiao-labels { display: flex; gap: 18px; }
+.jiao-labels span { width: 104px; min-height: 1.4em; font-size: 12px; color: var(--gold-soft); text-align: center; }
+.sign-wait {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--gold-soft);
+}
+.jiao-rule {
+  margin: -6px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--gold-dim);
+}
+.jiao-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  width: 100%;
+  min-height: 210px;
+  justify-content: center;
+}
+.jiao {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  height: 110px;
+}
+.jiao-block {
+  width: 104px; height: 52px;
+  perspective: 500px;
+  transform: rotate(-8deg);
+}
+.jiao-block.is-right { transform: rotate(10deg) scaleX(-1); }
+.jiao-body {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 1.25s cubic-bezier(.15,.6,.25,1);
+}
+.jiao-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  filter: drop-shadow(0 4px 3px rgba(40,28,14,.35));
+}
+.jiao-face svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.jiao-face.back { transform: rotateX(180deg); }
+.jiao-block.is-tossing { animation: toss 1.25s cubic-bezier(.3,.7,.4,1); }
+.jiao-block.is-right.is-tossing { animation-name: toss-r; }
+@keyframes toss {
+  0%   { transform: rotate(-8deg) translateY(0) scale(1); }
+  40%  { transform: rotate(-30deg) translateY(-60px) scale(1.15); }
+  100% { transform: rotate(-8deg) translateY(0) scale(1); }
+}
+@keyframes toss-r {
+  0%   { transform: rotate(10deg) scaleX(-1) translateY(0); }
+  40%  { transform: rotate(34deg) scaleX(-1) translateY(-68px) scale(1.15); }
+  100% { transform: rotate(10deg) scaleX(-1) translateY(0); }
+}
+.cups {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex;
+  gap: 14px;
+}
+.cup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  padding: 6px 0;
+  border: 1px solid var(--gold-faint);
+  opacity: .5;
+}
+.cup.is-pending { opacity: .8; border-style: dashed; }
+.cup.is-set { opacity: 1; border-color: var(--gold-dim); }
+.cup-tag { font-size: 11px; color: var(--gold-dim); }
+.cup-name { font-size: 13px; color: var(--gold-soft); }
+.cup-kind { font-family: var(--f-brush); font-size: 20px; line-height: 1.3; color: var(--gold); }
+.cup.is-xiao .cup-kind { color: var(--gold-soft); }
+.cup.is-yin .cup-kind { color: var(--cinnabar-hi); }
+.jiao-result {
+  margin: 0;
+  min-height: 1.75em;
+  font-size: 15px;
+  color: var(--gold);
+}
+.jiao-result em { font-style: normal; color: var(--cinnabar-hi); }
+.jiao-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* 首页：墨痕被一笔"写"出来，标题随后在墨里洇出。
+   墨痕是一张静态图（img/title-ink.svg），"写"的动作是平移一张预先带毛边的蒙版：笔锋前端是飞白的毛边，
+   而每一帧只是挪一张已经画好的图，不用重算滤镜。不支持 mask 的浏览器会直接看到整笔墨痕。 */
+.title-ink-img {
+  display: block;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 100' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='30' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='-40' y='-10' width='165' height='120' fill='%23000' filter='url(%23r)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 100' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='30' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='-40' y='-10' width='165' height='120' fill='%23000' filter='url(%23r)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 250% 100%;
+  mask-size: 250% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 0;
+  mask-position: 0 0;
+}
+.screen-title.is-active .title-ink-img { animation: brush-write 1.8s cubic-bezier(.45, .05, .3, 1) .25s both; }
+@keyframes brush-write {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
+}
+.screen-title.is-active .brush-spots { animation: spots-in .6s ease-out 1.7s both; }
+@keyframes spots-in { from { opacity: 0; } }
+.screen-title.is-active .title-main { animation: title-soak 1.4s var(--ease-out) 1s both; }
+@keyframes title-soak { from { opacity: 0; filter: blur(9px); } }
+
+

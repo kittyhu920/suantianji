@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "suantianji",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["tools/serve.mjs", "8788"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 8788
     }
   ]

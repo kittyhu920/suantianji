@@ -1,0 +1,159 @@
+/* 版面：案、纸、注栏（docs/DESIGN.md §12 桌面版式与注疏）
+   桌面是一张摊开的书页：天头是大师的眉批，中间是仪式，右侧一栏是"注"。
+   手机上注栏折叠，术语点开显示浮注。 */
+
+/* ───────── 案：纸外的案几 ───────── */
+.an {
+  position: relative;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 12px 0 8px;
+}
+.an-board { /* 留给"案上字盘"（之后在这里铺反刻活字阵）；现在只是空着 */
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ───────── 纸 ───────── */
+.paper {
+  position: relative;
+  z-index: 1;
+  width: min(1240px, calc(100vw - 48px));
+  height: calc(100dvh - 20px);
+  display: flex;
+  flex-direction: column;
+  filter: drop-shadow(0 18px 36px rgba(60, 42, 20, .28));
+}
+.huaxin {
+  --zhu-w: 0px; /* 注栏宽度；折叠时为 0 */
+  --mei-h: 84px;
+}
+.stage { inset: 0 var(--zhu-w) 0 0; }
+
+/* ───────── 注栏 ───────── */
+.zhu-col { display: none; }
+
+@media (min-width: 960px) {
+  .huaxin.has-zhu { --zhu-w: 308px; }
+  .huaxin.has-zhu .zhu-col {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 14px; right: 14px; bottom: 14px;
+    width: calc(var(--zhu-w) - 14px);
+    padding: 12px 6px 12px 20px;
+    border-left: 3px double var(--gold-faint);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold-faint) transparent;
+    z-index: 5;
+  }
+}
+
+.zhu-h {
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gold-faint);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: .5em;
+  text-indent: .5em;
+  text-align: center;
+  color: var(--gold);
+}
+.zhu-empty { margin: 10px 0; font-size: 13px; line-height: 1.8; color: var(--gold-dim); text-align: center; }
+.zhu-list { display: flex; flex-direction: column; gap: 16px; }
+.zhu-note {
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid transparent;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--gold-soft);
+  animation: ink-in .9s var(--ease-out) both;
+  transition: opacity .5s, border-color .4s, background .4s;
+}
+.zhu-note.is-old { opacity: .66; }
+.zhu-note.is-focus { opacity: 1; border-left-color: var(--gold); background: rgba(27, 23, 18, .05); }
+.zhu-note h3, .zhu-pop h3 {
+  margin: 0 0 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.zhu-kind {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.6;
+  padding: 0 5px;
+  letter-spacing: .04em;
+  color: var(--gold-dim);
+  border: 1px solid var(--gold-faint);
+}
+.zhu-note p, .zhu-pop p { margin: 0; }
+.zhu-cite { margin-top: 4px !important; font-size: 12.5px; line-height: 1.7; color: var(--gold-dim); }
+
+/* 术语：下加点线 */
+.zhu-term {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--gold-dim);
+  text-decoration-thickness: 2px;
+  text-underline-offset: .28em;
+}
+.zhu-term:hover { text-decoration-color: var(--gold); }
+.h-brush .zhu-term { text-underline-offset: .16em; text-decoration-thickness: 3px; }
+
+/* 手机浮注 */
+.zhu-pop {
+  position: absolute;
+  z-index: 9;
+  padding: 12px 14px 12px;
+  background: var(--gan);
+  border: 1px solid var(--gold-dim);
+  box-shadow: 0 8px 24px rgba(40, 30, 18, .28);
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--gold-soft);
+  animation: ink-in .35s var(--ease-out) both;
+}
+
+/* ───────── 平板与手机 ───────── */
+@media (max-width: 959px) {
+  .paper { width: min(620px, calc(100vw - 24px)); }
+}
+@media (max-width: 520px) {
+  .huaxin { --mei-h: 74px; }
+  .an { padding: 0; }
+  .paper { width: 100vw; height: 100dvh; filter: none; }
+}
+@media (max-width: 400px) {
+  .huaxin { --mei-h: 72px; }
+}
+
+.corner-mute { right: calc(var(--zhu-w) + 18px); }
+@media (max-width: 520px) {
+  .corner-mute { right: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .seal-doubt { opacity: .7; }
+}

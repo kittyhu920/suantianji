@@ -1,0 +1,48 @@
+---
+import Paper from '../core/Paper.astro';
+import '../core/styles/toc.css';
+import { juans } from '../juan/index.js';
+---
+<Paper title="演算天机" description="演算天机——一部收录多种民间算命法的书。签、卦、卜、鸟、字、历，一卷一卷地开。">
+  <div class="stage">
+    <article class="screen screen-toc is-active" aria-labelledby="toc-h">
+      <div class="toc">
+        <header class="toc-head">
+          <h1 id="toc-h" class="toc-title">演算天机</h1>
+          <p class="toc-sub">你求签，我算你</p>
+          <p class="toc-mulu" aria-hidden="true">目录</p>
+        </header>
+
+        <ol class="toc-list">
+          {juans.map((j) => (
+            <li class={`toc-item ${j.open ? 'is-open' : 'is-closed'}`}>
+              {j.open ? (
+                <a class="toc-entry" href={j.href} aria-label={`${j.name}卷：${j.title}，第${j.page}页。${j.intro}`}>
+                  <span class="toc-name">{j.name}</span>
+                  <span class="toc-full">{j.title}</span>
+                  <i class="toc-leader" aria-hidden="true"></i>
+                  <span class="toc-page">{j.page}</span>
+                  <span class="seal seal-sm toc-seal" aria-hidden="true"><span>入</span></span>
+                </a>
+              ) : (
+                <div class="toc-entry" aria-disabled="true" aria-label={`${j.name}卷：${j.title}，未开卷`}>
+                  <span class="toc-name">{j.name}</span>
+                  <span class="toc-full">{j.title}</span>
+                  <i class="toc-leader" aria-hidden="true"></i>
+                  <span class="toc-page">{j.page}</span>
+                  <span class="toc-tag">未开卷</span>
+                </div>
+              )}
+              <p class="toc-intro">{j.intro}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <p class="toc-foot">
+        <a class="about-link" href="/qian/yuanliu/">签卷源流</a>
+        <a class="about-link" href="/about/">关于这件作品</a>
+      </p>
+    </article>
+  </div>
+</Paper>

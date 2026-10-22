@@ -2,8 +2,8 @@
 版权所有 (c) 2026 Turingli324、kitty Hu。
 
 "文案"指本仓库中的中文创作文字，包括：
-- public/data/fortune-db.json 中的签诗、解签、白话、建议、大师的暗面与结局判词；
-- 页面与脚本中的眉批、界面文字、关于页与 404 页的文字（public/ 下的 HTML 与 JS 中的中文字符串）；
+- src/juan/**（各卷目录，如 src/juan/qian/fortune-db.json）中的签诗、解签、白话、建议、大师的暗面与结局判词，以及注疏（zhu.json）与各卷里的眉批和界面文字；
+- src/pages/**（含各卷的源流页 .md、关于页与 404 页）与 src/core/** 中的中文文字（页面、组件与脚本里的中文字符串）；
 - functions/api/oracle.js 中的提示词。
 
 程序代码以 MIT 许可发布（见 LICENSE）；public/fonts/ 中的字体以 SIL Open Font License 1.1 发布（见 public/fonts/OFL.txt）。

@@ -1,0 +1,22 @@
+{
+  "name": "suantianji",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "description": "演算天机：一部收录多种民间算命法的书，第一卷是六十甲子签。",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check:db": "node tools/check-db.mjs",
+    "check": "npm run check:db && astro build"
+  },
+  "dependencies": {
+    "@astrojs/svelte": "^9.0.1",
+    "astro": "^7.3.8",
+    "svelte": "^5.57.2"
+  }
+}
