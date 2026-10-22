@@ -40,24 +40,24 @@ function defs(svg) {
   const d = el('defs', {}, svg);
   d.innerHTML = `
     <linearGradient id="c-wash" x1="0" x2="1">
-      <stop offset="0" stop-color="#1b1712" stop-opacity=".9"/><stop offset=".2" stop-color="#2e2820" stop-opacity=".6"/>
-      <stop offset=".45" stop-color="#6b6254" stop-opacity=".2"/><stop offset=".65" stop-color="#8a8070" stop-opacity=".1"/>
-      <stop offset=".88" stop-color="#3a342b" stop-opacity=".5"/><stop offset="1" stop-color="#1b1712" stop-opacity=".86"/>
+      <stop offset="0" stop-color="var(--obj-ink)" stop-opacity=".9"/><stop offset=".2" stop-color="var(--obj-ink2)" stop-opacity=".6"/>
+      <stop offset=".45" stop-color="var(--obj-mid)" stop-opacity=".2"/><stop offset=".65" stop-color="var(--obj-mid2)" stop-opacity=".1"/>
+      <stop offset=".88" stop-color="var(--obj-ink3)" stop-opacity=".5"/><stop offset="1" stop-color="var(--obj-ink)" stop-opacity=".86"/>
     </linearGradient>
     <linearGradient id="c-wash-v" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="#1b1712" stop-opacity="0"/><stop offset=".6" stop-color="#1b1712" stop-opacity=".1"/><stop offset="1" stop-color="#1b1712" stop-opacity=".36"/>
+      <stop offset="0" stop-color="var(--obj-ink)" stop-opacity="0"/><stop offset=".6" stop-color="var(--obj-ink)" stop-opacity=".1"/><stop offset="1" stop-color="var(--obj-ink)" stop-opacity=".36"/>
     </linearGradient>
     <radialGradient id="c-mouth" cx=".5" cy=".4" r=".6">
-      <stop offset="0" stop-color="#2a241c"/><stop offset="1" stop-color="#1b1712"/>
+      <stop offset="0" stop-color="var(--obj-ink2)"/><stop offset="1" stop-color="var(--obj-ink)"/>
     </radialGradient>
     <radialGradient id="c-metal" cx=".4" cy=".35" r=".8">
       <stop offset="0" stop-color="#a69d86"/><stop offset=".6" stop-color="#7d7460"/><stop offset="1" stop-color="#5a5243"/>
     </radialGradient>
     <radialGradient id="c-pool" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#1b1712" stop-opacity=".2"/><stop offset="1" stop-color="#1b1712" stop-opacity="0"/>
+      <stop offset="0" stop-color="var(--obj-pool)" stop-opacity=".2"/><stop offset="1" stop-color="var(--obj-pool)" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="c-blot" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#1b1712" stop-opacity=".22"/><stop offset="1" stop-color="#1b1712" stop-opacity="0"/>
+      <stop offset="0" stop-color="var(--obj-pool)" stop-opacity=".22"/><stop offset="1" stop-color="var(--obj-pool)" stop-opacity="0"/>
     </radialGradient>`;
 }
 
@@ -79,7 +79,7 @@ function wobble(x1, y1, x2, y2, amp = 1.6, seg = 9) {
 // 以圆心为原点。face / back 两个组，按翻转的角度切换。
 function makeCoin(parent) {
   const g = el('g', {}, parent);
-  const edge = el('rect', { x: -R, y: -3.4, width: 2 * R, height: 6.8, rx: 3.4, fill: '#2a241c' }, g);
+  const edge = el('rect', { x: -R, y: -3.4, width: 2 * R, height: 6.8, rx: 3.4, fill: 'var(--obj-ink2)' }, g);
   const flip = el('g', {}, g);
   const face = el('g', {}, flip);
   const back = el('g', {}, flip);
@@ -87,19 +87,19 @@ function makeCoin(parent) {
   const hole = 'M-6.5 -6.5 h13 v13 h-13 Z';
   for (const side of [face, back]) {
     el('path', { d: `${ring} ${hole}`, 'fill-rule': 'evenodd', fill: 'url(#c-metal)' }, side);
-    el('circle', { r: R, fill: 'none', stroke: '#1b1712', 'stroke-width': 1.8 }, side);
-    el('circle', { r: R - 3.4, fill: 'none', stroke: '#2a241c', 'stroke-width': 1.1, opacity: '.55' }, side);
-    el('rect', { x: -6.5, y: -6.5, width: 13, height: 13, fill: 'none', stroke: '#1b1712', 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, side);
-    el('rect', { x: -9.5, y: -9.5, width: 19, height: 19, fill: 'none', stroke: '#2a241c', 'stroke-width': 1, opacity: '.5' }, side);
-    el('path', { d: 'M-15 -17 Q0 -23 15 -17', fill: 'none', stroke: '#efe6d0', 'stroke-width': 1.2, opacity: '.28', 'stroke-linecap': 'round' }, side); // 高光
+    el('circle', { r: R, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 1.8 }, side);
+    el('circle', { r: R - 3.4, fill: 'none', stroke: 'var(--obj-ink2)', 'stroke-width': 1.1, opacity: '.55' }, side);
+    el('rect', { x: -6.5, y: -6.5, width: 13, height: 13, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, side);
+    el('rect', { x: -9.5, y: -9.5, width: 19, height: 19, fill: 'none', stroke: 'var(--obj-ink2)', 'stroke-width': 1, opacity: '.5' }, side);
+    el('path', { d: 'M-15 -17 Q0 -23 15 -17', fill: 'none', stroke: 'var(--obj-hi)', 'stroke-width': 1.2, opacity: '.28', 'stroke-linecap': 'round' }, side); // 高光
   }
   // 字面：上下右左，读作"天机通宝"
   [['天', 0, -10.6], ['机', 0, 19.4], ['通', 14.4, 4.4], ['宝', -14.4, 4.4]].forEach(([ch, x, y]) => {
-    el('text', { x, y, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 11.5, fill: '#1b1712', opacity: '.9' }, face).textContent = ch;
+    el('text', { x, y, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 11.5, fill: 'var(--obj-ink)', opacity: '.9' }, face).textContent = ch;
   });
   // 背面：上一点是星，右下一弯是月
-  el('circle', { cx: 0, cy: -15, r: 1.7, fill: '#1b1712', opacity: '.8' }, back);
-  el('path', { d: 'M9 14 Q16 12 16 5 Q12 9 9 14 Z', fill: '#1b1712', opacity: '.75' }, back);
+  el('circle', { cx: 0, cy: -15, r: 1.7, fill: 'var(--obj-ink)', opacity: '.8' }, back);
+  el('path', { d: 'M9 14 Q16 12 16 5 Q12 9 9 14 Z', fill: 'var(--obj-ink)', opacity: '.75' }, back);
   return { g, edge, flip, face, back };
 }
 
@@ -124,13 +124,13 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
 
   // 壳口内壁（在钱后面）
   el('ellipse', { cx: PX, cy: RIM, rx: (SR - SL) / 2, ry: 13, fill: 'url(#c-mouth)' }, rig);
-  el('path', { d: `M${SL} ${RIM} A${(SR - SL) / 2} 13 0 0 1 ${SR} ${RIM}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3 }, rig);
+  el('path', { d: `M${SL} ${RIM} A${(SR - SL) / 2} 13 0 0 1 ${SR} ${RIM}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3 }, rig);
   const innerG = el('g', {}, rig); // 壳里的三枚钱
   const inside = [0, 1, 2].map((i) => ({ coin: makeCoin(innerG), dx: (i - 1) * 40 + rand(-3, 3), o: 0, v: 0, th: 1.15, z: rand(-25, 25), s: rand(0.8, 1.05) }));
 
   // 壳身（挡住钱的下半截）：宣纸色打底，淡墨晕染，几块盾片的接缝
   const body = `M${SL} ${RIM} C${SL - 4} 214 ${PX - 44} ${PY} ${PX} ${PY} C${PX + 44} ${PY} ${SR + 4} 214 ${SR} ${RIM} A${(SR - SL) / 2} 13 0 0 1 ${SL} ${RIM} Z`;
-  el('path', { d: body, fill: '#efe6d0' }, rig);
+  el('path', { d: body, fill: 'var(--obj-body)' }, rig);
   el('path', { d: body, fill: 'url(#c-wash)' }, rig);
   el('path', { d: body, fill: 'url(#c-wash-v)' }, rig);
   // 背甲：六角的盾片（龟背纹）。尖顶六边形，一排排错开，被壳身的轮廓裁齐；每片的墨色深浅不同
@@ -143,8 +143,8 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
     xs.forEach((cx) => {
       const j = () => rand(-1.3, 1.3);
       const pts = [[0, -HY], [HX, -HY / 2], [HX, HY / 2], [0, HY], [-HX, HY / 2], [-HX, -HY / 2]].map(([x, y]) => `${(cx + x + j()).toFixed(1)} ${(cy + y + j()).toFixed(1)}`);
-      el('path', { d: `M${pts.join(' L')} Z`, fill: '#1b1712', 'fill-opacity': rand(0.04, 0.2).toFixed(2), stroke: '#1b1712', 'stroke-width': rand(1.5, 2.3).toFixed(1), 'stroke-opacity': '.72', 'stroke-linejoin': 'round' }, plates);
-      el('path', { d: `M${cx - 8 + j()} ${cy + 1} Q${cx} ${cy - 4} ${cx + 8 + j()} ${cy + 1}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 0.9, opacity: '.35' }, plates);
+      el('path', { d: `M${pts.join(' L')} Z`, fill: 'var(--obj-ink)', 'fill-opacity': rand(0.04, 0.2).toFixed(2), stroke: 'var(--obj-ink)', 'stroke-width': rand(1.5, 2.3).toFixed(1), 'stroke-opacity': '.72', 'stroke-linejoin': 'round' }, plates);
+      el('path', { d: `M${cx - 8 + j()} ${cy + 1} Q${cx} ${cy - 4} ${cx + 8 + j()} ${cy + 1}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 0.9, opacity: '.35' }, plates);
     });
   });
   // 边缘：沿壳口下面一圈小的缘盾，一格一格
@@ -155,12 +155,12 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
     const y = rimY(x);
     marg += `M${x.toFixed(1)} ${y.toFixed(1)} L${(x + (x - PX) * 0.02).toFixed(1)} ${(y + 11).toFixed(1)} `;
   }
-  el('path', { d: marg, fill: 'none', stroke: '#1b1712', 'stroke-width': 1.7, opacity: '.7', 'stroke-linecap': 'round' }, rig);
-  el('path', { d: `M${SL + 1} ${RIM + 11} A${(SR - SL) / 2 - 1} 13 0 0 0 ${SR - 1} ${RIM + 11}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 2, opacity: '.75', 'stroke-linecap': 'round' }, rig);
+  el('path', { d: marg, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 1.7, opacity: '.7', 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${SL + 1} ${RIM + 11} A${(SR - SL) / 2 - 1} 13 0 0 0 ${SR - 1} ${RIM + 11}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 2, opacity: '.75', 'stroke-linecap': 'round' }, rig);
   // 墨线勾勒：左重右轻
-  el('path', { d: wobble(SL, RIM, SL - 3, 196, 1.2, 7), fill: 'none', stroke: '#1b1712', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
-  el('path', { d: `M${SL - 3} 196 C${SL + 4} 238 ${PX - 44} ${PY} ${PX} ${PY} C${PX + 44} ${PY} ${SR + 2} 232 ${SR + 2} 190`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3, 'stroke-linecap': 'round' }, rig);
-  el('path', { d: wobble(SR, RIM, SR + 2, 190, 1, 6), fill: 'none', stroke: '#1b1712', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: wobble(SL, RIM, SL - 3, 196, 1.2, 7), fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${SL - 3} 196 C${SL + 4} 238 ${PX - 44} ${PY} ${PX} ${PY} C${PX + 44} ${PY} ${SR + 2} 232 ${SR + 2} 190`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: wobble(SR, RIM, SR + 2, 190, 1, 6), fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, rig);
 
   // 朱印：外缘不规则、内框断续、朱面剥蚀。壳在转，不能用滤镜，所以用静态的不规则路径与碎点，生成时只算一次
   const seal = el('g', { transform: `translate(${PX + 20} ${RIM + 56}) rotate(7 18 18)` }, rig);
@@ -188,7 +188,7 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
   el('text', { x: 18, y: 16.5, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 13, fill: '#efe6d0' }, seal).textContent = '天';
   el('text', { x: 18, y: 31, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 13, fill: '#efe6d0' }, seal).textContent = '机';
   // 口沿前半圈
-  el('path', { d: `M${SL} ${RIM} A${(SR - SL) / 2} 13 0 0 0 ${SR} ${RIM}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${SL} ${RIM} A${(SR - SL) / 2} 13 0 0 0 ${SR} ${RIM}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
 
   // 飞出来的三枚钱，与它们落在纸上的影
   const shadows = [0, 1, 2].map(() => el('ellipse', { rx: R * 0.9, ry: 6, fill: 'url(#c-pool)', opacity: '0' }, svg));
@@ -440,7 +440,7 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
 
   function burst(x, y, power) {
     for (let i = 0; i < 7; i++) {
-      const c = el('circle', { fill: '#1b1712' }, dustG);
+      const c = el('circle', { fill: 'var(--obj-ink)' }, dustG);
       const ang = rand(-Math.PI * 0.95, -Math.PI * 0.05);
       const sp = rand(60, 220) * (0.5 + power);
       st.dust.push({ c, r0: rand(0.8, 2.4), spread: 0, landed: false, x: x + rand(-18, 18), y: y - 2, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: rand(0.35, 0.7), age: 0 });

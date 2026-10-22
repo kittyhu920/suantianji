@@ -10,6 +10,7 @@
   import { setMuted } from './audio.js';
   import ZhuPanel from './ZhuPanel.svelte';
   import Seal from './Seal.svelte';
+  import { mountTilt } from './tilt.js';
   import PosterDialog from './end/PosterDialog.svelte';
 
   let { juan } = $props();
@@ -35,6 +36,7 @@
     const huaxin = stage.closest('.huaxin');
     setNotes(juan.zhu ?? {});
     ctx.attach({ huaxin, stage, canvas, glossHost });
+    const offTilt = mountTilt(huaxin);
     let alive = true;
     (async () => {
       const g = await juan.enter(ctx);
@@ -43,6 +45,7 @@
     })();
     return () => {
       alive = false;
+      offTilt();
       game?.destroy?.();
       resetZhu();
       ctx.destroy();

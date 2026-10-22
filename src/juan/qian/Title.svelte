@@ -69,7 +69,7 @@
           <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
         </filter>
       </defs>
-      <g class="brush-spots" fill="#1b1712" filter="url(#bleed)">
+      <g class="brush-spots" fill="var(--ink)" filter="url(#bleed)">
         <circle cx="330" cy="196" r="9"/><circle cx="350" cy="210" r="4"/><circle cx="314" cy="216" r="3"/><circle cx="46" cy="96" r="5"/>
       </g>
     </svg>

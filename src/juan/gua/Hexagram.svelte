@@ -63,12 +63,12 @@
 
 <style>
   .hexagram { display: block; height: auto; overflow: visible; }
-  .hx-label { font-family: var(--f-text); font-size: 9px; fill: var(--gold-dim); }
-  .hx-ghost { stroke: var(--gold); stroke-opacity: .12; stroke-width: 6; stroke-dasharray: 1 7; stroke-linecap: round; }
-  .hx-ink { fill: none; stroke: var(--gold); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 1; opacity: .9; }
-  .hx-wet { fill: none; stroke: var(--gold); stroke-width: 13.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 1; opacity: .07; }
-  .hx-dry { fill: none; stroke: var(--gan); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: .13 .05 .3 .09; opacity: .5; }
-  .hx-mark { fill: none; stroke: var(--cinnabar); stroke-width: 1.9; stroke-linecap: round; }
+  .hx-label { font-family: var(--f-text); font-size: 9px; fill: var(--ink-dim); }
+  .hx-ghost { stroke: var(--ink); stroke-opacity: .12; stroke-width: 6; stroke-dasharray: 1 7; stroke-linecap: round; }
+  .hx-ink { fill: none; stroke: var(--ink); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 1; opacity: .9; }
+  .hx-wet { fill: none; stroke: var(--ink); stroke-width: 13.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 1; opacity: .07; }
+  .hx-dry { fill: none; stroke: var(--paper); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: .13 .05 .3 .09; opacity: .5; }
+  .hx-mark { fill: none; stroke: var(--cinnabar-hi); stroke-width: 1.9; stroke-linecap: round; }
   .is-new .hx-ink, .is-new .hx-wet { animation: hx-write .8s cubic-bezier(.35, .1, .3, 1) both; }
   .is-new .hx-dry { animation: hx-fade .9s ease-out .5s both; }
   .is-new .hx-mark { animation: hx-fade .5s ease-out .8s both; }

@@ -124,4 +124,4 @@
   padding: 10px 0 6px;
 }
 /* 不铺底色（纸有纹理，平涂的底会在按钮两侧显出一块发白的长条）：实心按钮自己就看得清，描边的按钮只加字周围的纸色柔光 */
-.jiao-actions .btn:not(.btn-primary) { text-shadow: 0 0 3px var(--gan), 0 0 6px var(--gan), 0 0 10px var(--gan); }
+.jiao-actions .btn:not(.btn-primary) { text-shadow: 0 0 3px var(--paper), 0 0 6px var(--paper), 0 0 10px var(--paper); }

@@ -1,24 +1,8 @@
 /* 演算天机 — 宣纸朱批（docs/DESIGN.md）
    宣纸为底，墨写正文，枯笔墨痕做骨架；大师的评语用淡墨写在天头，朱笔只用来圈点。
-   变量沿用旧名以免大面积改动：--gold 现在是"墨"，--gan 是"宣纸"。 */
+   颜色全部在 theme.css 的变量里（浅色"宣纸"与深色"乌金拓"）；旧名 --gold、--gan 仍是别名。 */
 
 :root {
-  --xuan: #cfc2a4;          /* 纸外的案几 */
-  --gan: #efe6d0;           /* 宣纸 */
-  --gan-deep: #e4d8bd;
-  --jade: #5c7f67;
-  --jade-deep: #46634f;
-  --gold: #1b1712;          /* 墨 */
-  --gold-soft: rgba(27, 23, 18, .74);
-  --gold-dim: rgba(27, 23, 18, .5);
-  --gold-faint: rgba(27, 23, 18, .14);
-  --cinnabar: #b3261f;      /* 朱 */
-  --cinnabar-hi: #b3261f;
-  --zhu-rule: rgba(179, 38, 31, .22);
-  --paper-ink: #1b1712;     /* 正文 */
-  --on-zhu: #f6eedb;        /* 朱印上的字 */
-  --silk: #d8c79f;
-
   --f-title: "Zhi Mang Xing", "Ma Shan Zheng", "STKaiti", "KaiTi", serif;
   --f-brush: "Ma Shan Zheng", "STKaiti", "KaiTi", "Kaiti SC", serif;
   --f-text: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
@@ -32,8 +16,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
   background:
-    radial-gradient(120% 80% at 50% 30%, #ddd1b6 0%, var(--xuan) 60%, #b8aa8a 100%);
-  color: var(--gold);
+    radial-gradient(120% 80% at 50% 30%, var(--table-hi) 0%, var(--table) 60%, var(--table-lo) 100%);
+  color: var(--ink);
   font-family: var(--f-text);
   font-size: 16px;
   line-height: 1.75;
@@ -44,7 +28,7 @@ button { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -55,7 +39,7 @@ button { font: inherit; color: inherit; }
   position: relative;
   flex: 1;
   min-height: 0;
-  background-color: var(--gan);
+  background-color: var(--paper);
   background-image:
     /* 木版印刷的朱丝栏：略有抖动、偶有断口；一块图案三根线，断口错开 */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='520'%3E%3Cfilter id='w' filterUnits='userSpaceOnUse' x='0' y='0' width='132' height='520'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04545 .025' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='2.4'/%3E%3C/filter%3E%3Cg stroke='%23b3261f' stroke-opacity='.24' stroke-width='1.15' filter='url(%23w)'%3E%3Cpath d='M22 0V520' stroke-dasharray='150 2 90 1 180 3 94 0'/%3E%3Cpath d='M66 0V520' stroke-dasharray='60 1 210 3 130 2 114 0' stroke-opacity='.2'/%3E%3Cpath d='M110 0V520' stroke-dasharray='240 2 70 1 150 2 55 0'/%3E%3C/g%3E%3C/svg%3E"),
@@ -72,16 +56,33 @@ button { font: inherit; color: inherit; }
   position: absolute;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .82 0 0 0 .55 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  opacity: .5;
+  opacity: var(--fiber-op);
   pointer-events: none;
   z-index: 3;
+}
+/* 深色"乌金拓"的纸：墨底，纤维是淡淡的亮丝，斑驳是拓片上漏墨的白点；朱丝栏退到极淡 */
+:root[data-theme="dark"] .huaxin {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='520'%3E%3Cfilter id='w' filterUnits='userSpaceOnUse' x='0' y='0' width='132' height='520'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04545 .025' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='2.4'/%3E%3C/filter%3E%3Cg stroke='%23b3261f' stroke-opacity='.2' stroke-width='1.15' filter='url(%23w)'%3E%3Cpath d='M22 0V520' stroke-dasharray='150 2 90 1 180 3 94 0'/%3E%3Cpath d='M66 0V520' stroke-dasharray='60 1 210 3 130 2 114 0' stroke-opacity='.16'/%3E%3Cpath d='M110 0V520' stroke-dasharray='240 2 70 1 150 2 55 0'/%3E%3C/g%3E%3C/svg%3E"),
+    /* 纤维：亮丝 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .7 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    /* 拓片的白斑：高频噪声取最亮的一小撮 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.5' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .82 0 0 0 0 .78 0 0 0 0 .68 15 0 0 0 -11.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
+    /* 低频的深浅斑驳 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .6 0 0 0 0 .52 0 0 0 0 .38 0 0 0 .3 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    radial-gradient(130% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, .4) 100%);
+  background-size: 132px 520px, 240px 240px, 300px 300px, 1000px 1000px, 100% 100%;
+}
+:root[data-theme="dark"] .huaxin::after { /* 盖在字上的拓痕：几处细碎的磨损，墨字与朱印也像拓出来的 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .6' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .08 0 0 0 0 .07 0 0 0 0 .05 11 0 0 0 -8.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  opacity: .5;
 }
 .huaxin::before { /* 版框：四周双边 */
   content: "";
   position: absolute;
   inset: 8px;
-  border: 3px solid var(--gold);
-  box-shadow: inset 0 0 0 3px var(--gan), inset 0 0 0 4px var(--gold);
+  border: 3px solid var(--frame);
+  box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--frame);
   pointer-events: none;
   z-index: 4;
 }
@@ -92,7 +93,7 @@ button { font: inherit; color: inherit; }
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--gold-faint) transparent;
+  scrollbar-color: var(--ink-faint) transparent;
 }
 /* 屏 */
 .screen {
@@ -106,7 +107,7 @@ button { font: inherit; color: inherit; }
 }
 .screen.is-active {
   display: flex;
-  text-shadow: 0 0 .6px rgba(27, 23, 18, .28); /* 墨在纸上的微微洇开 */
+  text-shadow: 0 0 .6px rgba(var(--ink-rgb), .28); /* 墨在纸上的微微洇开 */
   animation: ink-in .9s var(--ease-out) both;
 }
 @keyframes ink-in {
@@ -121,12 +122,12 @@ button { font: inherit; color: inherit; }
   line-height: 1.1;
   letter-spacing: .06em;
   margin: 8px 0 0;
-  color: var(--gold);
+  color: var(--ink);
 }
 .note {
   margin: 0;
   font-size: 14px;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
   max-width: 22em;
 }
 
@@ -146,8 +147,11 @@ button { font: inherit; color: inherit; }
   line-height: 1;
   cursor: pointer;
   position: relative;
-  box-shadow: inset 0 0 0 3px var(--cinnabar), inset 0 0 0 5px rgba(246,238,219,.75);
-  transition: transform .18s var(--ease-out), filter .18s;
+  /* 印面有厚度：下缘一道深朱的印身，再落一层软影；按下时印身被压进去 */
+  box-shadow:
+    inset 0 0 0 3px var(--cinnabar), inset 0 0 0 5px rgba(246,238,219,.75),
+    0 3px 0 var(--seal-body), 0 6px 9px var(--seal-cast);
+  transition: transform .18s var(--ease-out), filter .18s, box-shadow .18s;
 }
 .seal { filter: url(#seal-rough); } /* 边缘与字口微微起毛：石头刻的、蘸泥盖的，没有一根是直的 */
 .seal::after { /* 印泥剥蚀：纸色的细碎斑点，越靠近边缘越密，中心几乎完整 */
@@ -161,7 +165,12 @@ button { font: inherit; color: inherit; }
 }
 .seal, .btn-primary { text-shadow: none; }
 .seal:hover:not(:disabled) { filter: brightness(1.12); }
-.seal:active:not(:disabled) { transform: translateY(2px) scale(.9); filter: url(#seal-rough) brightness(.9); transition-duration: .06s; } /* 按下：印往下压；松手后的一震见 Seal.svelte */
+.seal:active:not(:disabled) {
+  transform: translateY(3px) scale(.92);
+  filter: url(#seal-rough) brightness(.9);
+  box-shadow: inset 0 0 0 3px var(--cinnabar), inset 0 0 0 5px rgba(246,238,219,.75), 0 0 0 var(--seal-body), 0 1px 2px var(--seal-cast);
+  transition-duration: .06s;
+} /* 按下：印往下压；松手后的一震见 Seal.svelte */
 .seal:disabled { opacity: .35; cursor: default; }
 .seal-lg { --s: 92px; }
 .seal-md { --s: 64px; }
@@ -171,28 +180,34 @@ button { font: inherit; color: inherit; }
   color: var(--cinnabar-hi);
   box-shadow: inset 0 0 0 2px var(--cinnabar-hi);
 }
+.seal-outline:active:not(:disabled) { box-shadow: inset 0 0 0 2px var(--cinnabar-hi); }
 
 /* ───────── 按钮 ───────── */
 .btn {
   min-height: 44px;
   padding: 8px 26px;
-  border: 1px solid var(--gold-dim);
+  border: 1px solid var(--ink-dim);
   border-radius: 2px;
   background: transparent;
-  color: var(--gold);
+  color: var(--ink);
   font-size: 15px;
   letter-spacing: .2em;
   cursor: pointer;
   transition: background .2s, color .2s, border-color .2s;
 }
-.btn:hover { border-color: var(--gold); }
-.btn-primary { background: var(--cinnabar); color: var(--on-zhu); border-color: var(--cinnabar); font-weight: 600; box-shadow: inset 0 0 0 3px var(--cinnabar), inset 0 0 0 4px rgba(246,238,219,.7); }
-.btn-primary:hover { background: #9c1f19; }
-.btn-ghost { border-color: transparent; color: var(--gold-soft); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--gold-faint); }
+.btn:hover { border-color: var(--ink); }
+.btn-primary {
+  background: var(--cinnabar); color: var(--on-zhu); border-color: var(--cinnabar); font-weight: 600;
+  box-shadow: inset 0 0 0 3px var(--cinnabar), inset 0 0 0 4px rgba(246,238,219,.7), 0 3px 0 var(--seal-body), 0 6px 9px var(--seal-cast);
+  transition: background .2s, color .2s, border-color .2s, transform .12s, box-shadow .12s;
+}
+.btn-primary:hover { background: var(--cinnabar-press); }
+.btn-primary:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 0 0 3px var(--cinnabar), inset 0 0 0 4px rgba(246,238,219,.7), 0 0 0 var(--seal-body), 0 1px 2px var(--seal-cast); }
+.btn-ghost { border-color: transparent; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--ink-faint); }
 .btn:disabled { opacity: .35; cursor: default; }
 
 
-/* 角上的两个小按钮：左回卷首，右开关声音 */
+/* 角上的小按钮：左回卷首，右开关声音与主题。小木牌：木色的底，细纹、亮边、一道暗边，下缘一线厚度 */
 .corner-btn {
   position: absolute;
   top: 18px;
@@ -206,19 +221,36 @@ button { font: inherit; color: inherit; }
   -webkit-appearance: none;
   appearance: none;
   border: 0;
-  border-radius: 4px;
-  background: rgba(239, 230, 208, .94);
-  box-shadow: 0 1px 0 rgba(27, 23, 18, .12);
-  color: var(--gold-soft);
+  border-radius: 4px 5px 4px 5px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, var(--wood-grain) 7px 8px, transparent 8px 15px, rgba(0, 0, 0, .05) 15px 16px),
+    linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
+  box-shadow:
+    inset 0 1px 0 var(--wood-light), inset 0 -1px 0 var(--wood-edge), inset 0 0 0 1px rgba(0, 0, 0, .12),
+    0 2px 0 var(--wood-edge), 0 4px 6px var(--seal-cast);
+  color: var(--wood-ink);
   font-family: var(--f-brush);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
+  transition: transform .12s, box-shadow .12s, filter .15s;
 }
 .corner-home { left: 18px; }
 .corner-mute { right: 18px; }
-.corner-btn:hover { color: var(--gold); }
-.corner-mute[aria-pressed="true"] { color: var(--gold-faint); text-decoration: line-through; }
+.corner-btn:hover { filter: brightness(1.08); }
+.corner-btn:active { transform: translateY(2px); box-shadow: inset 0 1px 0 var(--wood-light), inset 0 -1px 0 var(--wood-edge), 0 0 0 var(--wood-edge), 0 1px 2px var(--seal-cast); }
+.corner-mute[aria-pressed="true"] { color: var(--ink-ghost); text-decoration: line-through; }
+
+/* 主题开关：一枚小印，写"昼"或"夜"（当前是哪一种就写哪一个字） */
+.corner-theme {
+  --s: 34px;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 6;
+  font-size: 17px;
+}
+.huaxin:has(.corner-mute) .corner-theme { right: calc(var(--zhu-w) + 62px); }
 /* 存疑 */
 .seal-doubt {
   position: absolute;
@@ -323,7 +355,7 @@ button { font: inherit; color: inherit; }
   box-shadow: 0 12px 40px rgba(0,0,0,.6);
   -webkit-touch-callout: default;
 }
-.poster-status, .poster-tip { margin: 0; font-size: 14px; color: var(--gold-soft); }
+.poster-status, .poster-tip { margin: 0; font-size: 14px; color: var(--ink-soft); }
 .poster-status { padding: 40px 0; }
 .poster-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .poster-actions .btn { text-decoration: none; display: inline-flex; align-items: center; }

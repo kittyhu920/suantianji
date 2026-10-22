@@ -8,14 +8,16 @@
 //   fall    落滴：从上方落下一滴，触纸即洇开（通灵等待用）
 //   splash  点按：一小团墨晕 + 两圈水纹
 
+import { inkRgb } from './theme.js';
+
 const TAU = Math.PI * 2;
-const INK = [27, 23, 18];
 const ZHU = [179, 38, 31];
 const rand = (a, b) => a + Math.random() * (b - a);
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
 
-export const COLOR = { ink: INK, zhu: ZHU };
+// 墨色随主题：浅色是墨，深色是淡金偏白的光（深色下的"墨晕"是一团淡淡的金光）
+export const COLOR = { get ink() { return inkRgb(); }, zhu: ZHU };
 
 const NOOP = {
   ripple() {}, wash() {}, spatter() {}, fall() {}, splash() {}, clear() {}, destroy() {}, advance() { return false; },
@@ -77,7 +79,7 @@ export function createInk(canvas, { reduced = false } = {}) {
   }
 
   /* ───── 水纹 ───── */
-  function ripple(x, y, { color = INK, r = 40, rings = 2, dur = 1.25, a = 0.22, lw = 1.1 } = {}) {
+  function ripple(x, y, { color = inkRgb(), r = 40, rings = 2, dur = 1.25, a = 0.22, lw = 1.1 } = {}) {
     const gap = 0.26;
     add({
       step() { return this.age < dur + (rings - 1) * gap; },
@@ -97,7 +99,7 @@ export function createInk(canvas, { reduced = false } = {}) {
 
   /* ───── 墨晕 ───── */
   // 三团柔边的圆互相错开，叠出不规则又圆润的一片；每团由中心向外渐淡，没有硬边
-  function wash(x, y, { color = INK, R = 22, a = 0.16, grow = 1.0, hold = 0.5, fade = 1.7 } = {}) {
+  function wash(x, y, { color = inkRgb(), R = 22, a = 0.16, grow = 1.0, hold = 0.5, fade = 1.7 } = {}) {
     const lobes = Array.from({ length: 3 }, () => ({
       dx: rand(-0.22, 0.22) * R, dy: rand(-0.22, 0.22) * R, k: rand(0.72, 1),
     }));
@@ -126,7 +128,7 @@ export function createInk(canvas, { reduced = false } = {}) {
   }
 
   /* ───── 溅点 ───── */
-  function spatter(x, y, { color = INK, n = 6, power = 1, size = 1 } = {}) {
+  function spatter(x, y, { color = inkRgb(), n = 6, power = 1, size = 1 } = {}) {
     const dots = Array.from({ length: n }, () => {
       const ang = rand(0, TAU);
       const sp = rand(70, 240) * power;
@@ -150,7 +152,7 @@ export function createInk(canvas, { reduced = false } = {}) {
   }
 
   /* ───── 落滴：一颗墨珠（可先悬挂鼓起一会儿），坠下，触纸即洇开 ───── */
-  function fall(x, y0, y1, { color = INK, size = 1, hang = 0, onRelease, onLand } = {}) {
+  function fall(x, y0, y1, { color = inkRgb(), size = 1, hang = 0, onRelease, onLand } = {}) {
     let y = y0;
     let v = 60;
     let released = hang <= 0;
@@ -190,7 +192,7 @@ export function createInk(canvas, { reduced = false } = {}) {
   }
 
   // 指尖落在纸上：一小团墨晕 + 两圈水纹（体量小，不抢内容）
-  function splash(x, y, { color = INK, size = 1 } = {}) {
+  function splash(x, y, { color = inkRgb(), size = 1 } = {}) {
     wash(x, y, { color, R: 24 * size, a: color === ZHU ? 0.14 : 0.13, grow: 0.8, hold: 0.15, fade: 1.3 });
     ripple(x, y, { color, r: 34 * size, rings: 2, a: 0.18 });
   }

@@ -37,21 +37,21 @@ function defs(svg) {
   const d = el('defs', {}, svg);
   d.innerHTML = `
     <linearGradient id="q-wash" x1="0" x2="1">
-      <stop offset="0" stop-color="#1b1712" stop-opacity=".92"/><stop offset=".18" stop-color="#2e2820" stop-opacity=".62"/>
-      <stop offset=".42" stop-color="#6b6254" stop-opacity=".2"/><stop offset=".62" stop-color="#8a8070" stop-opacity=".1"/>
-      <stop offset=".86" stop-color="#3a342b" stop-opacity=".5"/><stop offset="1" stop-color="#1b1712" stop-opacity=".88"/>
+      <stop offset="0" stop-color="var(--obj-ink)" stop-opacity=".92"/><stop offset=".18" stop-color="var(--obj-ink2)" stop-opacity=".62"/>
+      <stop offset=".42" stop-color="var(--obj-mid)" stop-opacity=".2"/><stop offset=".62" stop-color="var(--obj-mid2)" stop-opacity=".1"/>
+      <stop offset=".86" stop-color="var(--obj-ink3)" stop-opacity=".5"/><stop offset="1" stop-color="var(--obj-ink)" stop-opacity=".88"/>
     </linearGradient>
     <linearGradient id="q-wash-v" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="#1b1712" stop-opacity="0"/><stop offset=".7" stop-color="#1b1712" stop-opacity=".08"/><stop offset="1" stop-color="#1b1712" stop-opacity=".32"/>
+      <stop offset="0" stop-color="var(--obj-ink)" stop-opacity="0"/><stop offset=".7" stop-color="var(--obj-ink)" stop-opacity=".08"/><stop offset="1" stop-color="var(--obj-ink)" stop-opacity=".32"/>
     </linearGradient>
     <linearGradient id="q-stick" x1="0" x2="1">
-      <stop offset="0" stop-color="#2a241c"/><stop offset=".5" stop-color="#5a5244"/><stop offset="1" stop-color="#1b1712"/>
+      <stop offset="0" stop-color="var(--obj-ink2)"/><stop offset=".5" stop-color="var(--obj-mid)"/><stop offset="1" stop-color="var(--obj-ink)"/>
     </linearGradient>
     <radialGradient id="q-mouth" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#1b1712"/><stop offset="1" stop-color="#1b1712" stop-opacity=".75"/>
+      <stop offset="0" stop-color="var(--obj-ink)"/><stop offset="1" stop-color="var(--obj-ink)" stop-opacity=".75"/>
     </radialGradient>
     <radialGradient id="q-pool" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#1b1712" stop-opacity=".22"/><stop offset="1" stop-color="#1b1712" stop-opacity="0"/>
+      <stop offset="0" stop-color="var(--obj-pool)" stop-opacity=".22"/><stop offset="1" stop-color="var(--obj-pool)" stop-opacity="0"/>
     </radialGradient>`;
 }
 
@@ -78,9 +78,9 @@ function stickShape(parent) {
     + ` L${w + rand(-0.4, 0.4)} ${-h / 3} L${w - 0.3} ${h / 3} L${w - 0.8} ${h}`
     + ` L${-w + 0.8} ${h} L${-w + 0.3} ${h / 3} L${-w + rand(-0.4, 0.4)} ${-h / 3} Z`;
   el('path', { d, fill: 'url(#q-stick)' }, g);
-  el('path', { d: `M${-w} ${-h + 3} Q0 ${-h - 2} ${w} ${-h + 3} L${w} ${-h + 16} L${-w} ${-h + 16} Z`, fill: '#0e0b08' }, g); // 签头浓墨
-  for (const y of [-h + 58, -h + 150]) el('path', { d: `M${-w - 0.5} ${y} L${w + 0.5} ${y + 0.6}`, stroke: '#0e0b08', 'stroke-width': 1.3, opacity: '.8' }, g); // 竹节
-  el('path', { d: `M${-w + 1.2} ${-h + 18} L${-w + 1} ${h - 6}`, stroke: '#efe6d0', 'stroke-width': 0.8, opacity: '.28' }, g); // 飞白
+  el('path', { d: `M${-w} ${-h + 3} Q0 ${-h - 2} ${w} ${-h + 3} L${w} ${-h + 16} L${-w} ${-h + 16} Z`, fill: 'var(--obj-ink)' }, g); // 签头浓墨
+  for (const y of [-h + 58, -h + 150]) el('path', { d: `M${-w - 0.5} ${y} L${w + 0.5} ${y + 0.6}`, stroke: 'var(--obj-ink)', 'stroke-width': 1.3, opacity: '.8' }, g); // 竹节
+  el('path', { d: `M${-w + 1.2} ${-h + 18} L${-w + 1} ${h - 6}`, stroke: 'var(--obj-hi)', 'stroke-width': 0.8, opacity: '.28' }, g); // 飞白
   return g;
 }
 
@@ -95,19 +95,19 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
 
   // 筒口内壁（在签后面）
   el('ellipse', { cx: PX, cy: RIM, rx: (TR - TL) / 2, ry: 12, fill: 'url(#q-mouth)' }, rig);
-  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 1 ${TR} ${RIM}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 2.5 }, rig); // 口沿后半圈
+  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 1 ${TR} ${RIM}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 2.5 }, rig); // 口沿后半圈
   const sticksG = el('g', {}, rig);
   // 筒身（挡住签的下半截）：宣纸色打底，淡墨晕染
   const bodyPath = `M${TL} ${RIM} V${PY - 20} Q${TL} ${PY} ${TL + 22} ${PY} H${TR - 22} Q${TR} ${PY} ${TR} ${PY - 20} V${RIM} A${(TR - TL) / 2} 12 0 0 1 ${TL} ${RIM} Z`;
-  el('path', { d: bodyPath, fill: '#efe6d0' }, rig);
+  el('path', { d: bodyPath, fill: 'var(--obj-body)' }, rig);
   el('path', { d: bodyPath, fill: 'url(#q-wash)' }, rig);
   el('path', { d: bodyPath, fill: 'url(#q-wash-v)' }, rig);
   // 墨线勾勒：左重右轻，像一笔下来
-  el('path', { d: wobble(TL, RIM, TL - 0.5, PY - 18, 1.4), fill: 'none', stroke: '#1b1712', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
-  el('path', { d: wobble(TR, RIM, TR + 0.5, PY - 18, 1.2), fill: 'none', stroke: '#1b1712', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, rig);
-  el('path', { d: `M${TL} ${PY - 20} Q${TL} ${PY} ${TL + 22} ${PY} H${TR - 22} Q${TR} ${PY} ${TR} ${PY - 20}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: wobble(TL, RIM, TL - 0.5, PY - 18, 1.4), fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: wobble(TR, RIM, TR + 0.5, PY - 18, 1.2), fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${TL} ${PY - 20} Q${TL} ${PY} ${TL + 22} ${PY} H${TR - 22} Q${TR} ${PY} ${TR} ${PY - 20}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3, 'stroke-linecap': 'round' }, rig);
   for (const [y, w] of [[RIM + 22, 2.6], [PY - 34, 2]]) {
-    el('path', { d: wobble(TL + 2, y, TR - 2, y + 1, 1), fill: 'none', stroke: '#1b1712', 'stroke-width': w, opacity: '.75' }, rig);
+    el('path', { d: wobble(TL + 2, y, TR - 2, y + 1, 1), fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': w, opacity: '.75' }, rig);
   }
   // 朱印
   const brush = "'Ma Shan Zheng','STKaiti','KaiTi',serif";
@@ -138,11 +138,11 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
   el('text', { x: 22, y: 20, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 15, fill: '#efe6d0' }, seal).textContent = '天';
   el('text', { x: 22, y: 37, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 15, fill: '#efe6d0' }, seal).textContent = '机';
   // 口沿前半圈
-  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 0 ${TR} ${RIM}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3.4, 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${TL} ${RIM} A${(TR - TL) / 2} 12 0 0 0 ${TR} ${RIM}`, fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': 3.4, 'stroke-linecap': 'round' }, rig);
 
   const flyG = el('g', { opacity: '0' }, svg);
   stickShape(flyG);
-  const labelEl = el('text', { x: PX, y: FLOOR - 30, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 24, fill: '#1b1712', opacity: '0' }, svg);
+  const labelEl = el('text', { x: PX, y: FLOOR - 30, 'text-anchor': 'middle', 'font-family': brush, 'font-size': 24, fill: 'var(--obj-ink)', opacity: '0' }, svg);
   const dustG = el('g', {}, svg);
 
   let sticks;
@@ -391,7 +391,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
 
   function burst(x, y, power) {
     for (let i = 0; i < 14; i++) {
-      const c = el('circle', { fill: '#1b1712' }, dustG);
+      const c = el('circle', { fill: 'var(--obj-ink)' }, dustG);
       const ang = rand(-Math.PI * 0.95, -Math.PI * 0.05);
       const sp = rand(80, 320) * (0.5 + power);
       const r0 = rand(0.8, 2.8);

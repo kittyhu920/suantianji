@@ -7,7 +7,7 @@
   font-family: var(--f-brush);
   font-size: 20px;
   letter-spacing: .12em;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
 }
 a.corner-btn { text-decoration: none; }
 .about-lead {
@@ -27,9 +27,9 @@ a.corner-btn { text-decoration: none; }
 }
 .screen-about p, .screen-about li { margin: 0; font-size: 15px; line-height: 1.85; color: var(--paper-ink); }
 .screen-about ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
-.screen-about li b { color: var(--gold); font-weight: 600; margin-right: .4em; }
-.screen-about p a { color: var(--gold); text-underline-offset: 4px; text-decoration-color: var(--gold-dim); overflow-wrap: anywhere; }
-.screen-about p a:hover { text-decoration-color: var(--gold); }
+.screen-about li b { color: var(--ink); font-weight: 600; margin-right: .4em; }
+.screen-about p a { color: var(--ink); text-underline-offset: 4px; text-decoration-color: var(--ink-dim); overflow-wrap: anywhere; }
+.screen-about p a:hover { text-decoration-color: var(--ink); }
 .about-back { align-self: center; margin-top: 12px; text-decoration: none; display: inline-flex; align-items: center; }
 @media (max-width: 520px) {
   .screen-about { padding: 60px 24px 32px; }
@@ -43,8 +43,8 @@ a.corner-btn { text-decoration: none; }
 .doc ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; }
 .doc strong { font-weight: 600; }
 .doc table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.7; }
-.doc th, .doc td { padding: 6px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--gold-faint); }
-.doc th { font-weight: 600; color: var(--gold); border-bottom: 1px solid var(--gold-dim); }
+.doc th, .doc td { padding: 6px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--ink-faint); }
+.doc th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink-dim); }
 @media (min-width: 960px) {
   .screen-about { padding: 76px 48px 48px; }
   .screen-about .about-lead, .screen-about section { max-width: 720px; align-self: center; width: 100%; }
@@ -59,9 +59,9 @@ a.corner-btn { text-decoration: none; }
 /* ───────── 小链接 ───────── */
 .about-link {
   font-size: 13px;
-  color: var(--gold-soft);
+  color: var(--ink-soft);
   text-decoration: underline;
   text-underline-offset: 4px;
-  text-decoration-color: var(--gold-faint);
+  text-decoration-color: var(--ink-faint);
 }
-.about-link:hover { color: var(--gold); }
+.about-link:hover { color: var(--ink); }
