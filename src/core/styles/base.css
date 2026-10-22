@@ -161,7 +161,7 @@ button { font: inherit; color: inherit; }
 }
 .seal, .btn-primary { text-shadow: none; }
 .seal:hover:not(:disabled) { filter: brightness(1.12); }
-.seal:active:not(:disabled) { transform: scale(.94) rotate(-2deg); }
+.seal:active:not(:disabled) { transform: translateY(2px) scale(.9); filter: url(#seal-rough) brightness(.9); transition-duration: .06s; } /* 按下：印往下压；松手后的一震见 Seal.svelte */
 .seal:disabled { opacity: .35; cursor: default; }
 .seal-lg { --s: 92px; }
 .seal-md { --s: 64px; }

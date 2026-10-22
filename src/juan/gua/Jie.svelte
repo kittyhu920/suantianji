@@ -34,8 +34,7 @@
         </figure>
       {/if}
     </div>
-    <article class="jiegua" aria-labelledby="jg-name">
-      <h3 id="jg-name" class="jiegua-name">{hex.name}</h3>
+    <article class="jiegua" aria-label={`${hex.name}卦的解读`}>
       <p class="jiegua-ci"><b><Zhu term="卦辞" /></b><span><InkLine text={hex.ci} start={400} step={45} /></span></p>
       <p class="jq-row"><b>这一卦在说什么</b><span>{hex.bai}</span></p>
       {#if domain}<p class="jq-row"><b>关于{domain.desc}</b><span>{hex.advice[S.domain]}</span></p>{/if}

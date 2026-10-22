@@ -1,17 +1,24 @@
 ---
-// 纸面：宣纸、版框、朱丝栏；桌面上纸的外侧是"案"，留出区域给之后的字盘。
-// 每个页面都包在它里面。zhu：为桌面的注栏留出位置（仪式页用）。
+// 纸面：宣纸、版框、朱丝栏；桌面上纸的外侧是"案"，案上铺着字盘（core/paper/board.js）。
+// 每个页面都包在它里面。
+//   zhu      为桌面的注栏留出位置（仪式页用）
+//   tou      纸背透字：画心里极淡的镜像大字（字符串，取前三个字）。目录页用；图谱页以后接。不传就没有
+//   kaijuan  卷首开卷：本次会话第一次进入时，纸像卷轴一样展开。目录页用
 import './styles/fonts.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/pages.css';
+import './paper/paper.css';
 
 interface Props {
   title?: string;
   description?: string;
   zhu?: boolean;
+  tou?: string;
+  kaijuan?: boolean;
 }
-const { title = '演算天机', description = '演算天机——一部收录多种民间算命法的书。第一卷是六十甲子签：一场被算法旁观的求签仪式。', zhu = false } = Astro.props;
+const { title = '演算天机', description = '演算天机——一部收录多种民间算命法的书。第一卷是六十甲子签：一场被算法旁观的求签仪式。', zhu = false, tou, kaijuan = false } = Astro.props;
+const touChars = tou ? Array.from(tou).slice(0, 3) : [];
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -21,13 +28,24 @@ const { title = '演算天机', description = '演算天机——一部收录多
 <meta name="theme-color" content="#1A1C1E">
 <title>{title}</title>
 <meta name="description" content={description}>
+{kaijuan && (
+  <script is:inline>
+    // 开卷只在本次会话第一次进入目录页时播放（在首帧之前决定，免得先闪出整页）
+    try {
+      if (!sessionStorage.getItem('stj-kaijuan') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.classList.add('kaijuan');
+      }
+      sessionStorage.setItem('stj-kaijuan', '1');
+    } catch (e) {}
+  </script>
+)}
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%239E2A2B'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23F2E6CC' font-family='serif'%3E%E9%97%AE%3C/text%3E%3C/svg%3E">
 </head>
 <body>
   <!-- 共享图形：印章的毛边滤镜 -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
-      <filter id="seal-rough" x="-6%" y="-6%" width="112%" height="112%">
+      <filter id="seal-rough" x="-14%" y="-14%" width="128%" height="128%">
         <feTurbulence type="fractalNoise" baseFrequency=".11" numOctaves="2" seed="8" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
@@ -38,9 +56,20 @@ const { title = '演算天机', description = '演算天机——一部收录多
     <div class="an-board" id="an-board" aria-hidden="true"></div>
     <div class="paper">
       <section class="huaxin" id="huaxin" class:list={{ 'has-zhu': zhu }}>
+        {touChars.length > 0 && (
+          <div class="tou" aria-hidden="true">
+            {touChars.map((c) => <span class="tou-ch">{c}</span>)}
+          </div>
+        )}
         <slot />
       </section>
+      {kaijuan && <><i class="zhou zhou-l" aria-hidden="true"></i><i class="zhou zhou-r" aria-hidden="true"></i></>}
     </div>
   </main>
+
+  <script>
+    import { mountBoard } from './paper/board.js';
+    mountBoard(document.getElementById('an-board'));
+  </script>
 </body>
 </html>

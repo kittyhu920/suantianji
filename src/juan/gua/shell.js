@@ -133,22 +133,30 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
   el('path', { d: body, fill: '#efe6d0' }, rig);
   el('path', { d: body, fill: 'url(#c-wash)' }, rig);
   el('path', { d: body, fill: 'url(#c-wash-v)' }, rig);
-  // 壳上深浅不一的斑
-  [[118, 196, 26, 20], [198, 214, 30, 22], [152, 238, 24, 14], [172, 184, 20, 14]].forEach(([cx, cy, rx, ry]) => {
-    el('ellipse', { cx, cy, rx, ry, fill: 'url(#c-blot)' }, rig);
+  // 背甲：六角的盾片（龟背纹）。尖顶六边形，一排排错开，被壳身的轮廓裁齐；每片的墨色深浅不同
+  const clip = el('clipPath', { id: 'c-body' }, rig);
+  el('path', { d: body }, clip);
+  const plates = el('g', { 'clip-path': 'url(#c-body)' }, rig);
+  const HX = 30; // 盾片半宽
+  const HY = 17; // 盾片顶点到中心
+  [[188, [100, 160, 220]], [213.5, [70, 130, 190, 250]], [239, [100, 160, 220]], [264.5, [130, 190]]].forEach(([cy, xs]) => {
+    xs.forEach((cx) => {
+      const j = () => rand(-1.3, 1.3);
+      const pts = [[0, -HY], [HX, -HY / 2], [HX, HY / 2], [0, HY], [-HX, HY / 2], [-HX, -HY / 2]].map(([x, y]) => `${(cx + x + j()).toFixed(1)} ${(cy + y + j()).toFixed(1)}`);
+      el('path', { d: `M${pts.join(' L')} Z`, fill: '#1b1712', 'fill-opacity': rand(0.04, 0.2).toFixed(2), stroke: '#1b1712', 'stroke-width': rand(1.5, 2.3).toFixed(1), 'stroke-opacity': '.72', 'stroke-linejoin': 'round' }, plates);
+      el('path', { d: `M${cx - 8 + j()} ${cy + 1} Q${cx} ${cy - 4} ${cx + 8 + j()} ${cy + 1}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 0.9, opacity: '.35' }, plates);
+    });
   });
-  // 盾片接缝：弧形的几笔
-  // 错落的盾片，不排成格子
-  const seams = [
-    [90, 184, 132, 195, 4], [132, 195, 160, 182, 3], [160, 182, 197, 191, 4], [197, 191, 232, 180, 4], // 上一排
-    [98, 216, 124, 226, 3], [124, 226, 160, 213, 4], [160, 213, 201, 223, 4], [201, 223, 226, 213, 3], // 下一排，与上一排错开
-    [128, RIM + 10, 132, 195, 3], [160, RIM + 10, 160, 182, 3], [197, RIM + 10, 197, 191, 3], // 从壳口往下的缝
-    [160, 182, 160, 213, 3], [197, 191, 201, 223, 3], [132, 195, 124, 226, 3],
-    [124, 226, 138, 252, 3], [160, 213, 162, PY - 2, 3], [201, 223, 188, 252, 3],
-  ];
-  seams.forEach(([x1, y1, x2, y2, seg]) => {
-    el('path', { d: wobble(x1, y1, x2, y2, 1.1, seg), fill: 'none', stroke: '#1b1712', 'stroke-width': rand(1.4, 2.2), opacity: '.62', 'stroke-linecap': 'round' }, rig);
-  });
+  // 边缘：沿壳口下面一圈小的缘盾，一格一格
+  const rimY = (x) => RIM + 13 * Math.sqrt(Math.max(0, 1 - ((x - PX) / ((SR - SL) / 2)) ** 2));
+  let marg = '';
+  for (let k = 0; k <= 14; k++) {
+    const x = SL + ((SR - SL) * k) / 14;
+    const y = rimY(x);
+    marg += `M${x.toFixed(1)} ${y.toFixed(1)} L${(x + (x - PX) * 0.02).toFixed(1)} ${(y + 11).toFixed(1)} `;
+  }
+  el('path', { d: marg, fill: 'none', stroke: '#1b1712', 'stroke-width': 1.7, opacity: '.7', 'stroke-linecap': 'round' }, rig);
+  el('path', { d: `M${SL + 1} ${RIM + 11} A${(SR - SL) / 2 - 1} 13 0 0 0 ${SR - 1} ${RIM + 11}`, fill: 'none', stroke: '#1b1712', 'stroke-width': 2, opacity: '.75', 'stroke-linecap': 'round' }, rig);
   // 墨线勾勒：左重右轻
   el('path', { d: wobble(SL, RIM, SL - 3, 196, 1.2, 7), fill: 'none', stroke: '#1b1712', 'stroke-width': 3.6, 'stroke-linecap': 'round' }, rig);
   el('path', { d: `M${SL - 3} 196 C${SL + 4} 238 ${PX - 44} ${PY} ${PX} ${PY} C${PX + 44} ${PY} ${SR + 2} 232 ${SR + 2} 190`, fill: 'none', stroke: '#1b1712', 'stroke-width': 3, 'stroke-linecap': 'round' }, rig);
@@ -357,13 +365,17 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
     innerG.setAttribute('opacity', '0');
     rig.setAttribute('opacity', '.9');
     st.phase = 'fly';
+    st.pourDir = Math.abs(st.a) > 3 ? Math.sign(st.a) : (Math.random() < 0.5 ? -1 : 1);
+    st.pourT = 0;
     st.target = 0;
     if (reduced) settleNow();
   }
 
   function flyStep(dt) {
-    // 壳回正
-    const aa = K * (0 - st.a) - C * st.av;
+    // 倒出来时壳先向一侧倾倒，钱出尽了再慢慢回正
+    st.pourT += dt;
+    const aim = st.pourT < 0.5 ? st.pourDir * 64 : 0;
+    const aa = K * (aim - st.a) - C * st.av;
     st.av += aa * dt;
     st.a += st.av * dt;
     for (const c of st.coins) {

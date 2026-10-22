@@ -19,8 +19,8 @@ export default {
   // 本卷的屏。每一屏收到 { ctx, game }
   screens: { title: Title, ding: Ding, cast: Cast, jie: Jie, end: End },
   zhu, // 注疏
-  // 字盘（案上的反刻活字）用字：《周易》六十四卦的卦辞原文，一卦一段（带标点，用字的一方自行取汉字）
-  zipan: db.hexagrams.map((h) => h.ci),
+  // 案上字盘的用字：《周易》六十四卦的卦辞原文
+  zipan: () => db.hexagrams.map((h) => h.ci.replace(/[^\p{Script=Han}]/gu, '')).join(''),
   // 公共组件（分享图）要显示的文案；本卷不接通灵
   copy: {
     posterTitle: '保存这一卦',
