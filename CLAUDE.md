@@ -16,6 +16,10 @@
 - `functions/api/oracle.js`：通灵模式，Pages Function + Workers AI（GLM-4.7 Flash，已关闭思考模式）。用 D1 库 `suantianji`（绑定 `DB`）按天限流，建表见 `migrations/`。
 - 页面加 `?debug` 可用 `window.__fx`（墨与水）、`window.__qian`（签筒）手动推进。
 
+## 更新日志
+
+有玩家可见变化的改动，顺手记进根目录 `CHANGELOG.md` 的 `## [Unreleased]`（Keep a Changelog 1.1.0，中文，写给玩家看，不照搬 commit）。
+
 ## 命令
 
 ```bash
@@ -30,7 +34,7 @@ npx wrangler pages deploy dist --project-name suantianji --branch main --commit-
 
 ## 约定
 
-- 视觉：宣纸朱批（见 `docs/DESIGN.md`）。宣纸底、墨写正文、枯笔墨痕做骨架；**朱色只用于印章、朱批圈点（眉批句尾的"〇"、关键数字、警示句的着重点）和阴杯**；眉批与注的正文是墨（眉批淡墨马善政楷书，注是墨色宋体）（筊杯按实物用红漆色）。不引入位图，美术靠 SVG、CSS 和 Canvas 生成。主按钮都是朱印。CSS 变量沿用旧名：`--gold` 现在是墨，`--gan` 是宣纸。
+- 视觉：宣纸朱批（见 `docs/DESIGN.md`）。宣纸底、墨写正文、枯笔墨痕做骨架；**朱只用于印章、朱批圈点（〇、关键数字、着重点）、阴杯、最终判词与关键操作按钮**；眉批、账本旁注、通灵的“实话”与注的正文都是墨（楷书或宋体），数字与句尾“〇”点朱，复用 `src/core/marks.js`，不要另写一套（筊杯按实物用红漆色）。不引入位图，美术靠 SVG、CSS 和 Canvas 生成。主按钮都是朱印。CSS 变量沿用旧名：`--gold` 现在是墨，`--gan` 是宣纸。
 - 文案：签诗为七言四句，改完用 `node tools/check-db.mjs` 校验每句正好 7 字。
 - 注疏：术语用 `<Zhu term="…">`，注写在各卷的 `zhu.json`，要有依据、不编造典故，原创设定标"原创"。注用墨色宋体，不用朱。
 - 字体自托管在 `public/fonts/`，是按站内用字（扫描 `src/` 下的 .astro/.svelte/.js/.css/.md/.json）裁出的子集。**改了任何中文文案后都要重跑** `python tools/subset-fonts.py`，否则新字会回落到系统字体。

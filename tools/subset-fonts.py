@@ -3,15 +3,15 @@
 
 改了任何中文文案之后都要重跑一次：python tools/subset-fonts.py
 
-- 马善政行楷（标题、签名、印章）：只收页面与脚本里的字，加上签名、等级、结局名；
-  签诗、白话等正文用宋体，不收进行楷。
+- 马善政行楷（标题、签名、印章、眉批）：收界面（.astro / .svelte / .js / .css）与讲解页（.md，含 frontmatter 与标题行，全收）里的字，
+  加上签名、等级、结局名；签诗、白话等正文用宋体，不收进行楷。
 - 思源宋体 400（正文）拆成两个文件：
   · 站内用字，首屏加载；
   · GB2312 一级字库（3755 个常用字）里其余的字。通灵解签由 AI 实时生成、玩家的问题由玩家输入，
     事先无法预知用字。这个文件用 unicode-range 声明，只有页面真出现这些字时浏览器才会下载。
   两者都没有的生僻字，回落到系统字体。
-- 思源宋体 600（按钮、小标题）：只收页面与脚本里的字。
-- 志莽行书（大标题）：只收页面与脚本里的字。
+- 思源宋体 600（按钮、小标题、注的术语名）：界面里的字，加注疏与讲解页（.md、.json）里的字。
+- 志莽行书（大标题）：只收界面里的字（.astro / .svelte / .js / .css）。
 
 源字体：马善政来自 Google Fonts 官方仓库，思源宋体来自 notofonts/noto-cjk 的简体中文静态字重
 （经 jsDelivr 下载，GitHub 直连太慢）。缓存在 .cache/fonts/（不入库），缺失时自动下载。
@@ -81,7 +81,7 @@ def brush_chars():
     """行楷用字：界面里的字，加签簿里会以行楷显示的字段。"""
     import json
     db = json.loads(DB.read_text(encoding='utf-8'))
-    chars = ui_chars()
+    chars = ui_chars() | scan({'.md'})
     for s in db['signs']:
         chars.update(s['name'] + s['level'])
     for e in db['endings'].values():

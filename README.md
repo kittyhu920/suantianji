@@ -38,7 +38,7 @@
 
 ## 本地运行
 
-需要 Node 22 以上：
+需要 Node 22.12 以上（`package.json` 的 `engines`）：
 
 ```bash
 npm install
