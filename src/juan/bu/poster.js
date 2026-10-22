@@ -9,13 +9,13 @@
 
 import { loomStyle } from './loom-style.js';
 import { crackSignature } from './crack.js';
-import { paintShell, paintCrackPair, carveLayout, FIG_W, FIG_H, BASE_X, BASE_Y, CARVE } from './shell.js';
+import { paintShell, paintCracks, carveLayout, spotPos, FIG_W, FIG_H, CARVE } from './shell.js';
 import { wrapCols } from './data.js';
 
 const SCALE = 1.7;
 
 function carveOf(d) {
-  const c = { xu: d.main?.xu, qian: d.qianci, ming: wrapCols(d.question), zhan: wrapCols(d.zhan, 8) };
+  const c = { xu: d.main?.xu, mainSpot: d.main?.spot, fanSpot: d.fan ? d.fan.spot : null, qian: d.qianci, ming: wrapCols(d.question), zhan: wrapCols(d.zhan, 8) };
   if (d.fan) {
     c.fanXu = d.fan.xu;
     c.fanMing = wrapCols(`贞：${d.fanQuestion}`);
@@ -31,7 +31,7 @@ function body(g, y, d, { W, C, TEXT, BRUSH, center, wrap }) {
     return y;
   }
   if (location.search.includes('debug')) window.__buPoster = { main: crackSignature(d.main.crack), fan: d.fan ? crackSignature(d.fan.crack) : null }; // 调试：核对分享图里的兆与页面上的是同一道
-  const H = FIG_H.full;
+  const H = FIG_H;
   const pw = FIG_W * SCALE;
   const ph = H * SCALE;
   y += 40;
@@ -39,22 +39,21 @@ function body(g, y, d, { W, C, TEXT, BRUSH, center, wrap }) {
   g.save();
   g.translate(x0, y);
   g.scale(SCALE, SCALE);
-  paintShell(g, H, {
-    seed: d.main.crack.seed,
-    bases: [{ x: BASE_X.main, y: BASE_Y, flip: true }, ...(d.fan ? [{ x: BASE_X.fan, y: BASE_Y, flip: false }] : [])],
-  });
-  paintCrackPair(g, { main: { crack: d.main.crack, t: 1 }, fan: d.fan && { crack: d.fan.crack, t: 1 } }, { glow: false });
+  const mp = spotPos(d.main.spot);
+  const fp = d.fan ? spotPos(d.fan.spot) : null;
+  paintShell(g, { seed: d.main.crack.seed, bases: [mp, ...(fp ? [fp] : [])] });
+  paintCracks(g, [{ crack: d.main.crack, spot: d.main.spot }, d.fan && { crack: d.fan.crack, spot: d.fan.spot }], { glow: false });
   // 兆序
   g.font = `15px ${BRUSH}`;
   g.fillStyle = 'rgba(40,28,16,.8)';
   g.textAlign = 'left';
   g.textBaseline = 'middle';
-  g.fillText(d.main.xu, BASE_X.main + 18, BASE_Y - 14);
-  if (d.fan) g.fillText(d.fan.xu, BASE_X.fan - 30, BASE_Y - 14);
+  g.fillText(d.main.xu, mp.flip ? mp.x + 18 : mp.x - 36, mp.y - 14);
+  if (fp) g.fillText(d.fan.xu, fp.flip ? fp.x + 18 : fp.x - 36, fp.y - 14);
   // 刻辞：先一层浅色（刀口的亮边），再一层深色
   g.textAlign = 'center';
   g.font = `${CARVE.font}px ${BRUSH}`;
-  for (const col of carveLayout(carveOf(d), !!d.fan)) {
+  for (const col of carveLayout(carveOf(d))) {
     [...col.t].forEach((ch, i) => {
       const cy = col.y + CARVE.font / 2 + 2 + i * CARVE.pitchY;
       g.fillStyle = 'rgba(250,242,220,.6)';

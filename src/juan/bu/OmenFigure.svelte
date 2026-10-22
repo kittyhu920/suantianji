@@ -1,18 +1,14 @@
 <script>
-  // 兆图：一块甲片，上面是灼出的兆（Canvas），兆旁刻着辞（楷书，竖排，加刀刻的效果）。
-  // 正问的兆在中缝右边，反问（对贞）的在左边，对称。生长动画在 grow 变真之后播出。
-  //   crack         正在生长的那一道兆（makeCrack 的返回值）；side 为 'main' 时在中缝右边，'fan' 时在左边
-  //   other         另一边的兆（对贞的另一半），总是长全的，可空
-  //   carve         { xu, qian, ming[], zhan[], fanMing[], fanZhao[], fanXu } 刻辞；空则不刻
-  //   grow          播放 crack 的生长（只播 crack，fan 总是长全的）
-  //   compact       矮的一块，只放兆（读兆时用）
+  // 兆图：龟甲正面（与背面是同一块甲，左右镜像），兆落在对应钻凿的位置（Canvas），兆旁刻着辞（楷书，竖排，加刀刻的效果）。
+  //   crack / spot        正在生长的那一道兆，与它对应的钻凿序号
+  //   other / otherSpot   对贞的另一半，总是长全的，可空
+  //   carve               { xu, qian, ming[], zhan[], fanMing[], fanZhao[], fanXu, mainSpot, fanSpot } 刻辞；空则不刻
+  //   grow                播放 crack 的生长
   import { onMount } from 'svelte';
-  import { paintShell, paintCrackPair, carveLayout, FIG_W, FIG_H, BASE_Y, BASE_X } from './shell.js';
+  import { paintShell, paintCracks, carveLayout, spotPos, FIG_W, FIG_H } from './shell.js';
 
-  let { ctx, crack, side = 'main', other = null, carve = null, grow = false, delay = 0, compact = false, onDone, class: cls = '' } = $props();
-  const fan = $derived(side === 'main' ? other : crack); // 左边那一道
-  const main = $derived(side === 'main' ? crack : other); // 右边那一道
-  const H = compact ? FIG_H.compact : FIG_H.full;
+  let { ctx, crack, spot, other = null, otherSpot = null, carve = null, grow = false, delay = 0, onDone, class: cls = '' } = $props();
+  const H = FIG_H;
   let box;
   let bg;
   let fg;
@@ -24,6 +20,8 @@
   let scale = $state(1);
 
   const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+  const pos = $derived(spotPos(spot));
+  const opos = $derived(other && otherSpot != null ? spotPos(otherSpot) : null);
 
   function size() {
     cw = box.clientWidth;
@@ -40,10 +38,7 @@
     const k = (cw / FIG_W) * dpr();
     g.setTransform(k, 0, 0, k, 0, 0);
     g.clearRect(0, 0, FIG_W, H);
-    paintShell(g, H, {
-      seed: crack.seed,
-      bases: [...(main ? [{ x: BASE_X.main, y: BASE_Y, flip: true }] : []), ...(fan ? [{ x: BASE_X.fan, y: BASE_Y, flip: false }] : [])],
-    });
+    paintShell(g, { seed: crack.seed, bases: [pos, ...(opos ? [opos] : [])] });
   }
 
   function drawFg(glow) {
@@ -51,10 +46,7 @@
     const k = (cw / FIG_W) * dpr();
     g.setTransform(k, 0, 0, k, 0, 0);
     g.clearRect(0, 0, FIG_W, H);
-    paintCrackPair(g, {
-      main: main && { crack: main, t: side === 'main' ? t : 1 },
-      fan: fan && { crack: fan, t: side === 'fan' ? t : 1 },
-    }, { glow });
+    paintCracks(g, [{ crack, spot, t }, other && { crack: other, spot: otherSpot, t: 1 }], { glow });
   }
 
   function draw(glow = false) { if (cw) { drawBg(); drawFg(glow); } }
@@ -95,15 +87,16 @@
   });
 
   // 刻辞：每一列错开，一列一列刻下去（版面见 shell.js 的 carveLayout）
-  const layout = $derived(carveLayout(carve, !!fan));
+  const layout = $derived(carveLayout(carve));
+  const xuPos = (p) => `left:calc(var(--u) * ${p.flip ? p.x + 18 : p.x - 36}px);top:calc(var(--u) * ${p.y - 22}px)`;
 </script>
 
-<div class={`omen-fig ${compact ? 'is-compact' : ''} ${cls}`.trim()} bind:this={box} style={`--u:${scale};aspect-ratio:${FIG_W}/${H}`}>
+<div class={`omen-fig ${cls}`.trim()} bind:this={box} style={`--u:${scale};aspect-ratio:${FIG_W}/${H}`}>
   <canvas class="fig-bg" bind:this={bg} aria-hidden="true"></canvas>
   <canvas class="fig-crack" bind:this={fg} role="img" aria-label="灼出的兆纹"></canvas>
   {#if carve}
-    {#if carve.xu}<span class="fig-xu" style={`left:calc(var(--u) * ${BASE_X.main + 18}px);top:calc(var(--u) * ${BASE_Y - 22}px)`}>{carve.xu}</span>{/if}
-    {#if fan && carve.fanXu}<span class="fig-xu" style={`left:calc(var(--u) * ${BASE_X.fan - 36}px);top:calc(var(--u) * ${BASE_Y - 22}px)`}>{carve.fanXu}</span>{/if}
+    {#if carve.xu}<span class="fig-xu" style={xuPos(pos)}>{carve.xu}</span>{/if}
+    {#if opos && carve.fanXu}<span class="fig-xu" style={xuPos(opos)}>{carve.fanXu}</span>{/if}
     {#each layout as c}
       <p class={`kcol is-${c.k}`} style={`left:calc(var(--u) * ${c.x}px);top:calc(var(--u) * ${c.y}px);animation-delay:${(carve.base ?? 0) + c.n * 420}ms`}>{c.t}</p>
     {/each}

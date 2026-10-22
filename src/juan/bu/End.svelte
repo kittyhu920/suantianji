@@ -35,7 +35,7 @@
   <div class="end-cols">
     <div class="end-col">
       {#if crack}
-        <OmenFigure {ctx} {crack} {other} {carve} class="end-fig" />
+        <OmenFigure {ctx} {crack} spot={z.spot} {other} otherSpot={f?.spot} {carve} class="end-fig" />
         <article class="jieqian" id="jieqian" aria-labelledby="jq-h">
           <h3 id="jq-h">解兆</h3>
           <p class="jq-state" id="jq-state" data-state={e.state.key}>{e.state.text}</p>

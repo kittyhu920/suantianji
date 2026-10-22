@@ -113,6 +113,8 @@
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); game.pressEnd(); }
   }
 
+  // 对贞：只能灼与正问左右对称的那一处（它已用过则不限）
+  const off = (i) => S.nextKind === 'fan' && game.mirrorSpot() >= 0 && i !== game.mirrorSpot();
   const spot = $derived(S.active >= 0 ? SPOTS[S.active] : null);
   const heat = $derived(S.heat);
 </script>
@@ -187,8 +189,9 @@
       class="spot"
       class:is-used={S.used[i]}
       class:is-active={S.active === i}
+      class:is-off={off(i)}
       style={`left:${(s.x / 300) * 100}%;top:${(s.y / 420) * 100}%`}
-      disabled={S.used[i] || (S.phase !== 'pick')}
+      disabled={S.used[i] || (S.phase !== 'pick') || off(i)}
       aria-label={`第${cnNum(i + 1)}处钻凿，按住来灼${S.used[i] ? '（已灼）' : ''}`}
       onpointerdown={(e) => down(e, i)}
       onpointermove={move}

@@ -16,7 +16,7 @@
   <h2 id="k-h" class="h-brush">刻辞</h2>
   <p class="note">我作<Zhu term="贞人" />，把<Zhu term="前辞命辞占辞验辞">前辞、命辞、占辞</Zhu>刻在甲上，兆旁的数字是<Zhu term="兆序" />。{#if S.override}兆是凶的，刻下去的却是你改判的话。{/if}</p>
   {#if crack}
-    <OmenFigure {ctx} {crack} {other} {carve} />
+    <OmenFigure {ctx} {crack} spot={z.spot} {other} otherSpot={f?.spot} {carve} />
   {/if}
   <button class="btn btn-primary" id="btn-view" onclick={game.finish}>观象</button>
 </section>

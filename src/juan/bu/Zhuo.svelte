@@ -23,7 +23,7 @@
   const ming = $derived(S.nextKind === 'fan' ? S.qFan : S.question);
 
   const pickNote = $derived(
-    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住另一处钻凿。'
+    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住与第一灼左右对称的那一处。'
       : S.nextKind === 'again' ? '另选一处钻凿，再灼。火红了就别松手。'
         : '按住一处钻凿，别松手；火红了，“卜”的一声就来。'
   );
@@ -48,7 +48,7 @@
           <div class="face face-front" aria-hidden={!reading}>
             {#key S.cur}
               {#if crack}
-                <OmenFigure {ctx} compact {crack} {other} side={cur.kind === 'fan' ? 'fan' : 'main'} grow={reading} delay={850} onDone={game.onGrown} />
+                <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={850} onDone={game.onGrown} />
               {/if}
             {/key}
           </div>

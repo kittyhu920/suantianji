@@ -201,6 +201,7 @@ export function createGame(ctx) {
 
   function pressStart(i) {
     if (S.phase !== 'pick' || S.holding || S.used[i] || ctx.screen !== 'zhuo') return;
+    if (S.nextKind === 'fan' && game.mirrorSpot() >= 0 && i !== game.mirrorSpot()) return;
     if (S.active >= 0 && S.active !== i) { S.heat = 0; S.holdMs = 0; S.jitter = 0; } // 换了一处，火从头烧
     S.active = i;
     S.holding = true;
@@ -366,6 +367,8 @@ export function createGame(ctx) {
     const line = S.zhan;
     const d = {
       xu: cnNum(S.burns.indexOf(z) + 1),
+      mainSpot: z.spot,
+      fanSpot: f ? f.spot : null,
       qian: qianci(S.clock),
       ming: wrapCols(S.question),
       zhan: wrapCols(line, 8),
@@ -523,8 +526,8 @@ export function createGame(ctx) {
       fanQuestion: f ? S.qFan : '',
       qianci: qianci(S.clock),
       omenName: z ? OMENS[z.omen].name : '',
-      main: z && { crack: crackOf(z), xu: cnNum(S.burns.indexOf(z) + 1) },
-      fan: f && { crack: crackOf(f), xu: cnNum(S.burns.indexOf(f) + 1), name: OMENS[f.omen].name },
+      main: z && { crack: crackOf(z), spot: z.spot, xu: cnNum(S.burns.indexOf(z) + 1) },
+      fan: f && { crack: crackOf(f), spot: f.spot, xu: cnNum(S.burns.indexOf(f) + 1), name: OMENS[f.omen].name },
       zhan: S.zhan,
       state: state.text,
       stateNo: state.key === 'no',
@@ -564,6 +567,8 @@ export function createGame(ctx) {
     // 屏要用的
     begin, answerYan, pickDomain, confirmDing, registerPlastron, pressStart, pressMove, pressEnd,
     onGrown, startFan, again, accept, overrule, finish, playAgain, toStart,
+    // 对贞要在与正问左右对称的那一处灼（同一排的另一格）；那一处已用过就不限
+    mirrorSpot: () => { const z = decisive(); const m = z ? z.spot ^ 1 : -1; return m >= 0 && !S.used[m] ? m : -1; },
     crackOf, zhengBurns, fanBurn, decisive, decisiveIdx, spotsLeft, carveData, loomThrows,
     confessItems, ledgerRows,
     pending: () => pendingYan,
