@@ -110,7 +110,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     el('path', { d: wobble(TL + 2, y, TR - 2, y + 1, 1), fill: 'none', stroke: 'var(--obj-ink)', 'stroke-width': w, opacity: '.75' }, rig);
   }
   // 朱印
-  const brush = "'Ma Shan Zheng','STKaiti','KaiTi',serif";
+  const brush = "'Huiwen-mincho','Noto Serif SC',serif";
   const seal = el('g', { transform: `translate(${PX - 22} ${RIM + 72}) rotate(-6 22 22)` }, rig);
   // 印面：外缘不规则、内框断续、朱面剥蚀。筒在转，不能用滤镜，所以用静态的路径与碎点，只在生成时算一次
   const jag = () => rand(-0.9, 0.9);

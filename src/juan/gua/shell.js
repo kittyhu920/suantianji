@@ -34,7 +34,7 @@ const el = (tag, attrs = {}, parent) => {
   if (parent) parent.append(e);
   return e;
 };
-const brush = "'Ma Shan Zheng','STKaiti','KaiTi',serif";
+const brush = "'Huiwen-mincho','Noto Serif SC',serif";
 
 function defs(svg) {
   const d = el('defs', {}, svg);

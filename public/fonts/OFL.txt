@@ -1,13 +1,11 @@
-本目录的字体均以 SIL Open Font License 1.1 发布，许可全文附后。
+下列字体文件以 SIL Open Font License 1.1 发布，许可全文附后。
 
-- ma-shan-zheng.woff2：马善政楷书 Ma Shan Zheng
-  Copyright 2018 The Ma Shan Zheng Project Authors (https://github.com/googlefonts/mashanzheng)
-- zhi-mang-xing.woff2：志莽行书 Zhi Mang Xing
-  Copyright 2018 The Zhi Mang Xing Project Authors (https://github.com/googlefonts/zhimangxing)
+- lxgw-wenkai*.woff2：霞鹜文楷 LXGW WenKai（v1.530）
+  Copyright 2021 The LXGW WenKai Project Authors (https://github.com/lxgw/LxgwWenKai)
 - noto-serif-sc-*.woff2：思源宋体 Noto Serif SC
   © 2017-2024 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.（https://github.com/notofonts/noto-cjk）
 
-修改说明：以上文件都是按本站用字裁出的子集（tools/subset-fonts.py），马善政楷书与志莽行书另由部件拼造了原字库没有的"筊"字（tools/compose_glyph.py）。修改版未使用保留字体名。
+修改说明：以上文件都是按本站用字裁出的子集（tools/subset-fonts.py），霞鹜文楷另由部件拼造了原字库没有的字（tools/compose_glyph.py）。修改版未使用保留字体名。
 
 -----------------------------------------------------------
 
