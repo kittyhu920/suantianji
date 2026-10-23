@@ -31,6 +31,7 @@ export default {
   open: true,
   start: 'title',
   screens: { title: Title, yan: Yan, ding: Ding, zhuo: Zhuo, ke: Ke, end: End },
+  steps: [{ k: 'ding', name: '命辞' }, { k: 'zhuo', name: '灼卜' }, { k: 'ke', name: '刻辞' }, { k: 'end', name: '观象' }],
   Defs, // 本卷的共享图形（滤镜）
   zhu,
   copy,

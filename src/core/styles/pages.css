@@ -1,26 +1,27 @@
 /* ───────── 关于页 ───────── */
-.screen-about { padding: 64px 30px 40px; text-align: left; align-items: stretch; }
-.screen-about .h-brush { text-align: center; }
+.screen-about { padding: 36px 44px 36px; text-align: left; align-items: stretch; justify-content: flex-start; }
+.doc-head { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.doc-head .lp-name { font-size: 46px; }
+.lost-head .seal { cursor: default; }
 .about-by {
   margin: -4px 0 0;
   text-align: center;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 20px;
   letter-spacing: .12em;
   color: var(--ink-soft);
 }
-a.corner-btn { text-decoration: none; }
 .about-lead {
   margin: 0;
   text-align: center;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 20px;
   line-height: 1.6;
 }
 .screen-about section { display: flex; flex-direction: column; gap: 8px; }
 .screen-about h2 {
   margin: 8px 0 0;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 22px;
   letter-spacing: .1em;
@@ -31,24 +32,21 @@ a.corner-btn { text-decoration: none; }
 .screen-about p a { color: var(--ink); text-underline-offset: 4px; text-decoration-color: var(--ink-dim); overflow-wrap: anywhere; }
 .screen-about p a:hover { text-decoration-color: var(--ink); }
 .about-back { align-self: center; margin-top: 12px; text-decoration: none; display: inline-flex; align-items: center; }
-@media (max-width: 520px) {
-  .screen-about { padding: 60px 24px 32px; }
+@media (max-width: 959px) {
+  .screen-about { padding: 20px 22px 28px; }
+  .doc-head .lp-name { font-size: 34px; }
 }
 
 /* ───────── 讲解页（Markdown，例如各卷的源流） ───────── */
-.screen-doc { max-width: 760px; margin: 0 auto; }
+.screen-doc { margin: 0; }
 .doc { display: flex; flex-direction: column; gap: 10px; }
-.doc h2 { margin: 18px 0 0; font-family: var(--f-brush); font-weight: 400; font-size: 24px; letter-spacing: .1em; }
+.doc h2 { margin: 18px 0 0; font-family: var(--f-display); font-weight: 400; font-size: 24px; letter-spacing: .1em; }
 .doc p, .doc li { margin: 0; font-size: 15px; line-height: 1.9; color: var(--paper-ink); }
 .doc ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; }
 .doc strong { font-weight: 600; }
 .doc table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.7; }
 .doc th, .doc td { padding: 6px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--ink-faint); }
 .doc th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink-dim); }
-@media (min-width: 960px) {
-  .screen-about { padding: 76px 48px 48px; }
-  .screen-about .about-lead, .screen-about section { max-width: 720px; align-self: center; width: 100%; }
-}
 
 /* ───────── 404 ───────── */
 .screen-lost { justify-content: center; padding: 28px; gap: 22px; }

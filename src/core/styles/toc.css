@@ -1,20 +1,8 @@
 /* 卷首目录：古籍目录页的样子。竖排，自右向左，每一卷一列：卷名、全称、点线、页码，旁边是一句简介。
    朱色只给印章：开了卷的那一卷盖一枚"入"字小印；未开卷的墨色更淡，不可进入。 */
 
-.screen-toc {
-  justify-content: center;
-  gap: 22px;
-  padding-top: 36px;
-}
-.toc {
-  display: flex;
-  flex-direction: row-reverse; /* 第一个在最右 */
-  align-items: flex-start;
-  justify-content: center;
-  gap: clamp(18px, 3vw, 44px);
-  max-width: 100%;
-}
-
+.huaxin { --toc-h: min(500px, calc(100dvh - 330px)); }
+.screen-toc { justify-content: center; padding: 20px 14px; }
 .toc-head {
   writing-mode: vertical-rl;
   display: flex;
@@ -25,10 +13,9 @@
   padding-left: clamp(8px, 2vw, 28px);
   border-left: 1px solid var(--ink-faint);
 }
-.toc { --toc-h: min(500px, calc(100dvh - var(--mei-h) - 170px)); }
 .toc-title {
   margin: 0;
-  font-family: var(--f-title);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: clamp(54px, 6vw, 80px);
   line-height: 1.15;
@@ -38,7 +25,7 @@
 .toc-sub {
   margin: 0;
   padding-top: .6em;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 18px;
   letter-spacing: .3em;
   color: var(--ink-soft);
@@ -57,7 +44,8 @@
   padding: 0;
   display: flex;
   flex-direction: row-reverse;
-  gap: clamp(14px, 2.4vw, 36px);
+  justify-content: center;
+  gap: 4px;
 }
 .toc-item {
   writing-mode: vertical-rl;
@@ -79,7 +67,7 @@
   text-shadow: 0 0 .6px rgba(var(--ink-rgb), .28);
 }
 .toc-name {
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 52px;
   line-height: 1.1;
 }
@@ -127,30 +115,29 @@ a.toc-entry:hover .toc-leader { border-left-color: var(--ink); }
 .is-closed .toc-name, .is-closed .toc-full, .is-closed .toc-page, .is-closed .toc-intro { color: rgba(var(--ink-rgb), .34); }
 .is-closed .toc-leader { border-left-color: rgba(var(--ink-rgb), .2); }
 
-.toc-foot { margin: 0; display: flex; gap: 22px; justify-content: center; }
+.toc-foot { margin: 0; display: flex; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+.lp-plain { padding: 36px 40px; align-items: center; justify-content: center; }
+.lp-plain .toc-head { margin: 0 auto; }
+.static-head .toc-head { writing-mode: horizontal-tb; flex-direction: column; align-items: center; height: auto; gap: 4px; padding: 0 0 12px; border-left: 0; border-bottom: 1px solid var(--ink-faint); width: 100%; }
+
+.toc-name { font-size: 38px; }
+.toc-full { font-size: 12.5px; letter-spacing: .16em; }
+.toc-intro { font-size: 12.5px; letter-spacing: .08em; padding-top: 6px; }
+.toc-tag { font-size: 11px; }
 
 @media (max-width: 959px) {
-  .toc { flex-direction: column; align-items: center; gap: 22px; --toc-h: 262px; }
-  .toc-head { height: auto; writing-mode: horizontal-tb; flex-direction: column; align-items: center; gap: 4px; padding: 0 0 16px; border-left: 0; border-bottom: 1px solid var(--ink-faint); width: 100%; }
-  .toc-title { font-size: 56px; }
+  .toc-title { font-size: 48px; }
   .toc-sub { padding: 0; }
   .toc-mulu { display: none; }
-  .toc-list { display: grid; grid-template-columns: repeat(3, auto); direction: rtl; row-gap: 22px; column-gap: 14px; justify-content: center; max-width: 100%; }
-  .toc-item { direction: ltr; }
-  .toc-item { gap: 4px; }
+  .toc-list { display: grid; grid-template-columns: repeat(3, auto); direction: rtl; row-gap: 20px; column-gap: 14px; justify-content: center; max-width: 100%; }
+  .toc-item { direction: ltr; --toc-h: 262px; gap: 4px; }
   .toc-name { font-size: 40px; }
   .toc-full { font-size: 12px; letter-spacing: .12em; }
   .toc-intro { font-size: 12px; letter-spacing: .06em; }
   .toc-page { font-size: 13px; }
   .toc-seal { --s: 28px; font-size: 13px; }
-}
-@media (max-width: 520px) {
-  /* 手机上纸上下各让出一窄条给字盘（layout.css），目录页的上下留白相应收紧，仍一屏放下 */
-  .screen-toc { padding: 18px 14px 22px; gap: 16px; }
-  .toc { gap: 16px; }
-  .toc-list { column-gap: 8px; }
-  .toc-entry { padding: 2px 3px; }
+  .screen-toc { padding: 60px 14px 20px; justify-content: flex-start; }
 }
 @media (max-height: 700px) and (min-width: 960px) {
-  .toc-name { font-size: 44px; }
+  .toc-name { font-size: 34px; }
 }

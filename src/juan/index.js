@@ -6,7 +6,10 @@
 // 卷模块（src/juan/<id>/index.js 的默认导出）：
 //   id, name, title      卷 id（路由与本地存储命名空间用）、一字卷名、全称
 //   open, start          是否开卷；第一屏的名字
-//   screens              { 屏名: Svelte 组件 }。每一屏收到 { ctx, game }，根元素写 class="screen is-active"。
+//   steps                页脚的步骤进度 [{ k: 屏名, name: 两字步骤名 }]，按先后排；入口屏不在其中
+//   screens              { 屏名: Svelte 组件 }。每一屏收到 { ctx, game }，根元素写 class="screen is-active"（右页的内容）。
+//                        每一屏还要放一个 <Spread>（core/Spread.svelte）登记这一对页：左页的名字、页脚的说明与按钮。
+//                        换屏就是翻一页：ctx.show(name, { dir })。屏里需要的说明和按钮都放进 <Spread> 的 hint 与 foot，不要散在页面里
 //                        必须有 start 指向的屏和 'end'（结局屏：用 core/end/* 拼，再加本卷自己的解读）
 //   zhu                  注疏 { 术语: { body, kind: '古籍'|'民俗'|'原创', cite } }，可以是 {}
 //   copy                 公共组件要显示的文案：oracleTitle / oracleAsk / oracleButton / oracleWait / oracleToggleDesc /

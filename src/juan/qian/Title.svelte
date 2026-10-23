@@ -3,6 +3,7 @@
   // 偶尔下缘鼓起一颗墨珠，坠下，落在纸上洇成一小团。只在本屏、页面可见时。不画线（见 docs/DESIGN.md §8）。
   import { onMount } from 'svelte';
   import Seal from '../../core/Seal.svelte';
+  import Spread from '../../core/Spread.svelte';
   import OracleToggle from '../../core/OracleToggle.svelte';
 
   let { ctx, game } = $props();
@@ -77,8 +78,6 @@
   </div>
   <p class="title-sub">你求签，我算你</p>
   <div class="title-actions">
-    <Seal size="lg" id="btn-enter" aria-describedby="enter-note" onclick={game.begin}>问</Seal>
-    <p id="enter-note" class="note">点红色的“问”字印章开始。<br>全程约两分钟，建议打开声音。</p>
     <OracleToggle desc={ctx.copy.oracleToggleDesc} />
     <p class="title-links">
       <a class="about-link" href="/qian/yuanliu/">签卷源流</a>
@@ -86,3 +85,7 @@
     </p>
   </div>
 </section>
+
+<Spread name="签" sub="六十甲子签" hint="点右下角朱红的“问”字印开始。全程约两分钟，建议打开声音。">
+  {#snippet foot()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
+</Spread>

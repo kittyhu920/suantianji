@@ -10,7 +10,7 @@
 .loom figcaption { margin-top: 6px; font-size: 12px; color: var(--ink-dim); }
 .cups-pair {
   margin: 0;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 22px;
   letter-spacing: .08em;
 }
@@ -25,7 +25,7 @@
 }
 .jieqian h3 {
   margin: 0;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 22px;
   letter-spacing: .1em;
@@ -38,7 +38,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 24px;
   letter-spacing: .06em;
 }
@@ -46,14 +46,14 @@
 .jq-row { margin: 0; font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
 .jq-row b {
   display: block;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 16px;
   color: var(--ink);
 }
 .turn {
   margin: 8px 0 0;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 20px;
   line-height: 1.6;
   letter-spacing: .06em;
@@ -63,7 +63,7 @@
 .ending-name {
   margin: 0;
   color: var(--cinnabar-hi); /* 最终判词：结局名用朱 */
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 46px;
   line-height: 1.1;
@@ -79,7 +79,7 @@
 }
 .confess h3 {
   margin: 0 0 8px;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 22px;
   letter-spacing: .1em;
@@ -87,7 +87,7 @@
 .confess ul { margin: 0; padding: 0 0 0 1.1em; display: flex; flex-direction: column; gap: 8px; }
 .confess li { font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
 .confess li::marker { color: var(--ink-dim); }
-.confess li.from-ai { font-family: var(--f-brush); font-size: 17px; color: rgba(var(--ink-rgb), .72); }
+.confess li.from-ai { font-family: var(--f-kai); font-size: 17px; color: rgba(var(--ink-rgb), .72); }
 .loom-legend { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--ink-dim); text-align: left; }
 .loom-legend span { color: var(--cinnabar-hi); }
 .about-link {
@@ -117,7 +117,7 @@
 }
 .oracle h3, .ledger h3, .endings h3 {
   margin: 0 0 8px;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 22px;
   letter-spacing: .1em;
@@ -150,10 +150,11 @@
 
 .ledger, .endings { width: 100%; max-width: 21em; text-align: left; }
 .ledger-intro { margin: 0 0 10px; font-size: 13px; color: var(--ink-dim); }
+.ledger dl + .ledger-intro { margin-top: 16px; }
 .ledger dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px; }
 .ledger dt { color: var(--ink-dim); }
 .ledger dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
-.ledger .zhupi { display: block; margin-top: 1px; font-family: var(--f-brush); font-size: 15px; line-height: 1.5; color: rgba(var(--ink-rgb), .72); }
+.ledger .zhupi { display: block; margin-top: 1px; font-family: var(--f-kai); font-size: 15px; line-height: 1.5; color: rgba(var(--ink-rgb), .72); }
 /* 旁注的圈点：数字点朱，句尾一个朱“〇”（与眉批同一套，见 core/marks.js） */
 .ink-note .is-num { color: var(--cinnabar-hi); }
 .ink-note::after { content: "\2060〇"; margin-left: .2em; font-family: var(--f-text); font-size: .8em; color: var(--cinnabar-hi); }

@@ -2,7 +2,7 @@
    颜色：墨为主；炭火与裂缝尖端是低饱和的赭红 rgb(168,84,52)，不是朱；朱只给印、判词和关键按钮。 */
 
 /* ───────── 入卷 ───────── */
-.bu-title { justify-content: space-between; padding-top: calc(var(--mei-h) + 2px); }
+.bu-title { justify-content: center; gap: 12px; }
 .bu-hero { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .glyph-hero { position: relative; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink); }
 .glyph-hero .bu-glyph { filter: drop-shadow(0 0 .6px rgba(var(--ink-rgb), .4)); }
@@ -16,7 +16,7 @@
 .glyph-hero figcaption, .glyph-note, .glyph-row figcaption { font-size: 12px; color: var(--ink-dim); letter-spacing: .06em; }
 .bu-title-main {
   margin: 0;
-  font-family: var(--f-title);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: clamp(46px, 13vw, 68px);
   letter-spacing: .12em;
@@ -31,7 +31,7 @@
 
 /* ───────── 验辞 ───────── */
 .yan-quote { margin: 0; padding: 10px 20px; border-left: 2px solid var(--ink-dim); text-align: left; max-width: 22em; }
-.yan-q { margin: 0; font-family: var(--f-brush); font-size: 24px; line-height: 1.4; letter-spacing: .04em; overflow-wrap: anywhere; }
+.yan-q { margin: 0; font-family: var(--f-display); font-size: 24px; line-height: 1.4; letter-spacing: .04em; overflow-wrap: anywhere; }
 .yan-meta { margin: 4px 0 0; font-size: 13px; color: var(--ink-dim); }
 .yan-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .ledger-intro { margin: 0; font-size: 13px; color: var(--ink-dim); max-width: 22em; }
@@ -47,7 +47,7 @@
   transition: transform .25s var(--ease-out), background .25s, border-color .25s;
 }
 .slip-name, .slip-desc { white-space: nowrap; flex: none; }
-.slip-name { writing-mode: vertical-rl; font-family: var(--f-brush); font-size: 30px; line-height: 1; }
+.slip-name { writing-mode: vertical-rl; font-family: var(--f-display); font-size: 30px; line-height: 1; }
 .slip-desc { writing-mode: vertical-rl; font-size: 11px; letter-spacing: .2em; color: var(--ink-dim); }
 .slip:hover { border-color: var(--ink); }
 .slip[aria-checked="true"] { transform: translateY(-10px); background: var(--ink); border-color: var(--ink); color: var(--paper); }
@@ -57,12 +57,11 @@
 .ask input { background: transparent; border: 0; border-bottom: 1px solid var(--ink-dim); color: var(--ink); font: inherit; font-size: 15px; text-align: center; padding: 6px 4px; }
 .ask input::placeholder { color: rgba(var(--ink-rgb), .32); }
 .ask input:focus { outline: none; border-bottom-color: var(--ink); }
-.ming-preview { margin: 0; min-height: 1.6em; font-family: var(--f-brush); font-size: 24px; letter-spacing: .06em; overflow-wrap: anywhere; max-width: 18em; }
+.ming-preview { margin: 0; min-height: 1.6em; font-family: var(--f-display); font-size: 24px; letter-spacing: .06em; overflow-wrap: anywhere; max-width: 18em; }
 
 /* ───────── 灼与读兆 ───────── */
 .screen-zhuo { gap: 10px; }
-.ming-line { margin: 0; font-family: var(--f-brush); font-size: 22px; letter-spacing: .05em; max-width: 20em; overflow-wrap: anywhere; min-height: 1.5em; }
-.zhuo-cols { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.ming-line { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .05em; max-width: 20em; overflow-wrap: anywhere; min-height: 1.5em; }
 .zhuo-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .card { --cw: min(310px, calc(100vw - 72px)); width: var(--cw); height: calc(var(--cw) * 1.4); perspective: 1400px; transition: height .7s var(--ease-out), transform .25s var(--ease-out); transform: perspective(1400px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); }
 .card-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .95s cubic-bezier(.3, .6, .2, 1); }
@@ -86,23 +85,23 @@
 
 .zhuo-side { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 24em; }
 .burn-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 13px; color: var(--ink-dim); }
-.burn-chips li span { font-family: var(--f-brush); font-size: 16px; margin-right: .4em; color: var(--ink-soft); }
+.burn-chips li span { font-family: var(--f-display); font-size: 16px; margin-right: .4em; color: var(--ink-soft); }
 .burn-chips li.is-cur { color: var(--ink); }
 .read { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; animation: ink-in .9s var(--ease-out) both; }
-.read-name { margin: 0; font-family: var(--f-brush); display: flex; align-items: baseline; gap: .5em; }
+.read-name { margin: 0; font-family: var(--f-display); display: flex; align-items: baseline; gap: .5em; }
 .read-name small { font-size: 18px; color: var(--ink-soft); }
 .read-name b { font-weight: 400; font-size: 58px; line-height: 1.1; letter-spacing: .08em; }
 .read-line { margin: 0; font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
 .read-how, .read-dui, .read-hint { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-dim); }
 .read-dui { color: var(--ink-soft); }
-.read-dui b { font-family: var(--f-brush); font-weight: 400; font-size: 17px; color: var(--ink); }
+.read-dui b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
 .read-actions { display: flex; gap: 10px 14px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
 .fan-ask { align-items: center; }
 
 /* ───────── 兆图：一块甲，兆在上，刻辞在下 ───────── */
 .omen-fig { position: relative; width: min(100%, 400px); }
 .omen-fig canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.fig-xu, .kcol { position: absolute; margin: 0; font-family: var(--f-brush); color: rgba(40, 28, 16, .9); white-space: nowrap; line-height: 1; }
+.fig-xu, .kcol { position: absolute; margin: 0; font-family: var(--f-display); color: rgba(40, 28, 16, .9); white-space: nowrap; line-height: 1; }
 .fig-xu { font-size: calc(var(--u) * 16px); }
 .kcol {
   writing-mode: vertical-rl;
@@ -120,38 +119,28 @@
 
 /* ───────── 结局 ───────── */
 .screen-ke { gap: 14px; }
-.end-cols, .end-col { display: contents; }
-.jq-zhan { margin: 0; font-family: var(--f-brush); font-size: 22px; letter-spacing: .06em; }
-.omen-tone { font-family: var(--f-brush); font-size: 15px; padding: 0 10px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--ink-dim); color: var(--ink); }
+.jq-zhan { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .06em; }
+.omen-tone { font-family: var(--f-display); font-size: 15px; padding: 0 10px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--ink-dim); color: var(--ink); }
 .omen-tone[data-tone="xiong"] { color: var(--ink-soft); box-shadow: inset 0 0 0 1px var(--ink-faint); }
 .jq-note { font-size: 13px !important; color: var(--ink-dim) !important; }
 .title-links { margin: 6px 0 0; }
 
-@media (min-width: 960px) {
-  .screen { padding: calc(var(--mei-h) + 8px) 48px 40px; gap: 16px; }
-  .h-brush { font-size: 48px; }
-  .note { max-width: 32em; }
-  .bu-title { padding-top: 30px; }
-  .zhuo-cols { flex-direction: row; justify-content: center; align-items: flex-start; gap: 56px; max-width: 920px; }
-  .zhuo-side { align-items: flex-start; max-width: 22em; padding-top: 14px; flex: 0 1 22em; }
-  .zhuo-side .read { align-items: flex-start; text-align: left; }
-  .zhuo-side .read-actions { justify-content: flex-start; }
-  .burn-chips { justify-content: flex-start; }
-  .card { --cw: min(350px, calc(100vw - 72px)); }
-  .end-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 64px; width: 100%; max-width: 920px; align-items: start; }
-  .end-col { display: flex; flex-direction: column; align-items: center; gap: 20px; min-width: 0; }
-  .jieqian, .confess, .critique, .ledger, .endings { max-width: 24em; }
-}
-@media (min-width: 960px) and (max-height: 820px) { .card { --cw: 292px; } .read-name b { font-size: 48px; } }
+/* 右页里的版式：卡（龟甲）居中；读兆的内容在左页，手机上排在卡的下面 */
+.card { --cw: min(300px, calc(100vw - 72px), calc((100dvh - 380px) / 1.4)); }
+.zhuo-card { align-items: center; }
+.lp-extra .zhuo-side, .lp-extra .read { align-items: flex-start; text-align: left; }
+.lp-extra .burn-chips { justify-content: flex-start; margin-bottom: 8px; }
+.lp-extra .read-name b { font-size: 52px; }
+.lp-extra .read-line { font-size: 15.5px; }
+.lp-extra .read-how, .lp-extra .read-dui, .lp-extra .read-hint { font-size: 14px; }
+.zhuo-side .read { align-items: flex-start; text-align: left; }
+.fan-ask { align-items: flex-start; max-width: none; }
+.screen-zhuo { justify-content: flex-start; }
+.bu-title { padding-top: 24px; }
 @media (max-width: 520px) {
-  .screen { padding: calc(var(--mei-h) + 10px) 24px 36px; gap: 12px; }
-  .corner-btn { top: 16px; }
-  .corner-home { left: 16px; }
-  .corner-mute { right: 16px; }
   .slips { gap: 10px; }
   .slip { width: 56px; height: 176px; }
   .slip-desc { font-size: 12px; }
-  .seal-doubt { left: 12px; bottom: 12px; }
   body { font-size: 16px; }
   .note, .shichen { font-size: 15px; }
   .read-line, .confess li, .critique, .jq-row, .screen-about p, .screen-about li { font-size: 16px; line-height: 1.85; }
@@ -161,5 +150,5 @@
   .loom-legend, .loom figcaption { font-size: 13px; }
   .ming-line { font-size: 21px; }
 }
-@media (max-height: 800px) { .bu-hero .bu-glyph { height: 110px; width: 83px; } .glyph-ember { top: 74px; } .bu-title { padding-top: calc(var(--mei-h) + 14px); } .screen-title { gap: 10px; } .glyph-row { display: none; } }
+@media (max-height: 800px) { .bu-hero .bu-glyph { height: 110px; width: 83px; } .glyph-ember { top: 74px; } .screen-title { gap: 10px; } .glyph-row { display: none; } }
 @media (prefers-reduced-motion: reduce) { .glyph-ember { animation: none; opacity: .6; } .card-inner, .card { transition-duration: .01ms !important; } }

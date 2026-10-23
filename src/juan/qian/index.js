@@ -18,6 +18,8 @@ export default {
   start: 'title',
   // 本卷的屏。每一屏收到 { ctx, game }
   screens: { title: Title, ding: Ding, qian: Shake, jiao: Jiao, end: End },
+  // 页脚的步骤进度：k 是屏名
+  steps: [{ k: 'ding', name: '择域' }, { k: 'qian', name: '摇签' }, { k: 'jiao', name: '掷筊' }, { k: 'end', name: '观象' }],
   Defs: JiaoDefs, // 本卷的共享图形（筊杯的红漆）
   zhu, // 注疏
   zipan: () => db.signs.map((s) => s.poem.join('')).join(''), // 案上字盘的用字：本卷六十一首签诗

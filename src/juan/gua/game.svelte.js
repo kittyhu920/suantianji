@@ -94,8 +94,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 问事 ───────── */
-  function enterDing() {
-    ctx.show('ding');
+  function enterDing(dir = 1) {
+    ctx.show('ding', { dir });
     S.dingEnterAt = performance.now();
     gloss(G.dingEnter);
   }
@@ -117,8 +117,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 起卦：六次掷钱 ───────── */
-  function enterCast() {
-    ctx.show('cast');
+  function enterCast(dir = 1) {
+    ctx.show('cast', { dir });
     S.cur = [];
     S.result = null;
     S.rolling = false;
@@ -222,7 +222,7 @@ export function createGame(ctx) {
     else gloss(G.more(n + 1), { alarm: true });
     ctx.revealDoubt();
     S.throws.forEach((t) => { t.kept = false; });
-    enterCast();
+    enterCast(-1); // 不认这一卦，翻回去再起
   }
 
   // 左边的按钮：受卦
@@ -377,7 +377,7 @@ export function createGame(ctx) {
   function toStart() {
     shell?.stop();
     resetAll();
-    ctx.show('title');
+    ctx.show('title', { dir: -1 });
     bootTitle();
   }
 
@@ -385,7 +385,7 @@ export function createGame(ctx) {
     const visits = ctx.visits.bump();
     resetAll({ clear: false });
     gloss(G.visits(visits));
-    enterDing();
+    enterDing(-1);
   }
 
   bootTitle();

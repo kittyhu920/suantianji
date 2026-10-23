@@ -13,6 +13,7 @@ export function createGloss(host, { reduced = false } = {}) {
   const queue = [];
   let busy = false;
   let cur = null; // 正在显示的那一条
+  let holding = null; // 翻页时暂缓：一个 Promise，落定后才继续写
 
   // 等 ms 毫秒；被 wake() 叫醒就提前结束，并记下"被顶替了"
   const wait = (item, ms) => new Promise((resolve) => {
@@ -33,6 +34,7 @@ export function createGloss(host, { reduced = false } = {}) {
   async function drain() {
     busy = true;
     while (queue.length) {
+      if (holding) await holding;
       const item = queue.shift();
       cur = item;
       const backlog = queue.length; // 后面还排着几条：写快些、停得短些
@@ -65,6 +67,7 @@ export function createGloss(host, { reduced = false } = {}) {
       host.append(el);
 
       await wait(item, lead + n * step + 500); // 写完
+      item.written = !item.woken;
       if (!item.woken) {
         el.classList.add('is-done');
         await wait(item, backlog ? 120 : 650); // 停一会儿，让人读完
@@ -74,11 +77,22 @@ export function createGloss(host, { reduced = false } = {}) {
     busy = false;
   }
 
+  // 翻页：正在写、还没写完的一条，翻过去之后接着在新的一页上重写；已经写完的就让它淡去
+  function hold(promise) {
+    holding = promise.then(() => { holding = null; });
+    if (cur && !cur.written && !cur.woken) {
+      const again = { text: cur.text, alarm: cur.alarm, key: cur.key };
+      cur.wake?.();
+      queue.unshift(again);
+    }
+    [...host.children].forEach((n) => { n.classList.add('is-out'); setTimeout(() => n.remove(), 240); });
+  }
+
   function clear() {
     queue.length = 0;
     cur?.wake?.();
     host.replaceChildren();
   }
 
-  return { push, clear };
+  return { push, clear, hold };
 }

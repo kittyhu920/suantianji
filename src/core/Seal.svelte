@@ -32,7 +32,7 @@
     if (still()) { onclick?.(e); return; }
     const src = el.cloneNode(true);
     const rect = el.getBoundingClientRect();
-    const host = el.closest('.huaxin');
+    const host = el.closest('.huaxin, .botbar');
     play(el);
     onclick?.(e);
     if (host) requestAnimationFrame(() => { if (!el.isConnected) ghost(src, rect, host); });

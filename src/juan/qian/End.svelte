@@ -1,7 +1,8 @@
 <script>
-  // 观象：解签、结局、坦白、行为账本、命盘、四种结局。结局之后的“再求一签”回到定盘。
+  // 观象：解签、判词、坦白、行为账本、命盘、四种结局，分成三个对页一页页翻着看。结局之后的“再求一签”回到定盘。
   import OracleBox from '../../core/OracleBox.svelte';
   import EndingBlock from '../../core/end/EndingBlock.svelte';
+  import EndPages from '../../core/end/EndPages.svelte';
   import Confess from '../../core/end/Confess.svelte';
   import Ledger from '../../core/end/Ledger.svelte';
   import LoomFigure from '../../core/end/LoomFigure.svelte';
@@ -23,38 +24,61 @@
     : '一次也没掷，所以什么也没织出来。空白，也是一种回答。';
 </script>
 
-<section class="screen screen-end is-active" data-screen="end" aria-labelledby="e-name">
-  <div class="end-cols">
-    <div class="end-col">
-      <p class="cups-pair" id="cups-pair">
-        {#if cups.length}{cups.map((k) => CUP_NAMES[k]).join(' · ')}{:else}还没掷筊<small>{sign ? '签已抽出，但没有掷筊' : '还没抽签'}</small>{/if}
-      </p>
-      {#if sign}
-        <article class="jieqian" id="jieqian" aria-labelledby="jq-h">
-          <h3 id="jq-h">解签</h3>
-          <p class="jq-state" id="jq-state" data-state={e.state.key}>{e.state.text}</p>
-          <p class="jq-title"><span id="jq-name">{signNo(sign)}　{sign.name}</span><span class="sign-level" id="jq-level" data-tone={db.levels[sign.level]}>{sign.level}</span></p>
-          <p class="jq-row"><b>这支签在说什么</b><span id="jq-bai">{sign.bai}</span></p>
-          {#if domain}<p class="jq-row"><b id="jq-advice-h">关于{domain.desc}</b><span id="jq-advice">{sign.advice[S.domain]}</span></p>{/if}
-        </article>
-      {/if}
-      <OracleBox {ctx} onAsk={game.askOracle} />
-      <EndingBlock {ctx} {ending} lead={ending.lead[e.tone]} turn={['不过，在你求签的时候，', '我也在给你算命。']} />
-    </div>
+{#snippet l1()}
+  <p class="cups-pair" id="cups-pair">
+    {#if cups.length}{cups.map((k) => CUP_NAMES[k]).join(' · ')}{:else}还没掷筊<small>{sign ? '签已抽出，但没有掷筊' : '还没抽签'}</small>{/if}
+  </p>
+  {#if sign}
+    <article class="jieqian" id="jieqian" aria-labelledby="jq-h">
+      <h3 id="jq-h">解签</h3>
+      <p class="jq-state" id="jq-state" data-state={e.state.key}>{e.state.text}</p>
+      <p class="jq-title"><span id="jq-name">{signNo(sign)}　{sign.name}</span><span class="sign-level" id="jq-level" data-tone={db.levels[sign.level]}>{sign.level}</span></p>
+      <p class="jq-row"><b>这支签在说什么</b><span id="jq-bai">{sign.bai}</span></p>
+      {#if domain}<p class="jq-row"><b id="jq-advice-h">关于{domain.desc}</b><span id="jq-advice">{sign.advice[S.domain]}</span></p>{/if}
+    </article>
+  {/if}
+{/snippet}
 
-    <div class="end-col">
-      <Confess items={game.confessItems()} />
-      <p class="critique" id="e-critique">{ending.critique}</p>
-      <Ledger rows={game.ledgerRows()} />
-      <LoomFigure {ctx} seed={e.seed} {throws} {caption}>
-        <p class="loom-legend">每掷一次，织一束丝：平直的是圣杯，打结的是笑杯，<span>朱砂分叉</span>的是阴杯；被你弃掉的那一掷，颜色淡些。</p>
-      </LoomFigure>
-      <EndingsList endings={db.endings} got={e.got} current={e.endKey} />
-      <div class="end-actions">
-        <button class="btn btn-primary" id="btn-poster" onclick={() => { game.posterOpen = true; }}>保存这一签</button>
-        <button class="btn" id="btn-again" onclick={game.again}>再求一签</button>
-      </div>
-      <a class="about-link" href="/about/">关于这件作品</a>
-    </div>
-  </div>
-</section>
+{#snippet r1()}
+  <EndingBlock {ctx} {ending} lead={ending.lead[e.tone]} turn={['不过，在你求签的时候，', '我也在给你算命。']} />
+{/snippet}
+
+{#snippet l2()}
+  <Confess items={game.confessItems()} />
+  <p class="critique" id="e-critique">{ending.critique}</p>
+{/snippet}
+
+{#snippet r2()}
+  <OracleBox {ctx} onAsk={game.askOracle} />
+{/snippet}
+
+{#snippet l3()}
+  <Ledger rows={game.ledgerRows()} part="a" />
+{/snippet}
+
+{#snippet r3()}
+  <Ledger rows={game.ledgerRows()} part="b" />
+{/snippet}
+
+{#snippet l4()}
+  <EndingsList endings={db.endings} got={e.got} current={e.endKey} />
+  <a class="about-link" href="/about/">关于这件作品</a>
+{/snippet}
+
+{#snippet r4()}
+  <LoomFigure {ctx} seed={e.seed} {throws} {caption}>
+    <p class="loom-legend">每掷一次，织一束丝：平直的是圣杯，打结的是笑杯，<span>朱砂分叉</span>的是阴杯；被你弃掉的那一掷，颜色淡些。</p>
+  </LoomFigure>
+{/snippet}
+
+{#snippet foot()}
+  <button class="btn btn-ghost" id="btn-again" onclick={game.again}>再求一签</button>
+  <button class="btn btn-primary" id="btn-poster" onclick={() => { game.posterOpen = true; }}>保存这一签</button>
+{/snippet}
+
+<EndPages {ctx} {foot} pages={[
+  { name: '观象', sub: '解签与判词', hint: '左页是这支签的解，右页是我的判词。往后翻，还有我对你的实话、账本和命盘。', left: l1, right: r1 },
+  { name: '实话', sub: '我怎么算你', hint: '左页是我把旁批里的数字怎么算出来的，右页可以请我用大白话细说。', left: l2, right: r2 },
+  { name: '账本', sub: '刚才的每一步', hint: '刚才的每一步，我都记下了，一页放不下，分在两页上。', left: l3, right: r3 },
+  { name: '命盘', sub: '织锦与结局', hint: '右页是用这本账织成的命盘，左页是四种结局的名录。想带走，就点“保存这一签”。', left: l4, right: r4 },
+]} />

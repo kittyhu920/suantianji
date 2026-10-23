@@ -4,14 +4,14 @@
    正文是淡墨（墨 72%）的马善政楷书；朱色只留给句尾的"〇"、关键数字和警示句的着重点。（docs/DESIGN.md §3、§4） */
 .margin {
   position: absolute;
-  top: 18px;
-  left: 104px; /* 右角并排着主题印与声牌，两边对称地让出来 */
-  right: calc(var(--zhu-w) + 104px);
+  top: 24px;
+  left: 44px;
+  right: 44px;
   height: calc(2.7em + 6px);
   font-size: 20px;
   line-height: 1.35;
   pointer-events: none;
-  z-index: 5;
+  z-index: 2;
 }
 .gloss {
   position: absolute;
@@ -20,7 +20,7 @@
   display: flex;
   align-items: center; /* 一行或两行都在槽里居中，换条时不跳 */
   justify-content: center;
-  font-family: var(--f-brush);
+  font-family: var(--f-kai);
   letter-spacing: .04em;
   color: rgba(var(--ink-rgb), .72);
   /* 不加底框：字的四周一圈纸色柔光，压住底下的朱丝栏与墨痕，字就读得清，又没有一块长方形 */
@@ -39,14 +39,12 @@
 .gloss .ink-ch { animation-duration: .5s; }
 
 @media (max-width: 959px) {
-  .margin { left: 106px; right: 106px; }
-}
-@media (max-width: 520px) {
-  .margin { left: 66px; right: 66px; top: 16px; font-size: 17px; } /* 手机上主题印叠在声牌下面 */
+  /* 手机只有一页：眉批写在这一页的最上方，盖在页上 */
+  .margin { position: absolute; top: 8px; left: 14px; right: 14px; font-size: 17px; z-index: 5; }
 }
 @media (max-width: 400px) {
   .margin { font-size: 16px; }
 }
-@media (max-width: 340px) {
-  .margin { left: 62px; right: 62px; font-size: 15px; }
+@media (min-width: 960px) and (max-height: 820px) {
+  .margin { top: 20px; font-size: 19px; }
 }

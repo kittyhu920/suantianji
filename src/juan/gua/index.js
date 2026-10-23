@@ -18,6 +18,7 @@ export default {
   start: 'title',
   // 本卷的屏。每一屏收到 { ctx, game }
   screens: { title: Title, ding: Ding, cast: Cast, jie: Jie, end: End },
+  steps: [{ k: 'ding', name: '问事' }, { k: 'cast', name: '起卦' }, { k: 'jie', name: '解卦' }, { k: 'end', name: '观象' }],
   zhu, // 注疏
   // 案上字盘的用字：《周易》六十四卦的卦辞原文
   zipan: () => db.hexagrams.map((h) => h.ci.replace(/[^\p{Script=Han}]/gu, '')).join(''),

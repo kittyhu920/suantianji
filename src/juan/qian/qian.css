@@ -12,7 +12,7 @@
   left: 50%; top: 46%;
   transform: translate(-50%, -50%) rotate(-13deg);
   margin: 0;
-  font-family: var(--f-title);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: clamp(56px, 17vw, 84px);
   line-height: 1;
@@ -22,7 +22,7 @@
 }
 .title-sub {
   margin: -6px 0 0;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 22px;
   letter-spacing: .3em;
   padding-left: .3em;
@@ -60,7 +60,7 @@
   color: var(--ink-soft);
   min-height: 1.75em;
 }
-.shichen b { font-family: var(--f-brush); font-weight: 400; font-size: 20px; color: var(--ink); }
+.shichen b { font-family: var(--f-display); font-weight: 400; font-size: 20px; color: var(--ink); }
 .slips {
   display: flex;
   justify-content: center;
@@ -80,7 +80,7 @@
 .slip-name, .slip-desc { white-space: nowrap; flex: none; }
 .slip-name {
   writing-mode: vertical-rl;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 30px; line-height: 1;
 }
 .slip-desc {
@@ -147,7 +147,7 @@
 .sign-no { margin: 0; font-size: 13px; letter-spacing: .3em; color: var(--ink-dim); }
 .sign-name {
   margin: 0;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 44px;
   line-height: 1.2;
@@ -156,7 +156,7 @@
 .sign-level {
   margin: 4px 0 0;
   padding: 0 10px;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: 18px;
   color: var(--on-zhu);
   background: var(--cinnabar);
@@ -166,6 +166,7 @@
 .sign-level[data-tone="xiong"] { background: transparent; color: var(--ink-dim); box-shadow: inset 0 0 0 1px var(--ink-faint); }
 
 .poem {
+  font-family: var(--f-display); /* 签诗：汇文明朝体 */
   writing-mode: vertical-rl;
   display: block;
   font-size: 19px;
@@ -184,7 +185,7 @@
   color: var(--ink-soft);
   text-align: left;
 }
-.sign-jie b { font-family: var(--f-brush); font-weight: 400; font-size: 17px; color: var(--ink); margin-right: .6em; }
+.sign-jie b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); margin-right: .6em; }
 .sign-domain { color: var(--ink); }
 
 /* ───────── 掷筊 ───────── */
@@ -198,7 +199,7 @@
 }
 .sign-bai b {
   display: block;
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 16px;
   color: var(--ink);
@@ -213,7 +214,7 @@
   color: var(--ink-soft);
   text-align: left;
 }
-.jiao-legend b { font-family: var(--f-brush); font-weight: 400; font-size: 16px; color: var(--ink); margin-right: .6em; }
+.jiao-legend b { font-family: var(--f-display); font-weight: 400; font-size: 16px; color: var(--ink); margin-right: .6em; }
 .jiao-legend .is-yin b { color: var(--cinnabar-hi); }
 .jiao-pair { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .jiao-labels { display: flex; gap: 18px; }
@@ -297,7 +298,7 @@
 .cup.is-set { opacity: 1; border-color: var(--ink-dim); }
 .cup-tag { font-size: 11px; color: var(--ink-dim); }
 .cup-name { font-size: 13px; color: var(--ink-soft); }
-.cup-kind { font-family: var(--f-brush); font-size: 20px; line-height: 1.3; color: var(--ink); }
+.cup-kind { font-family: var(--f-display); font-size: 20px; line-height: 1.3; color: var(--ink); }
 .cup.is-xiao .cup-kind { color: var(--ink-soft); }
 .cup.is-yin .cup-kind { color: var(--cinnabar-hi); }
 .jiao-result {

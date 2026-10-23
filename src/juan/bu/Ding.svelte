@@ -2,6 +2,7 @@
   // 命辞：选一个方向，把想问的事说成一句话。命辞以“贞：”起头，刻在甲上。
   import Seal from '../../core/Seal.svelte';
   import Zhu from '../../core/Zhu.svelte';
+  import Spread from '../../core/Spread.svelte';
   import { DOMAINS, MAX_Q } from './data.js';
 
   let { ctx, game } = $props();
@@ -25,5 +26,8 @@
     <input id="ask" type="text" maxlength={MAX_Q} autocomplete="off" placeholder="例如：今年换一份工作" bind:value={ask}>
   </label>
   <p class="ming-preview" id="ming-preview" aria-live="polite">{#if shown}贞：{shown}{:else}　{/if}</p>
-  <Seal size="md" id="btn-ding" disabled={!S.domain} aria-label="确定" onclick={() => game.confirmDing(ask)}>定</Seal>
 </section>
+
+<Spread name="命辞" sub="把事说成一句话" hint={S.domain ? '选好了，点右下角的“定”。不写，我替你拟。' : '先选一个想问的方向，再点右下角的“定”。具体的事可以不写，我替你拟。'}>
+  {#snippet foot()}<Seal size="md" id="btn-ding" disabled={!S.domain} aria-label="确定" onclick={() => game.confirmDing(ask)}>定</Seal>{/snippet}
+</Spread>
