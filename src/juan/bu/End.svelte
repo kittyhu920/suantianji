@@ -34,14 +34,6 @@
 
 {#snippet l1()}
   {#if crack}
-    <OmenFigure {ctx} {crack} spot={z.spot} {other} otherSpot={f?.spot} {carve} class="end-fig" />
-  {:else}
-    <p class="cups-pair" id="cups-pair">还没灼<small>龟甲还没有裂</small></p>
-  {/if}
-{/snippet}
-
-{#snippet r1()}
-  {#if crack}
     <article class="jieqian" id="jieqian" aria-labelledby="jq-h">
       <h3 id="jq-h">解兆</h3>
       <p class="jq-state" id="jq-state" data-state={e.state.key}>{e.state.text}</p>
@@ -51,6 +43,14 @@
       {#if domain}<p class="jq-row"><b>关于{domain.desc}</b><span id="jq-advice">{ADVICE[z.omen][domainKey]}</span></p>{/if}
       <p class="jq-row jq-note">这些白话与建议是本作自己写的，不是<Zhu term="卜辞" />里的话。</p>
     </article>
+  {/if}
+{/snippet}
+
+{#snippet r1()}
+  {#if crack}
+    <OmenFigure {ctx} {crack} spot={z.spot} {other} otherSpot={f?.spot} {carve} class="end-fig" />
+  {:else}
+    <p class="cups-pair" id="cups-pair">还没灼<small>龟甲还没有裂</small></p>
   {/if}
 {/snippet}
 
@@ -89,7 +89,7 @@
 {/snippet}
 
 <EndPages {ctx} {foot} pages={[
-  { name: '观象', sub: '兆图与解兆', hint: '左页是刻在甲上的兆，右页是我的解读。往后翻，还有判词、我对你的实话、账本和命盘。', left: l1, right: r1 },
+  { name: '观象', sub: '兆图与解兆', hint: '左页是我的解读，右页是刻在甲上的兆。往后翻，还有判词、我对你的实话、账本和命盘。', left: l1, right: r1 },
   { name: '实话', sub: '判词', hint: '左页是我对你的实话，右页是我给你的判词。', left: l2, right: r2 },
   { name: '账本', sub: '刚才的每一步', hint: '刚才的每一步，我都记下了，一页放不下，分在两页上。', left: l3, right: r3 },
   { name: '命盘', sub: '织锦与结局', hint: '右页是用这本账织成的命盘，左页是四种结局的名录。想带走，就点“保存这一卜”。', left: l4, right: r4 },

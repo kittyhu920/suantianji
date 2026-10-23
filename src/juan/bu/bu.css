@@ -99,7 +99,8 @@
 .fan-ask { align-items: center; }
 
 /* ───────── 兆图：一块甲，兆在上，刻辞在下 ───────── */
-.omen-fig { position: relative; width: min(100%, 400px); }
+.omen-fig { position: relative; width: min(100%, 400px, calc((100dvh - 400px) / 1.7)); min-width: 200px; }
+.omen-fig.end-fig { width: min(100%, 360px, calc((100dvh - 300px) / 1.75)); }
 .omen-fig canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .fig-xu, .kcol { position: absolute; margin: 0; font-family: var(--f-display); color: rgba(40, 28, 16, .9); white-space: nowrap; line-height: 1; }
 .fig-xu { font-size: calc(var(--u) * 16px); }
