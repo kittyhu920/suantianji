@@ -5,9 +5,8 @@
 //   鼠标移过：附近几块活字微微抬起（高度按距离衰减、每块略有差别）；
 //   点一下：那一块按下去，原地"拓"出朱印（阴文正字）、洇开一团墨晕（ink.js，由 board.js 传进来）；
 //   整盘缓慢向上滚；悬停整盘暂停；页面不可见时停止渲染；静止时停帧。
-// 深色主题另加写经绢帛（silk.js）。
 //
-// 渲染节奏：有交互动画（抬起、按下）时跟随 rAF；只有漂移（滚动、绢的起伏）时降到约 20 帧；
+// 渲染节奏：有交互动画（抬起、按下）时跟随 rAF；只有漂移（滚动）时降到约 20 帧；
 // 只剩朱印淡出时约 30 帧；什么都不动时一帧不画。dpr 上限 1.5。
 
 import {
@@ -17,7 +16,6 @@ import {
 } from 'three';
 import { isDark, onTheme } from '../theme.js';
 import { uniqueChars, buildAtlas, cellUv } from './atlas.js';
-import { createSilks } from './silk.js';
 
 const TILE = 40; // 屏幕中央一块字大约多少像素
 const FOV = 28;
@@ -359,8 +357,6 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   }
 
   // ───────── 主题 ─────────
-  let silks = null;
-  let silksReady = false;
   function applyTheme() {
     const dark = isDark();
     const P = dark ? PALETTE.dark : PALETTE.light;
@@ -372,18 +368,6 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
     uniforms.uFog.value.set(...P.fog);
     uniforms.uSpec.value = P.spec;
     uniforms.uGoldOn.value = P.goldOn;
-    document.documentElement.classList.toggle('has-silk', dark);
-    if (dark && !silks && !silksReady) {
-      silksReady = true;
-      document.fonts?.load?.('400 24px "Ma Shan Zheng"', seqChars.slice(0, 400).join('')).catch(() => {}).finally(() => {
-        if (dead) return;
-        silks = createSilks({ chars: seqChars.length ? seqChars : ['天', '机'], lightDir: LIGHT, camPos });
-        silks.group.visible = isDark();
-        scene.add(silks.group);
-        request();
-      });
-    }
-    if (silks) silks.group.visible = dark;
     request();
   }
 
@@ -450,15 +434,13 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   let raf = 0;
   let timer = 0;
   let last = 0;
-  let silkT = 0;
   let busy = false;
   let wake = true; // 刚唤醒（尺寸、主题变了）：至少画一帧
 
   function update(dt) {
-    // 滚动与绢的起伏：悬停暂停
+    // 滚动：悬停暂停
     if (!hovering) {
       scroll += SPEED * dt;
-      silkT += dt;
       const fl = Math.floor(scroll);
       while (curRow < fl) { curRow++; shiftRows(); }
       mesh.position.y = (scroll - fl) * PITCH;
@@ -508,11 +490,10 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       st[i * 4 + 1] = stampAmt(i);
     }
     if (touched.length) attrState.needsUpdate = true;
-    silks?.update(silkT);
   }
 
   const interactive = () => busy || presses.size > 0;
-  const drifting = () => !hovering && !document.hidden; // 滚动与绢的起伏
+  const drifting = () => !hovering && !document.hidden; // 滚动
   const fading = () => stamps.size > 0;
 
   function frame(now) {
@@ -575,7 +556,6 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       board.removeEventListener('click', onClick);
       document.removeEventListener('visibilitychange', onVis);
       canvas.removeEventListener('webglcontextlost', onLost);
-      silks?.dispose();
       mesh?.dispose();
       geo?.dispose();
       material.dispose();
@@ -584,12 +564,12 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       renderer.forceContextLoss?.();
       canvas.remove();
       board.classList.remove('is-3d');
-      document.documentElement.classList.remove('has-scene', 'has-silk');
+      document.documentElement.classList.remove('has-scene');
     },
     stats: () => ({
       frames: renderer.info.render.frame,
       cols, rows, hovering,
-      silks: !!silks, dpr: renderer.getPixelRatio(), size: [W, H],
+      dpr: renderer.getPixelRatio(), size: [W, H],
       raf: !!raf, timer: !!timer,
     }),
     // 调试：直接推进 dt 并画一帧（页面隐藏时 rAF 不跑）
