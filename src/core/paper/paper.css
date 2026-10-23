@@ -48,8 +48,6 @@
   width: 100%; height: 100%;
   display: block;
 }
-/* 深色主题且 3D 场景在跑时，画心是半透的墨底：后面的写经绢帛隐约起伏。2D 退回时仍是实底 */
-:root[data-theme="dark"].has-silk .huaxin { background-color: rgba(21, 19, 15, .88); }
 
 .zp-ink { /* 点字时洇开的墨（ink.js），在字之上、盘边之下 */
   position: absolute;
@@ -127,8 +125,8 @@
 }
 
 /* ───────── 卷首开卷 ─────────
-   进入目录页的第一次：纸从中缝向两边展开，两根卷轴一路滚到边上。
-   用 clip-path 揭开画心（只重绘，约 1.1 秒）；减少动效与再次进入时不播。 */
+   进入目录页的第一次：书从中缝向两边展开，两根轴一路滚到边上。
+   用 clip-path 揭开书（只重绘，约 1.1 秒）；减少动效与再次进入时不播。 */
 .zhou { display: none; }
 .kaijuan .zhou {
   display: block;
@@ -159,8 +157,8 @@
   animation: kaijuan-open 1.15s cubic-bezier(.5, .05, .25, 1) both;
 }
 @keyframes kaijuan-open {
-  from { clip-path: inset(0 50% 0 50%); }
-  to { clip-path: inset(0 0 0 0); }
+  from { clip-path: inset(-30px 50% -30px 50%); }
+  to { clip-path: inset(-30px -30px -30px -30px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .kaijuan .zhou { display: none; }

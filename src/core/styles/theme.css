@@ -1,5 +1,5 @@
 /* 双主题（docs/DESIGN.md §17）
-   浅色"宣纸"是默认；深色"乌金拓"由 <html data-theme="dark"> 启用，只重定义变量。
+   浅色"宣纸"是默认；深色"乌金拓"是书的夜间版：磁青纸，纸白字，泥金点缀。由 <html data-theme="dark"> 启用，只重定义变量。
    所有颜色都走这里的变量。--ink-rgb / --paper-rgb 是三个通道，用来写 rgba(var(--ink-rgb), .3)。
    泥金（--leaf）只在深色主题里出现，浅色下它就是墨。朱的规则两套主题相同：只给印、朱批圈点、阴杯、判词与关键按钮。 */
 
@@ -39,7 +39,12 @@
 
   --jade: #5c7f67;
   --jade-deep: #46634f;
-  --silk: #d8c79f;
+
+  /* 书页的厚度（纸边的层次）与向书脊渐暗的程度 */
+  --edge-a: #e2d6b9;
+  --edge-b: #cdbf9d;
+  --edge-line: rgba(70, 48, 22, .35);
+  --gutter: .2;
 
   /* 案上字盘（浅色：旧木盒里的铅字；深色：墨底冷光） */
   --board-hi: #2b2620;
@@ -47,9 +52,8 @@
   --board-lo: #14120f;
   --board-vignette: rgba(8, 7, 5, .55);
 
-  /* 画心上盖的纤维层与版框 */
+  /* 书页上盖的纤维层 */
   --fiber-op: .5;
-  --frame: var(--ink);
   --paper-shadow: rgba(0, 0, 0, .55);
 
   /* 角按钮：小木牌 */
@@ -93,9 +97,9 @@
   --table: #0b0a08;
   --table-hi: #14120f;
   --table-lo: #050504;
-  --paper: #15130f;
-  --paper-rgb: 21, 19, 15;
-  --paper-deep: #1e1b16;
+  --paper: #1b2a33;             /* 磁青纸 */
+  --paper-rgb: 27, 42, 51;
+  --paper-deep: #243742;
   --ink: #ece4d0;              /* 纸白 */
   --ink-rgb: 236, 228, 208;
   --ink-soft: rgba(236, 228, 208, .82);
@@ -117,7 +121,11 @@
 
   --jade: #86b093;
   --jade-deep: #6f9a7d;
-  --silk: #2a251c;
+
+  --edge-a: #2a3d48;
+  --edge-b: #1c2b34;
+  --edge-line: rgba(0, 0, 0, .6);
+  --gutter: .42;
 
   --board-hi: #1a1b1d;
   --board-mid: #0f1012;
@@ -125,7 +133,6 @@
   --board-vignette: rgba(0, 0, 0, .6);
 
   --fiber-op: .55;
-  --frame: var(--leaf);
   --paper-shadow: rgba(0, 0, 0, .8);
 
   --wood-hi: #3a2f22;

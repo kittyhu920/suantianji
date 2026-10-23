@@ -4,7 +4,7 @@
 
 《演算天机》是一部收录多种民间算命法的书，一卷一卷地开。目前开了第一卷"签"：一场被算法旁观的求签仪式——摇签、掷筊请示、解签。画面顶端一直有一位"大师"用淡墨写着眉批（朱笔只用来圈点），记下你的每一次犹豫和重掷，猜你会不会失望。直到结局他才点破：在你求签的时候，他也在给你算命。
 
-单局约两分钟，有四种结局，桌面为主，手机也能完整玩。桌面上右侧一栏是"注"：术语出现时，注栏同步讲它是什么、从哪里来。在线体验：https://suantianji.pages.dev
+单局约两分钟，有四种结局，桌面为主，手机也能完整玩。整个作品是一册摊开的古书，每走一步翻一页：左页是大师的页，术语出现时页边同步作注，讲它是什么、从哪里来。在线体验：https://suantianji.pages.dev
 
 <p align="center">
   <img src="docs/img/title.jpg" width="260" alt="首页：枯笔墨痕上写着演算天机">
@@ -31,7 +31,7 @@
 
 - **零位图**：画面全部由 SVG、CSS 和 Canvas 绘制，声音全部由 Web Audio 实时合成。
 - **Astro + Svelte，纯静态**：Astro 管路由、静态页与 Markdown 讲解，仪式部分是 Svelte 组件；构建后是纯静态站（`dist/`），`functions/` 照常给 Cloudflare Pages 用。没有 UI 组件库，没有 CSS 框架。
-- **公共层 + 卷**：纸面、眉批、印章、墨与水、声音、摇动控制、观人术、命盘、四态结局、分享图、通灵、注疏都在 `src/core/`；每一卷只写自己的器物、数据和规矩（`src/juan/<id>/`），在 `src/juan/index.js` 注册。
+- **公共层 + 卷**：书（古籍版式与翻页）、眉批、印章、墨与水、声音、摇动控制、观人术、命盘、四态结局、分享图、通灵、注疏都在 `src/core/`；每一卷只写自己的器物、数据和规矩（`src/juan/<id>/`），在 `src/juan/index.js` 注册。
 - **按真实习俗**：六十甲子签依甲子至癸亥排列，五行取纳音；掷筊规矩依闽台庙宇。
 - **按真实物理**：签筒的倾角、竹签的弹跳、落签都由物理模拟驱动，手机上用加速度计。
 - **隐私**：操作记录只存在你自己的设备上。只有勾选"通灵模式"时，你写下的问题才会发给云端 AI，且不保存。
@@ -79,7 +79,7 @@ npm run build && npx wrangler pages dev dist --ai AI
 | 路径 | 内容 |
 |---|---|
 | `src/pages/` | 路由：`index.astro` 卷首目录、`qian/index.astro` 签卷仪式、`qian/yuanliu.md` 签卷源流、`about.astro`、`404.astro` |
-| `src/core/` | 公共层：`Paper.astro` 纸面、`Ritual.svelte` 仪式外壳、`gloss.js` 眉批、`Seal.svelte` 印章、`ink.js` 墨与水、`audio.js` 声音、`shake.svelte.js` 摇动控制、`profile.js` 观人术、`loom.js` 命盘、`poster.js` 分享图、`oracle.svelte.js` 通灵、`Zhu.svelte` / `ZhuPanel.svelte` 注疏、`end/` 结局各部分、`styles/` 样式 |
+| `src/core/` | 公共层：`Paper.astro` 页面外壳、`BookFrame.astro` 静态页的书、`Ritual.svelte` 仪式外壳（天头栏 + 书 + 页脚）、`Spread.svelte` 每一屏的对页登记、`book/` 翻页、`gloss.js` 眉批、`Seal.svelte` 印章、`ink.js` 墨与水、`audio.js` 声音、`shake.svelte.js` 摇动控制、`profile.js` 观人术、`loom.js` 命盘、`poster.js` 分享图、`oracle.svelte.js` 通灵、`Zhu.svelte` / `ZhuPanel.svelte` 注疏、`end/` 结局各部分、`styles/` 样式 |
 | `src/juan/index.js` | 卷的注册表与卷的接口说明（六卷的元数据，后五卷 `open: false`） |
 | `src/juan/qian/` | 签卷：`game.svelte.js` 一局的流程与结局映射、各屏的 Svelte 组件、`tube.js` 签筒物理、`jiao.js` 掷筊、`zhu.json` 注、`fortune-db.json` 六十一支签与四种结局判词 |
 | `public/` | 原样发布的静态资源：`fonts/` 按站内用字裁出的字体子集，`img/title-ink.svg` 标题墨痕 |
@@ -92,9 +92,9 @@ npm run build && npx wrangler pages dev dist --ai AI
 
 - 程序代码：[MIT](LICENSE)
 - 文案（签诗、解签、判词、眉批与界面文字、通灵提示词）：[CC BY-NC-SA 4.0](LICENSE-CONTENT)，可以改编、转载，但须署名、不得商用，改编后以相同许可发布
-- 字体：SIL Open Font License 1.1，见 [public/fonts/OFL.txt](public/fonts/OFL.txt)
+- 字体：霞鹜文楷与思源宋体是 SIL Open Font License 1.1，见 [public/fonts/OFL.txt](public/fonts/OFL.txt)
 
 ## 致谢
 
-- 字体：[马善政楷书](https://github.com/googlefonts/mashanzheng)、[志莽行书](https://github.com/googlefonts/zhimangxing)、[思源宋体](https://github.com/notofonts/noto-cjk)。
+- 字体：[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)、[思源宋体](https://github.com/notofonts/noto-cjk)，标题用汇文明朝体。
 - 设计原则部分借鉴 [InkView](https://github.com/qybaihe/inkview)（MIT）。

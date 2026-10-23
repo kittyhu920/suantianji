@@ -102,8 +102,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 定盘 ───────── */
-  function enterDing() {
-    ctx.show('ding');
+  function enterDing(dir = 1) {
+    ctx.show('ding', { dir });
     S.dingEnterAt = performance.now();
     const { zhi } = branch();
     const hh = String(S.clock.getHours()).padStart(2, '0');
@@ -129,8 +129,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 摇签：仿真签筒 ───────── */
-  function enterQian() {
-    ctx.show('qian');
+  function enterQian(dir = 1) {
+    ctx.show('qian', { dir });
     S.signShown = false;
   }
 
@@ -171,15 +171,17 @@ export function createGame(ctx) {
     const sign = S.sign;
     tube?.stop();
     gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
-    S.signShown = true;
-    setTimeout(() => { // 签名落下的一刻：水纹与溅点
-      if (ctx.screen !== 'qian') return;
-      const name = document.getElementById('sign-name');
-      if (!name) return;
-      const p = ctx.fxPoint(name);
-      ctx.fx.wash(p.x, p.y, { R: 110, a: 0.1, grow: 1.0, hold: 0.2, fade: 1.4 });
-      ctx.fx.ripple(p.x, p.y, { r: 90, rings: 2, a: 0.2 });
-    }, 480);
+    // 签落地之后，翻过一页，签卡在下一页上
+    ctx.turn(() => { S.signShown = true; }).then(() => {
+      setTimeout(() => { // 签名落下的一刻：水纹与溅点
+        if (ctx.screen !== 'qian') return;
+        const name = document.getElementById('sign-name');
+        if (!name) return;
+        const p = ctx.fxPoint(name);
+        ctx.fx.wash(p.x, p.y, { R: 110, a: 0.1, grow: 1.0, hold: 0.2, fade: 1.4 });
+        ctx.fx.ripple(p.x, p.y, { r: 90, rings: 2, a: 0.2 });
+      }, 480);
+    });
     const d = readDisappoint(view(), sign, lastVisit, db.signs);
     S.reads.disappoint = d;
     gloss(`${sign.level}签，我猜你 ${d.pct}% 会失望`, { alarm: d.pct > 60 });
@@ -280,7 +282,7 @@ export function createGame(ctx) {
     S.cups = [];
     S.pending = null;
     S.reads.disappoint = null;
-    enterQian();
+    enterQian(-1); // 不认这支签，翻回去重求
   }
 
   /* ───────── 结局 ───────── */
@@ -470,7 +472,7 @@ export function createGame(ctx) {
   function toStart() {
     tube?.stop();
     resetAll();
-    ctx.show('title');
+    ctx.show('title', { dir: -1 });
     bootTitle();
   }
 
@@ -478,7 +480,7 @@ export function createGame(ctx) {
     const visits = ctx.visits.bump();
     resetAll({ clear: false });
     gloss(`你又来问了，第 ${visits} 次`);
-    enterDing();
+    enterDing(-1);
   }
 
   bootTitle();

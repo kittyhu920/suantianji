@@ -2,6 +2,7 @@
   // 卜卷入口：一个手绘的“卜”字（仿甲骨字形），一团赭红的余烬，“灼”字印章。
   // 墨痕不画线（docs/DESIGN.md §8）；余烬是一团柔边的赭红晕，隔一阵洇开一次。
   import Seal from '../../core/Seal.svelte';
+  import Spread from '../../core/Spread.svelte';
   import Zhu from '../../core/Zhu.svelte';
   import Glyph from './Glyph.svelte';
   import { GLYPH_NOTE } from './glyphs.js';
@@ -26,11 +27,14 @@
     <p class="glyph-note">{GLYPH_NOTE}</p>
   </div>
   <div class="title-actions">
-    <Seal size="lg" id="btn-enter" aria-describedby="enter-note" onclick={game.begin}>卜</Seal>
-    <p id="enter-note" class="note">点红色的“卜”字印章开始。三千多年前的<Zhu term="殷墟" />，人们在<Zhu term="甲骨" />上占卜。我替你备了一块<Zhu term="龟腹甲" />，按住<Zhu term="钻凿" />来<Zhu term="灼" />，看裂出的<Zhu term="兆" />。<br>全程约三分钟，建议打开声音。</p>
+    <p id="enter-note" class="note">三千多年前的<Zhu term="殷墟" />，人们在<Zhu term="甲骨" />上占卜。我替你备了一块<Zhu term="龟腹甲" />，按住<Zhu term="钻凿" />来<Zhu term="灼" />，看裂出的<Zhu term="兆" />。</p>
     <p class="title-links">
       <a class="about-link" href="/bu/yuanliu/">卜卷源流</a>
       <a class="about-link" href="/about/">关于这件作品</a>
     </p>
   </div>
 </section>
+
+<Spread name="卜" sub="甲骨灼卜" hint="点右下角朱红的“卜”字印开始。全程约三分钟，建议打开声音。">
+  {#snippet foot()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>卜</Seal>{/snippet}
+</Spread>

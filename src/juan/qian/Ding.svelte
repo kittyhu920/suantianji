@@ -2,6 +2,7 @@
   // 定盘：按时辰报出现在的时间，选一个想问的方向，可以写下具体的问题。
   import Seal from '../../core/Seal.svelte';
   import Zhu from '../../core/Zhu.svelte';
+  import Spread from '../../core/Spread.svelte';
 
   let { ctx, game } = $props();
   const { S, db } = game;
@@ -25,5 +26,8 @@
     <span class="ask-label">写下你想问的具体问题（可以不写）</span>
     <input id="ask" type="text" maxlength="40" autocomplete="off" placeholder="例如：今年该不该换一份工作" bind:value={ask}>
   </label>
-  <Seal size="md" id="btn-ding" disabled={!S.domain} aria-label="确定" onclick={() => game.confirmDing(ask)}>定</Seal>
 </section>
+
+<Spread name="择域" sub="问哪一方面" hint={S.domain ? '选好了，点右下角的“定”。具体的问题可以不写。' : '先选一个想问的方向，再点右下角的“定”。具体的问题可以不写。'}>
+  {#snippet foot()}<Seal size="md" id="btn-ding" disabled={!S.domain} aria-label="确定" onclick={() => game.confirmDing(ask)}>定</Seal>{/snippet}
+</Spread>

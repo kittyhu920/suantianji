@@ -3,24 +3,34 @@
 
 改了任何中文文案之后都要重跑一次：python tools/subset-fonts.py
 
-- 马善政行楷（标题、签名、印章、眉批）：收界面（.astro / .svelte / .js / .css）与讲解页（.md，含 frontmatter 与标题行，全收）里的字，
-  加上签名、等级、结局名；签诗、白话等正文用宋体，不收进行楷。
-- 思源宋体 400（正文）拆成两个文件：
-  · 站内用字，首屏加载；
-  · GB2312 一级字库（3755 个常用字）里其余的字。通灵解签由 AI 实时生成、玩家的问题由玩家输入，
-    事先无法预知用字。这个文件用 unicode-range 声明，只有页面真出现这些字时浏览器才会下载。
+字体分工（docs/DESIGN.md §4）：
+- 汇文明朝体 Huiwen-mincho（--f-display）：卷名、标题、签名、签诗、卦名、结局名、印文。
+  收界面（.astro / .svelte / .js / .css）、讲解页（.md）与签簿、卦簿里会以明朝体显示的字段（签名、签诗、结局名与结局诗、领域、卦名）。
+  许可待确认，正式上线前可能换成文津明朝或思源宋体：换字体时只改下面 DISPLAY 的一项来源，
+  以及 src/core/styles/base.css 里的 --f-display。
+- 霞鹜文楷 LXGW WenKai（--f-kai，OFL 1.1，v1.530）：眉批、注、账本旁注、通灵的"实话"。
+  收界面与各卷 zhu.json 里的字；通灵由 AI 实时生成，用 GB2312 一级字库其余的字另拆一个文件，
+  用 unicode-range 声明，页面真出现这些字时才下载。
+- 思源宋体 400（正文、按钮、表单、账本）拆成两个文件：站内用字，首屏加载；GB2312 一级字库其余的字（unicode-range）。
   两者都没有的生僻字，回落到系统字体。
 - 思源宋体 600（按钮、小标题、注的术语名）：界面里的字，加注疏与讲解页（.md、.json）里的字。
-- 志莽行书（大标题）：只收界面里的字（.astro / .svelte / .js / .css）。
 
-源字体：马善政来自 Google Fonts 官方仓库，思源宋体来自 notofonts/noto-cjk 的简体中文静态字重
-（经 jsDelivr 下载，GitHub 直连太慢）。缓存在 .cache/fonts/（不入库），缺失时自动下载。
+源字体缓存在 .cache/fonts/（不入库），缺失时自动下载：
+- 霞鹜文楷：官方 release v1.530 的 Regular TTF，下载后校验 SHA-256。
+- 汇文明朝体：npm 包 @chinese-fonts/hwmct 的切片（经 jsDelivr），没有完整 TTF；这里按需要的字挑出切片，裁剪后合并成一个字体。
+- 思源宋体：notofonts/noto-cjk 的简体中文（经 jsDelivr 下载，GitHub 直连太慢）。
 """
 
+import hashlib
+import re
+import sys
+import tempfile
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from fontTools import subset
+from fontTools.merge import Merger
 from fontTools.ttLib import TTFont
 
 from compose_glyph import compose  # 给书法字体补造"筊"等缺字
@@ -34,14 +44,35 @@ FONTS_CSS = SRC / 'core' / 'styles' / 'fonts.css'
 DB = SRC / 'juan' / 'qian' / 'fortune-db.json'
 
 SOURCES = {
-    'MaShanZheng-Regular.ttf': 'https://github.com/google/fonts/raw/main/ofl/mashanzheng/MaShanZheng-Regular.ttf',
-    'ZhiMangXing-Regular.ttf': 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zhimangxing/ZhiMangXing-Regular.ttf',
     'NotoSerifSC-Regular.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf',
     'NotoSerifSC-SemiBold.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-SemiBold.otf',
+    'LXGWWenKai-Regular.ttf': 'https://github.com/lxgw/LxgwWenKai/releases/download/v1.530/LXGWWenKai-Regular.ttf',
+}
+SHA256 = {
+    'LXGWWenKai-Regular.ttf': '2d73eea94ad808999d90c0000c239a84a33b09d4bc6ab6c5b8bbf1eda8a7fc8b',
+}
+# 展示字体（--f-display）的来源：汇文明朝体的切片包。换成别的明朝体时，改这一项和 main() 里 display 的取法
+DISPLAY = {
+    'family': 'Huiwen-mincho',
+    'base': 'https://cdn.jsdelivr.net/npm/@chinese-fonts/hwmct@3.0.0/dist/' + urllib.parse.quote('汇文明朝体') + '/',
+    'dir': 'huiwen-slices',
 }
 
 CODE = {'.astro', '.svelte', '.js', '.css'}  # 界面里的字
 TEXT = {'.md', '.json'}  # 讲解、注疏与签簿：正文与小标题
+
+
+def download(url, path, tries=5):
+    """带重试的下载（jsDelivr 偶尔会断开连接）。"""
+    import time
+    for i in range(tries):
+        try:
+            urllib.request.urlretrieve(url, path)
+            return
+        except OSError:
+            if i == tries - 1:
+                raise
+            time.sleep(1.5 * (i + 1))
 
 
 def fetch(name):
@@ -49,8 +80,53 @@ def fetch(name):
     if not path.exists():
         CACHE.mkdir(parents=True, exist_ok=True)
         print(f'下载 {name} ……')
-        urllib.request.urlretrieve(SOURCES[name], path)
+        download(SOURCES[name], path)
+    want = SHA256.get(name)
+    if want and hashlib.sha256(path.read_bytes()).hexdigest() != want:
+        path.unlink()
+        raise SystemExit(f'{name} 校验失败（SHA-256 不符），已删除，请重试')
     return path
+
+
+def fetch_display_slices():
+    """汇文明朝体的切片：按 result.css 里列出的文件名下载到缓存，返回本地路径列表。"""
+    d = CACHE / DISPLAY['dir']
+    d.mkdir(parents=True, exist_ok=True)
+    css_path = d / 'result.css'
+    if not css_path.exists():
+        download(DISPLAY['base'] + 'result.css', css_path)
+    names = sorted(set(re.findall(r'url\("\./([0-9a-f]+\.woff2)"\)', css_path.read_text(encoding='utf-8'))))
+    for n in names:
+        if not (d / n).exists():
+            download(DISPLAY['base'] + n, d / n)
+    return [d / n for n in names]
+
+
+def build_display(chars):
+    """从切片里挑出含所需字的，各自裁剪，再合并成一个字体。返回 (font, 缺字集合)。"""
+    chars = set(chars) | set('笑交')  # 笑、交用来补造"筊"
+    have = set()
+    parts = []
+    tmp = Path(tempfile.mkdtemp(prefix='stj-hw-'))
+    for i, p in enumerate(fetch_display_slices()):
+        f = TTFont(p)
+        hit = chars & {chr(c) for c in f.getBestCmap()}
+        if not hit:
+            continue
+        opts = subset.Options()
+        opts.layout_features = []
+        opts.notdef_outline = True
+        opts.hinting = False
+        opts.name_IDs = ['*']
+        sub = subset.Subsetter(opts)
+        sub.populate(text=''.join(hit))
+        sub.subset(f)
+        out = tmp / f'{i}.ttf'
+        f.save(out)
+        parts.append(str(out))
+        have |= hit
+    merged = Merger().merge(parts)
+    return merged, chars - have
 
 
 def scan(suffixes, skip=()):
@@ -77,18 +153,36 @@ def heading_chars():
     return chars
 
 
-def brush_chars():
-    """行楷用字：界面里的字，加签簿里会以行楷显示的字段。"""
+def display_chars():
+    """汇文明朝体用字：界面里的字，讲解页，加签簿里会以明朝体显示的字段（签名、签诗、等级、结局名、领域）与卦名。"""
     import json
     db = json.loads(DB.read_text(encoding='utf-8'))
-    chars = ui_chars() | scan({'.md'})
+    chars = scan(CODE, skip={'shuowen-bushou.js'})
+    for md in SRC.rglob('*.md'):  # 讲解页只有题名、提要与小标题用明朝体
+        head = [l for l in md.read_text(encoding='utf-8').splitlines() if l.startswith(('title:', 'lead:', '#'))]
+        chars.update(''.join(head))
     for s in db['signs']:
-        chars.update(s['name'] + s['level'])
+        chars.update(s['name'] + s['level'] + ''.join(s['poem']))
     for e in db['endings'].values():
-        chars.update(e['name'] + e['sub'])
+        chars.update(e['name'] + e['sub'] + ''.join(e['verse']))
     for d in db['domains'].values():
         chars.update(d['name'] + d['desc'])
+    gua = json.loads((SRC / 'juan' / 'gua' / 'gua.json').read_text(encoding='utf-8'))
+    for h in gua['hexagrams']:
+        chars.update(h['name'])
+    for e in gua['endings'].values():
+        chars.update(e['name'] + e['sub'] + ''.join(e['verse']))
+    for d in gua['domains'].values():
+        chars.update(d['name'] + d['desc'])
     return chars
+
+
+def kai_chars():
+    """霞鹜文楷用字：界面里的字（眉批、账本旁注等写在 .js / .svelte 里），加各卷 zhu.json（注）。"""
+    chars = scan(CODE, skip={'shuowen-bushou.js'})
+    for p in (SRC / 'juan').glob('*/zhu.json'):
+        chars.update(p.read_text(encoding='utf-8'))
+    return {c for c in chars if not c.isspace()}
 
 
 def gb2312_level1():
@@ -143,26 +237,46 @@ FACE = '''@font-face {{
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     used = site_chars() | BASICS
     extra = gb2312_level1() - used
 
-    brush = TTFont(fetch('MaShanZheng-Regular.ttf'))
-    compose(brush)
-    write(brush, brush_chars() | BASICS, 'ma-shan-zheng.woff2')
+    # 汇文明朝体
+    disp_font, missing = build_display(display_chars() | BASICS)
+    compose(disp_font)
+    if ord('筊') in disp_font.getBestCmap():
+        missing.discard('筊')
+    write(disp_font, (display_chars() | BASICS) - missing, 'huiwen-mincho.woff2')
+    if missing:
+        print('汇文明朝体缺字（回落到思源宋体）：' + ''.join(sorted(missing)))
+
+    # 霞鹜文楷：站内用字 + GB2312 其余
+    kai_used = kai_chars() | BASICS
+    kai_extra = gb2312_level1() - kai_used
+    kai_src = fetch('LXGWWenKai-Regular.ttf')
+    kai = TTFont(kai_src)
+    compose(kai)
+    kai_have = {chr(c) for c in kai.getBestCmap()}
+    kai_missing = {c for c in kai_used if c not in kai_have}
+    if kai_missing:
+        print('霞鹜文楷缺字（回落到思源宋体）：' + ''.join(sorted(kai_missing)))
+    write(kai, kai_used, 'lxgw-wenkai.woff2')
+    kai2 = TTFont(kai_src)
+    write(kai2, kai_extra, 'lxgw-wenkai-extra.woff2')
+
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), used, 'noto-serif-sc-400.woff2')
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), extra, 'noto-serif-sc-400-extra.woff2')
     write(TTFont(fetch('NotoSerifSC-SemiBold.otf')), ui_chars() | heading_chars() | BASICS, 'noto-serif-sc-600.woff2')
-    title = TTFont(fetch('ZhiMangXing-Regular.ttf'))
-    compose(title)
-    write(title, ui_chars() | BASICS, 'zhi-mang-xing.woff2')
 
     css = '/* 由 tools/subset-fonts.py 生成，不要手改 */\n'
-    css += FACE.format(family='Ma Shan Zheng', weight=400, file='ma-shan-zheng.woff2', range='')
+    css += FACE.format(family=DISPLAY['family'], weight=400, file='huiwen-mincho.woff2', range='')
+    css += FACE.format(family='LXGW WenKai', weight=400, file='lxgw-wenkai.woff2', range='')
+    css += FACE.format(family='LXGW WenKai', weight=400, file='lxgw-wenkai-extra.woff2',
+                       range=f'\n  unicode-range: {unicode_range(kai_extra)};')
     css += FACE.format(family='Noto Serif SC', weight=400, file='noto-serif-sc-400.woff2', range='')
     css += FACE.format(family='Noto Serif SC', weight=400, file='noto-serif-sc-400-extra.woff2',
                        range=f'\n  unicode-range: {unicode_range(extra)};')
     css += FACE.format(family='Noto Serif SC', weight=600, file='noto-serif-sc-600.woff2', range='')
-    css += FACE.format(family='Zhi Mang Xing', weight=400, file='zhi-mang-xing.woff2', range='')
     FONTS_CSS.write_text(css, encoding='utf-8', newline='')
     print(f'fonts.css: {len(css) / 1024:.0f} KB')
 

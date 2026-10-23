@@ -20,18 +20,36 @@ export function setNotes(notes) {
 
 let queue = [];
 let timer = 0;
+let held = false;
+
+function drainQueue() {
+  const t = queue.shift();
+  if (t) zhu.shown = [t, ...zhu.shown];
+  timer = queue.length ? setTimeout(drainQueue, 420) : 0;
+}
+
+/** 翻页时先不出注，落定后一起出 */
+export function holdZhu(on) {
+  held = on;
+  if (!on && queue.length && !timer) drainQueue();
+}
+
+/** 换屏：清空这一屏已出的注（注写在各屏自己的左页边上） */
+export function clearShown() {
+  queue = [];
+  clearTimeout(timer);
+  timer = 0;
+  zhu.shown = [];
+  zhu.focus = '';
+  zhu.pop = null;
+}
 
 /** 术语出现在眼前：桌面上注栏添一条。一次出现几个时，一条一条错开 */
 export function reveal(term) {
   if (!wide() || !zhu.notes[term] || zhu.shown.includes(term) || queue.includes(term)) return;
   queue.push(term);
-  if (timer) return;
-  const next = () => {
-    const t = queue.shift();
-    if (t) zhu.shown = [t, ...zhu.shown];
-    timer = queue.length ? setTimeout(next, 420) : 0;
-  };
-  next();
+  if (timer || held) return;
+  drainQueue();
 }
 
 /** 点术语：桌面上把这一条提到最前并提示；手机上弹出浮注 */

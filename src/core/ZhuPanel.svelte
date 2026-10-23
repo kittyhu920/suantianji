@@ -1,8 +1,8 @@
 <script>
-  // 注栏（桌面，右侧）与浮注（手机）
+  // 注：桌面上是左页下方的小字旁注（kind="notes"），手机上点术语弹出浮注（kind="pop"）
   import { zhu, closePop } from './zhu.svelte.js';
 
-  let { class: cls = '' } = $props();
+  let { class: cls = '', kind = 'notes' } = $props();
   const kindLabel = { 古籍: '出自古籍', 民俗: '出自民俗', 考古: '出自考古', 原创: '本作原创' };
   const pop = $derived(zhu.pop && zhu.notes[zhu.pop.term] ? { ...zhu.pop, note: zhu.notes[zhu.pop.term] } : null);
 
@@ -32,10 +32,11 @@
 
 <svelte:window onpointerdown={onWindowDown} onkeydown={(e) => { if (e.key === 'Escape') closePop(); }} />
 
+{#if kind === 'notes'}
 <aside class={`zhu-col ${cls}`} aria-label="注">
   <h2 class="zhu-h"><span>注</span></h2>
   {#if !zhu.shown.length}
-    <p class="zhu-empty">仪式里遇到不熟的词，我在这里作注。</p>
+    <p class="zhu-empty">遇到不熟的词，我在这里作注。</p>
   {/if}
   <div class="zhu-list" aria-live="polite">
     {#each zhu.shown as term, i (term)}
@@ -48,8 +49,9 @@
     {/each}
   </div>
 </aside>
+{/if}
 
-{#if pop}
+{#if kind === 'pop' && pop}
   {#key pop.term}
     <div class="zhu-pop" role="dialog" aria-label={`${pop.term}的注`} use:place={pop}>
       <h3><span class="zhu-name">{pop.term}</span><span class="zhu-kind" data-kind={pop.note.kind}>{kindLabel[pop.note.kind] ?? pop.note.kind}</span></h3>

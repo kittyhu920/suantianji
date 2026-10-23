@@ -3,11 +3,11 @@
    颜色全部在 theme.css 的变量里（浅色"宣纸"与深色"乌金拓"）；旧名 --gold、--gan 仍是别名。 */
 
 :root {
-  --f-title: "Zhi Mang Xing", "Ma Shan Zheng", "STKaiti", "KaiTi", serif;
-  --f-brush: "Ma Shan Zheng", "STKaiti", "KaiTi", "Kaiti SC", serif;
+  /* 字体分工（docs/DESIGN.md §4）。换字体时，族名只在这里改（来源在 tools/subset-fonts.py 的 DISPLAY） */
+  --f-display: "Huiwen-mincho", "Noto Serif SC", "Songti SC", "STSong", serif;       /* 卷名、标题、签名、签诗、卦名、结局名、印文 */
+  --f-kai: "LXGW WenKai", "STKaiti", "KaiTi", "Kaiti SC", "Noto Serif SC", serif;   /* 眉批、注、账本旁注、通灵的"实话" */
   --f-text: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
 
-  --mei-h: 76px;            /* 顶部眉批槽（含角按钮）的高度：一个两行高的固定槽 */
   --ease-out: cubic-bezier(.2, .7, .2, 1);
 }
 * { box-sizing: border-box; }
@@ -34,89 +34,8 @@ button { font: inherit; color: inherit; }
 
 
 
-/* ───────── 画心 ───────── */
-.huaxin {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  background-color: var(--paper);
-  background-image:
-    /* 木版印刷的朱丝栏：略有抖动、偶有断口；一块图案三根线，断口错开 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='520'%3E%3Cfilter id='w' filterUnits='userSpaceOnUse' x='0' y='0' width='132' height='520'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04545 .025' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='2.4'/%3E%3C/filter%3E%3Cg stroke='%23b3261f' stroke-opacity='.24' stroke-width='1.15' filter='url(%23w)'%3E%3Cpath d='M22 0V520' stroke-dasharray='150 2 90 1 180 3 94 0'/%3E%3Cpath d='M66 0V520' stroke-dasharray='60 1 210 3 130 2 114 0' stroke-opacity='.2'/%3E%3Cpath d='M110 0V520' stroke-dasharray='240 2 70 1 150 2 55 0'/%3E%3C/g%3E%3C/svg%3E"),
-    /* 纤维 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    /* 纸的深浅斑驳 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .44 0 0 0 0 .28 0 0 0 .5 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
-    radial-gradient(130% 90% at 50% 40%, transparent 60%, rgba(120, 90, 50, .14) 100%);
-  background-size: 132px 520px, 240px 240px, 1000px 1000px, 100% 100%;
-  overflow: hidden;
-}
-.huaxin::after { /* 盖在内容上的一层极淡纸纹：墨字、朱印也带上纤维，像印在纸上 */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .82 0 0 0 .55 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  opacity: var(--fiber-op);
-  pointer-events: none;
-  z-index: 3;
-}
-/* 深色"乌金拓"的纸：墨底，纤维是淡淡的亮丝，斑驳是拓片上漏墨的白点；朱丝栏退到极淡 */
-:root[data-theme="dark"] .huaxin {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='520'%3E%3Cfilter id='w' filterUnits='userSpaceOnUse' x='0' y='0' width='132' height='520'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04545 .025' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='2.4'/%3E%3C/filter%3E%3Cg stroke='%23b3261f' stroke-opacity='.2' stroke-width='1.15' filter='url(%23w)'%3E%3Cpath d='M22 0V520' stroke-dasharray='150 2 90 1 180 3 94 0'/%3E%3Cpath d='M66 0V520' stroke-dasharray='60 1 210 3 130 2 114 0' stroke-opacity='.16'/%3E%3Cpath d='M110 0V520' stroke-dasharray='240 2 70 1 150 2 55 0'/%3E%3C/g%3E%3C/svg%3E"),
-    /* 纤维：亮丝 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .7 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    /* 拓片的白斑：高频噪声取最亮的一小撮 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.5' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .82 0 0 0 0 .78 0 0 0 0 .68 15 0 0 0 -11.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
-    /* 低频的深浅斑驳 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .6 0 0 0 0 .52 0 0 0 0 .38 0 0 0 .3 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
-    radial-gradient(130% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, .4) 100%);
-  background-size: 132px 520px, 240px 240px, 300px 300px, 1000px 1000px, 100% 100%;
-}
-:root[data-theme="dark"] .huaxin::after { /* 盖在字上的拓痕：几处细碎的磨损，墨字与朱印也像拓出来的 */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .6' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .08 0 0 0 0 .07 0 0 0 0 .05 11 0 0 0 -8.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  opacity: .5;
-}
-.huaxin::before { /* 版框：四周双边 */
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border: 3px solid var(--frame);
-  box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--frame);
-  pointer-events: none;
-  z-index: 4;
-}
-.stage {
-  position: absolute;
-  inset: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--ink-faint) transparent;
-}
-/* 屏 */
-.screen {
-  display: none;
-  min-height: 100%;
-  padding: calc(var(--mei-h) + 14px) 30px 40px;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 18px;
-}
-.screen.is-active {
-  display: flex;
-  text-shadow: 0 0 .6px rgba(var(--ink-rgb), .28); /* 墨在纸上的微微洇开 */
-  animation: ink-in .9s var(--ease-out) both;
-}
-@keyframes ink-in {
-  from { opacity: 0; filter: blur(6px); }
-  to   { opacity: 1; filter: blur(0); }
-}
-
 .h-brush {
-  font-family: var(--f-title);
+  font-family: var(--f-display);
   font-weight: 400;
   font-size: 44px;
   line-height: 1.1;
@@ -142,7 +61,7 @@ button { font: inherit; color: inherit; }
   border-radius: 6px 4px 7px 3px;
   background: var(--cinnabar);
   color: var(--on-zhu);
-  font-family: var(--f-brush);
+  font-family: var(--f-display);
   font-size: calc(var(--s) * .56);
   line-height: 1;
   cursor: pointer;
@@ -207,67 +126,6 @@ button { font: inherit; color: inherit; }
 .btn:disabled { opacity: .35; cursor: default; }
 
 
-/* 角上的小按钮：左回卷首，右开关声音与主题。小木牌：木色的底，细纹、亮边、一道暗边，下缘一线厚度 */
-.corner-btn {
-  position: absolute;
-  top: 18px;
-  z-index: 6;
-  min-width: 36px;
-  height: 34px;
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  -webkit-appearance: none;
-  appearance: none;
-  border: 0;
-  border-radius: 4px 5px 4px 5px;
-  background:
-    repeating-linear-gradient(90deg, transparent 0 7px, var(--wood-grain) 7px 8px, transparent 8px 15px, rgba(0, 0, 0, .05) 15px 16px),
-    linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
-  box-shadow:
-    inset 0 1px 0 var(--wood-light), inset 0 -1px 0 var(--wood-edge), inset 0 0 0 1px rgba(0, 0, 0, .12),
-    0 2px 0 var(--wood-edge), 0 4px 6px var(--seal-cast);
-  color: var(--wood-ink);
-  font-family: var(--f-brush);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform .12s, box-shadow .12s, filter .15s;
-}
-.corner-home { left: 18px; }
-.corner-mute { right: 18px; }
-.corner-btn:hover { filter: brightness(1.08); }
-.corner-btn:active { transform: translateY(2px); box-shadow: inset 0 1px 0 var(--wood-light), inset 0 -1px 0 var(--wood-edge), 0 0 0 var(--wood-edge), 0 1px 2px var(--seal-cast); }
-.corner-mute[aria-pressed="true"] { color: var(--ink-ghost); text-decoration: line-through; }
-
-/* 主题开关：一枚小印，写"昼"或"夜"（当前是哪一种就写哪一个字） */
-.corner-theme {
-  --s: 34px;
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 6;
-  font-size: 17px;
-}
-.huaxin:has(.corner-mute) .corner-theme { right: calc(var(--zhu-w) + 62px); }
-/* 存疑 */
-.seal-doubt {
-  position: absolute;
-  left: 16px; bottom: 16px;
-  --s: 46px;
-  font-size: 15px;
-  line-height: 1.05;
-  writing-mode: vertical-rl;
-  animation: breathe 3.2s ease-in-out infinite;
-  z-index: 3;
-}
-@keyframes breathe {
-  0%, 100% { opacity: .18; }
-  50% { opacity: .7; }
-}
-.seal-doubt:hover, .seal-doubt:focus-visible { animation: none; opacity: 1; }
-
 /* 破执：画心被撕开 */
 .huaxin.is-broken .margin { animation: glitch .5s steps(2) 3; }
 @keyframes glitch {
@@ -277,22 +135,6 @@ button { font: inherit; color: inherit; }
   100% { transform: translate(0); }
 }
 /* ───────── 墨与水（docs/DESIGN.md §8；画布部分见 js/ink.js） ───────── */
-.ink-fx {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  z-index: 2; /* 在内容之上、纸纹（z 3）之下：墨与水也带着纸的纤维 */
-  pointer-events: none;
-}
-
-/* 换屏：新的一屏从指尖按下的地方，像水墨一样洇开（支持 @property 的浏览器才启用，见 main.js） */
-@property --r { syntax: "<length>"; inherits: false; initial-value: 0px; }
-.screen.is-reveal {
-  --r: 0px;
-  -webkit-mask-image: radial-gradient(circle at var(--ox) var(--oy), #000 calc(var(--r) * .5), rgba(0, 0, 0, .55) calc(var(--r) * .82), transparent var(--r));
-  mask-image: radial-gradient(circle at var(--ox) var(--oy), #000 calc(var(--r) * .5), rgba(0, 0, 0, .55) calc(var(--r) * .82), transparent var(--r));
-  animation: ink-reveal 1.5s cubic-bezier(.4, .1, .5, 1) both;
-}
-@keyframes ink-reveal { from { --r: 0px; } to { --r: var(--rmax, 1200px); } }
 
 /* 逐字洇开：墨一沾纸就渗进去，先糊后实 */
 .ink-ch {

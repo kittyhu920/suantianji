@@ -148,8 +148,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 命辞 ───────── */
-  function enterDing() {
-    ctx.show('ding');
+  function enterDing(dir = 1) {
+    ctx.show('ding', { dir });
     S.dingEnterAt = performance.now();
     gloss('我替你备了一块龟腹甲');
     gloss('先把你要问的事，说成一句话');
@@ -555,7 +555,7 @@ export function createGame(ctx) {
 
   function toStart() {
     resetAll();
-    ctx.show('title');
+    ctx.show('title', { dir: -1 });
     bootTitle();
   }
 
@@ -563,7 +563,7 @@ export function createGame(ctx) {
     const visits = ctx.visits.bump();
     resetAll({ clear: false });
     gloss(`你又来卜了，第 ${visits} 次`);
-    enterDing();
+    enterDing(-1);
   }
 
   bootTitle();

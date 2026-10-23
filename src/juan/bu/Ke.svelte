@@ -1,6 +1,7 @@
 <script>
   // 刻辞：把前辞、命辞、占辞（有对贞时还有对贞辞）刻在甲上，一列一列。楷书，竖排，加刀刻的痕。
   import Zhu from '../../core/Zhu.svelte';
+  import Spread from '../../core/Spread.svelte';
   import OmenFigure from './OmenFigure.svelte';
 
   let { ctx, game } = $props();
@@ -18,5 +19,8 @@
   {#if crack}
     <OmenFigure {ctx} {crack} spot={z.spot} {other} otherSpot={f?.spot} {carve} />
   {/if}
-  <button class="btn btn-primary" id="btn-view" onclick={game.finish}>观象</button>
 </section>
+
+<Spread name="刻辞" sub="刻在甲上" hint="我把前辞、命辞、占辞刻在甲上。看完，点“观象”。">
+  {#snippet foot()}<button class="btn btn-primary" id="btn-view" onclick={game.finish}>观象</button>{/snippet}
+</Spread>
