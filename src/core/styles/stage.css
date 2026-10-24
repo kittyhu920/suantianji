@@ -242,7 +242,7 @@
 /* 桌上（仪式）：器物摆在桌面的中前部 */
 .desk {
   position: absolute;
-  left: 40px; right: 40px; top: 322px; bottom: 28px;
+  left: 40px; right: 40px; top: 336px; bottom: 28px;
   z-index: 4;
   pointer-events: none;
 }
@@ -271,7 +271,7 @@
 
 /* 书在各个阶段的位置与大小（锚点见 book.css 的 .book-anchor） */
 .shell[data-phase="home"] .book-anchor { --bx: 570px; --by: 392px; --bs: 1.22; }
-.shell[data-phase="ritual"] .book-anchor { --bx: 350px; --by: 196px; --bs: .78; }
+.shell[data-phase="ritual"] .book-anchor { --bx: 350px; --by: 220px; --bs: .78; }
 .shell[data-phase="reading"] .book-anchor { --bx: 700px; --by: 400px; --bs: 1.5; }
 .shell[data-phase="doc"] .book-anchor { --bx: 570px; --by: 400px; --bs: 1.06; opacity: 0; pointer-events: none; }
 .shell[data-phase="reading"][data-reader="on"] .book-anchor { opacity: 0; pointer-events: none; }

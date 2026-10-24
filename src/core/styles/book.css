@@ -137,11 +137,11 @@
 
 /* 扉页上的字迹：封面掀起时，一张写字的纸笺从书里露出一截。尺寸按书的缩放反着算，屏幕上的大小不变 */
 .bk-slip {
-  --w: 430px;
+  --w: 520px;
   position: absolute;
   left: calc(8px / var(--bs)); bottom: calc(10px / var(--bs));
   width: calc(var(--w) / var(--bs)); min-height: calc(112px / var(--bs));
-  padding: calc(16px / var(--bs)) calc(24px / var(--bs)) calc(18px / var(--bs)) calc(150px / var(--bs));
+  padding: calc(16px / var(--bs)) calc(24px / var(--bs)) calc(18px / var(--bs)) calc(196px / var(--bs));
   background:
     linear-gradient(90deg, rgba(40, 24, 6, .16), transparent 10%),
     var(--paper);
@@ -157,8 +157,8 @@
 .gloss {
   margin: 0;
   font-family: var(--f-voice);
-  font-size: calc(21px / var(--bs));
-  line-height: 1.6;
+  font-size: calc(26px / var(--bs)); /* 纸笺躺在倾斜的书页平面上，竖向被压扁约三成，字号要比屏幕上想要的大一些 */
+  line-height: 1.55;
   letter-spacing: .05em;
   text-align: left;
   color: var(--ink);
