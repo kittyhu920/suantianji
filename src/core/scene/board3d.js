@@ -496,9 +496,12 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   const drifting = () => !hovering && !document.hidden; // 滚动
   const fading = () => stamps.size > 0;
 
+  // 书在翻页（stj-flip，见 book/book.svelte.js）时暂停：翻页的纸要用满合成器，字盘慢慢漂移这一秒不画也看不出来
+  let held = false;
+
   function frame(now) {
     raf = 0;
-    if (dead || document.hidden) return;
+    if (dead || document.hidden || held) return;
     const dt = last ? clamp((now - last) / 1000, 0, 0.25) : 0;
     last = now;
     update(dt);
@@ -508,7 +511,7 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   }
 
   function schedule() {
-    if (dead || document.hidden || raf || timer) return;
+    if (dead || document.hidden || held || raf || timer) return;
     if (interactive() || wake) { raf = requestAnimationFrame(frame); return; }
     const wait = fading() ? 33 : drifting() ? 50 : 0;
     if (!wait) { last = 0; return; } // 静止：停帧
@@ -528,6 +531,15 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       last = 0;
     } else { last = 0; request(); }
   };
+  const onHold = (e) => {
+    held = !!e.detail;
+    if (held) {
+      cancelAnimationFrame(raf); raf = 0;
+      clearTimeout(timer); timer = 0;
+      last = 0;
+    } else request();
+  };
+  document.addEventListener('stj-flip', onHold);
   const onLost = (e) => { e.preventDefault(); board.dispatchEvent(new CustomEvent('zp-gl-lost')); };
 
   const ro = new ResizeObserver(layout);
@@ -555,6 +567,7 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       board.removeEventListener('pointerleave', onLeave);
       board.removeEventListener('click', onClick);
       document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('stj-flip', onHold);
       canvas.removeEventListener('webglcontextlost', onLost);
       mesh?.dispose();
       geo?.dispose();
