@@ -1,11 +1,11 @@
 ---
 // Markdown 讲解页的版式（例如各卷的“源流”）：frontmatter 里写 title、lead、back。
-// 左页是题名与提要，右页是正文（长文在页内滚动）。
+// 摊在桌上的一张纸：题名与提要在上，正文在下（长文在纸上滚动）。
 import BookFrame from './BookFrame.astro';
 const { frontmatter } = Astro.props;
 const back = frontmatter.back ?? '/';
 ---
-<BookFrame title="演算天机" pageTitle={`${frontmatter.title} · 演算天机`} description={frontmatter.lead} back={{ href: back, label: '返回' }} long>
+<BookFrame title="演算天机" pageTitle={`${frontmatter.title} · 演算天机`} description={frontmatter.lead} back={{ href: back, label: '返回' }}>
   <div slot="left" class="doc-head">
     <h1 id="doc-h" class="lp-name">{frontmatter.title}</h1>
     <p class="about-lead">{frontmatter.lead}</p>
@@ -15,6 +15,6 @@ const back = frontmatter.back ?? '/';
       <slot />
     </div>
   </article>
-  <span slot="hint">长文在右页里往下滚。读完，点“返回”。</span>
+  <span slot="hint">长文在纸上往下滚。读完，点“返回”。</span>
   <a slot="foot" class="btn btn-primary" href={back}>返回</a>
 </BookFrame>

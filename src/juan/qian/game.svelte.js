@@ -173,17 +173,9 @@ export function createGame(ctx) {
     const sign = S.sign;
     tube?.stop();
     gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
-    // 签落地之后，翻过一页，签卡在下一页上
-    ctx.turn(() => { S.signShown = true; }).then(() => {
-      setTimeout(() => { // 签名落下的一刻：水纹与溅点
-        if (ctx.screen !== 'qian') return;
-        const name = document.getElementById('sign-name');
-        if (!name) return;
-        const p = ctx.fxPoint(name);
-        ctx.fx.wash(p.x, p.y, { R: 110, a: 0.1, grow: 1.0, hold: 0.2, fade: 1.4 });
-        ctx.fx.ripple(p.x, p.y, { r: 90, rings: 2, a: 0.2 });
-      }, 480);
-    });
+    // 签落地之后，桌上多出一支签条（签号、签名、签级）；签诗与解签写进命书
+    S.signShown = true;
+    ctx.sfx.thud();
     const d = readDisappoint(view(), sign, lastVisit, db.signs);
     S.reads.disappoint = d;
     gloss(`${sign.level}签，我猜你 ${d.pct}% 会失望`, { alarm: d.pct > 60 });
@@ -466,7 +458,7 @@ export function createGame(ctx) {
   function resetAll({ clear = true } = {}) {
     shake.holdEnd();
     ui.posterOpen = false;
-    if (clear) { ctx.clearGloss(); ctx.fx.clear(); } // 回卷首才清眉批与墨；“再求一签”不清，大师接着记
+    if (clear) ctx.clearGloss(); // 回卷首才清书的话；“再求一签”不清，大师接着记
     resetOracle();
     ctx.resetRound();
     fin = null;
@@ -501,6 +493,7 @@ export function createGame(ctx) {
     canDoubt: () => RITUAL.includes(ctx.screen), // 在定盘、摇签、掷筊时可以存疑
     busy: () => shake.holding || (ctx.screen === 'qian' && !!tube?.active), // 正在摇签，不算发呆
     canOracle: () => !!S.sign,
+    openPoster() { ui.posterOpen = true; },
     get posterOpen() { return ui.posterOpen; },
     set posterOpen(v) { ui.posterOpen = v; },
     destroy() {

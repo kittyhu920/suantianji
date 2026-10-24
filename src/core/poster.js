@@ -6,7 +6,7 @@ import { weave } from './loom.js';
 
 const W = 1080;
 const H = 2860;
-const C = {
+export const C = {
   paper: '#efe6d0',
   gold: '#1b1712', goldSoft: 'rgba(27,23,18,.74)', goldDim: 'rgba(27,23,18,.5)', goldFaint: 'rgba(27,23,18,.14)', // 墨（沿用旧名）
   cinnabar: '#b3261f', cinnabarHi: '#b3261f', ink: '#f6eedb', // ink：朱印上的字
@@ -16,14 +16,14 @@ const C = {
 const QR = ["11111110010010011000001111111", "10000010011111011011001000001", "10111010100100001110101011101", "10111010010101110010001011101", "10111010100000010010001011101", "10000010111010001101001000001", "11111110101010101010101111111", "00000000010000111100100000000", "01001010100000111011110110100", "10111000111100100110001111011", "01100111001001000010010011001", "11001101011001100100110000011", "11110111101010001101000101001", "11111101001011100000001010101", "01110011010101011100101010001", "11110001100011001101001101010", "11101110100000010011110000001", "10011100010011101010011110001", "00110111111111001110000000101", "00011001110100100101100101011", "11011011110110110100111110011", "00000000101101011110100010101", "11111110010101010011101010001", "10000010000100011001100011010", "10111010101110001001111110011", "10111010001101000110000101110", "10111010000000110101110000011", "10000010101010111110111101011", "11111110000110100101111011010"];
 const SITE = 'suantianji.pages.dev';
 
-const TITLE = '"Huiwen-mincho", "Noto Serif SC", "Songti SC", serif'; // 标题、签名等：汇文明朝体（对应 --f-display）
-const BRUSH = TITLE;
-const TEXT = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
+export const TITLE = '"Huiwen-mincho", "Noto Serif SC", "Songti SC", serif'; // 标题、签名等：汇文明朝体（对应 --f-display）
+export const BRUSH = TITLE;
+export const TEXT = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
 
 // 行首不放的标点
 const NO_HEAD = '，。、；：？！”’）》」』…—';
 
-function wrap(g, text, maxW) {
+export function wrap(g, text, maxW) {
   const lines = [];
   let line = '';
   for (const ch of text) {
@@ -170,7 +170,7 @@ function mountains(g, seed) {
 }
 
 // 印：外缘不规则、内框断续、朱面剥蚀（越靠边越密）——与网页上 .seal 的做法一致
-function seal(g, cx, cy, s, ch, seed = 1) {
+export function seal(g, cx, cy, s, ch, seed = 1) {
   const rand = mulberry32(seed ^ 0x2f6e2b1);
   const x0 = cx - s / 2;
   const y0 = cy - s / 2;
@@ -258,8 +258,12 @@ export async function drawPoster(d, v) {
   cv.height = H;
   const g = cv.getContext('2d');
 
+  // 分阶段画，阶段之间让出主线程，免得一口气堵住页面（docs/DESIGN.md §19 “保存卡死的根因”）
+  const breathe = () => new Promise((r) => setTimeout(r));
   paper(g, d.seed);
+  await breathe();
   mountains(g, d.seed);
+  await breathe();
   inkSwash(g, d.seed);
   // 标题反白压在墨上
   g.save();
@@ -281,6 +285,7 @@ export async function drawPoster(d, v) {
   g.restore();
 
   y = v.body(g, y, d, { W, C, TEXT, BRUSH, center, wrap });
+  await breathe();
 
   // 结局
   y += 110;
@@ -312,7 +317,8 @@ export async function drawPoster(d, v) {
   const mh = lh2 * scale;
   // 用同一个种子和掷筊记录重织一遍：图案与页面上的一致，但按海报尺寸绘制，更清晰
   const loom = document.createElement('canvas');
-  await weave(loom, { seed: d.seed, throws: d.throws, reduced: true, width: Math.round(mw), style: v.style });
+  await weave(loom, { seed: d.seed, throws: d.throws, width: Math.round(mw), style: v.style });
+  await breathe();
   g.drawImage(loom, W / 2 - mw / 2, y, mw, mh);
   g.strokeStyle = C.goldFaint;
   g.lineWidth = 2;

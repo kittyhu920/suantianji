@@ -1,19 +1,19 @@
 ---
-// 页面的外壳：整页是“案”，案上铺着字盘（core/paper/board.js），书放在案上（docs/DESIGN.md §19）。
-// 书（天头栏、两页、案上的器物、页脚）是一个常驻的岛 Codex.svelte，用 ClientRouter 的 transition:persist 跨路由保留：
-// 从目录进入某一卷，是在书里翻页，不整页刷新；字盘的 three.js 画布同样常驻。
+// 页面的外壳：整页是“案”，案上铺着字盘（core/paper/board.js），书桌放在案上（docs/DESIGN.md §19）。
+// 书桌（天头栏、桌上的书与器物、页脚）是一个常驻的岛 Codex.svelte，用 ClientRouter 的 transition:persist 跨路由保留：
+// 从书桌点一件器物进入某一卷，不整页刷新；字盘的 three.js 画布同样常驻。
 // 每个页面只在 <template id="stj-page"> 里交出自己的内容（见 PageData.astro），Codex 在每次进入页面时读它。
 import { ClientRouter } from 'astro:transitions';
 import Codex from './Codex.svelte';
 import './styles/fonts.css';
 import './styles/theme.css';
 import './styles/base.css';
+import './styles/stage.css';
 import './styles/book.css';
 import './styles/desk.css';
 import './styles/pages.css';
 import './paper/paper.css';
 import '../juan/qian/qian.css';
-import '../juan/qian/fit.css';
 import '../juan/gua/gua.css';
 import '../juan/bu/bu.css';
 

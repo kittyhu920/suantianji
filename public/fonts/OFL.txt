@@ -2,6 +2,8 @@
 
 - lxgw-wenkai*.woff2：霞鹜文楷 LXGW WenKai（v1.530）
   Copyright 2021 The LXGW WenKai Project Authors (https://github.com/lxgw/LxgwWenKai)
+- long-cang.woff2：龙藏体 Long Cang（书的字，开源行书）
+  Copyright 2018 The Long Cang Project Authors (https://github.com/googlefonts/longcang)
 - noto-serif-sc-*.woff2：思源宋体 Noto Serif SC
   © 2017-2024 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.（https://github.com/notofonts/noto-cjk）
 

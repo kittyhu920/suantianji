@@ -1,0 +1,418 @@
+/* 书桌（docs/DESIGN.md §19）
+   页面 = 天头栏（header）+ 一张书桌（场景）+ 页脚（footer）。
+   场景是一块固定大小（1140×800）的桌面，窗口不够大就整体等比缩小（Codex.svelte 量好比例写进 --k）。
+   首页：正中一本合上的书，四周摆各卷的器物；进卷后书退到桌子里侧、器物摆到桌面的中前部；读命书时书滑到中央、摊开。
+   手机（< 960px）没有固定的场景：首页是器物网格，仪式时书缩成顶部的小图标。 */
+
+/* ───────── 外壳 ───────── */
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1260px, calc(100vw - 24px));
+  height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0 8px;
+  /* 天头栏、页脚坐在深色的案上：这两条里的字用纸白，两套主题相同 */
+  --bar-ink: #ece4d0;
+}
+.an { position: relative; height: 100dvh; display: block; }
+
+/* 纸：纤维、深浅斑驳；书的扉页、说话的纸笺、讲解页、问事的纸笺共用这一张底 */
+.paper {
+  background-color: var(--paper);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .44 0 0 0 0 .28 0 0 0 .5 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  background-size: 240px 240px, 1000px 1000px;
+}
+.bk-sheet, .bk-slip { background-image: none; }
+.bk-sheet, .bk-slip, .doc-sheet, .ask-sheet { background-color: var(--paper); }
+
+/* ───────── 天头栏、页脚 ───────── */
+.topbar, .botbar {
+  position: relative;
+  z-index: 5;
+  flex: none;
+  color: var(--bar-ink);
+  --ink: #ece4d0;
+  --ink-rgb: 236, 228, 208;
+  --ink-soft: rgba(236, 228, 208, .86);
+  --ink-dim: rgba(236, 228, 208, .7);
+  --ink-faint: rgba(236, 228, 208, .22);
+  --cinnabar-hi: #ef6b5d;
+  background: linear-gradient(180deg, rgba(14, 11, 8, .78), rgba(14, 11, 8, .62));
+  border: 1px solid rgba(236, 228, 208, .1);
+  border-radius: 5px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.topbar {
+  height: 52px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 12px;
+}
+.top-title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: .5em;
+  font-family: var(--f-display);
+  font-size: 22px;
+  letter-spacing: .16em;
+  color: var(--bar-ink);
+  white-space: nowrap;
+}
+.top-title i { font-style: normal; color: var(--ink-dim); }
+.top-title small { font-family: var(--f-text); font-size: 12px; letter-spacing: .2em; color: var(--ink-dim); margin-left: .6em; }
+.top-tools { justify-self: end; display: flex; align-items: center; gap: 12px; }
+.topbar .tag-btn:first-child { justify-self: start; }
+.topbar .corner-theme { --s: 34px; font-size: 17px; }
+.top-nav { display: flex; gap: 16px; align-items: center; }
+.top-link { font-size: 13px; letter-spacing: .08em; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--ink-faint); }
+.top-link:hover { color: var(--ink); text-decoration-color: var(--ink); }
+.oracle-toggle.is-bar { margin: 0; display: inline-flex; flex-direction: row; align-items: center; gap: 6px; cursor: pointer; }
+.oracle-toggle.is-bar .oracle-row { gap: 8px; }
+.oracle-toggle.is-bar .oracle-name { font-size: 14px; color: var(--ink); letter-spacing: .1em; }
+.oracle-toggle.is-bar .oracle-state { font-size: 12px; }
+.oracle-toggle.is-bar .oracle-quota { font-size: 12px; }
+.oracle-toggle.is-bar .seal { --s: 30px; font-size: 14px; }
+
+/* 小木牌：回书桌、声 */
+.tag-btn {
+  min-width: 52px;
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  border-radius: 4px 5px 4px 5px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, var(--wood-grain) 7px 8px, transparent 8px 15px, rgba(0, 0, 0, .05) 15px 16px),
+    linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
+  box-shadow:
+    inset 0 1px 0 var(--wood-light), inset 0 -1px 0 var(--wood-edge), inset 0 0 0 1px rgba(0, 0, 0, .12),
+    0 2px 0 var(--wood-edge), 0 4px 6px var(--seal-cast);
+  color: var(--wood-ink);
+  font-family: var(--f-display);
+  font-size: 16px;
+  letter-spacing: .1em;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, filter .15s;
+}
+.tag-btn:hover { filter: brightness(1.08); }
+.tag-btn:active { transform: translateY(2px); box-shadow: inset 0 1px 0 var(--wood-light), inset 0 -1px 0 var(--wood-edge), 0 0 0 var(--wood-edge), 0 1px 2px var(--seal-cast); }
+.tag-btn[aria-pressed="true"] { color: rgba(0, 0, 0, .4); text-decoration: line-through; }
+
+.botbar {
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+}
+.bot-doubt { display: flex; align-items: center; justify-content: center; min-width: 0; }
+.bot-mid { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bot-hint { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-soft); min-height: 1.6em; text-wrap: pretty; }
+.bot-acts { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+.bot-acts .btn { color: var(--bar-ink); border-color: rgba(236, 228, 208, .5); }
+.bot-acts .btn:hover { border-color: var(--bar-ink); }
+.bot-acts .btn-primary { color: var(--on-zhu); border-color: var(--cinnabar); }
+.bot-acts .btn-ghost { border-color: transparent; color: var(--ink-soft); text-decoration-color: var(--ink-faint); }
+.bot-acts .btn:disabled { opacity: .35; }
+.bot-links { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.shell[data-phase="reading"] .bot-links { display: none; }
+
+/* 步骤：一 · 择域 → 二 · 摇签 …，当前一步在序号上点朱圈 */
+.bot-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; font-size: 13px; color: var(--ink-dim); letter-spacing: .08em; }
+.bot-steps li { display: inline-flex; align-items: baseline; white-space: nowrap; position: relative; }
+.bot-steps b { font-weight: 400; }
+.stp-arrow { font-style: normal; margin: 0 .7em; color: var(--ink-faint); }
+.stp-dot { margin: 0 .3em; color: var(--ink-faint); }
+.bot-steps li.is-past { color: var(--ink-soft); }
+.bot-steps li.is-cur { color: var(--bar-ink); }
+.bot-steps b { position: relative; }
+.bot-steps li.is-cur b::before { content: "〇"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%) scale(1.7); font-size: 13px; color: var(--cinnabar-hi); pointer-events: none; }
+.bot-steps li.is-cur b, .bot-steps li.is-cur .stp-name { color: var(--cinnabar-hi); }
+
+/* 读命书时，页脚放这一页的脚注（注疏）：墨色宋体里的术语与它的解释 */
+.bot-notes { width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.5; color: var(--ink-soft); }
+.bot-notes li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bot-notes b { font-weight: 600; margin-right: .5em; color: var(--ink); letter-spacing: .06em; }
+.bot-notes small { font-size: 11px; margin-left: .5em; color: var(--ink-dim); }
+.pg-no { font-variant-numeric: tabular-nums; }
+
+/* 存疑印：页脚左端，呼吸般若隐若现 */
+.seal-doubt { --s: 44px; font-size: 14px; line-height: 1.05; writing-mode: vertical-rl; animation: breathe 3.2s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: .22; } 50% { opacity: .75; } }
+.seal-doubt:hover, .seal-doubt:focus-visible { animation: none; opacity: 1; }
+
+/* ───────── 书桌场景 ───────── */
+.table { position: relative; flex: 1; min-height: 0; }
+.scene {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1140px; height: 800px;
+  margin: -400px 0 0 -570px;
+  transform: scale(var(--k, .9));
+  transform-origin: 50% 50%;
+  /* 桌上的东西放在深色的桌面上：不论昼夜，都用"夜里"的那套配色（见 theme.css 的 --obj-*） */
+  --obj-ink: #ddd3ba;
+  --obj-ink2: #b9ae92;
+  --obj-ink3: #a39878;
+  --obj-mid: #6f6755;
+  --obj-mid2: #4d4739;
+  --obj-body: #1e1b16;
+  --obj-hi: #f4ecd6;
+  --obj-pool: #000;
+}
+/* 桌面：一块暖褐的木板，灯照亮书的周围，四边没入暗处 */
+.desk-plane {
+  position: absolute;
+  left: 14px; right: 14px; top: 26px; bottom: 6px;
+  border-radius: 18px;
+  background:
+    radial-gradient(52% 50% at 50% 46%, rgba(255, 214, 140, .2), transparent 72%),
+    radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, .55) 100%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .0) 0 3px, rgba(0, 0, 0, .09) 3px 4px, rgba(255, 226, 170, .025) 4px 9px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .06) 0 1px, transparent 1px 7px),
+    linear-gradient(180deg, #3a2a1a, #2a1e12 60%, #231910);
+  box-shadow: inset 0 0 0 1px rgba(255, 226, 170, .09), inset 0 2px 0 rgba(255, 226, 170, .12), 0 20px 40px rgba(0, 0, 0, .55);
+}
+
+/* 桌上的器物（首页） */
+.pieces { position: absolute; inset: 0; z-index: 4; pointer-events: none; transition: opacity .5s ease; } /* 在书之上：悬停的简介笺不被书挡住 */
+.piece {
+  position: absolute;
+  display: block;
+  width: var(--w);
+  left: var(--x); top: var(--y);
+  margin: calc(var(--w) * -.5) 0 0 calc(var(--w) * -.5);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--obj-hi);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .35s var(--ease-out);
+}
+.piece-art { display: block; filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .55)); transition: filter .35s, transform .35s var(--ease-out); }
+.piece:hover .piece-art, .piece:focus-visible .piece-art { transform: translateY(-10px) scale(1.04); filter: drop-shadow(0 22px 14px rgba(0, 0, 0, .6)) brightness(1.12); }
+.piece:focus-visible { outline: none; }
+.piece:focus-visible .piece-art { outline: 2px solid var(--obj-hi); outline-offset: 6px; border-radius: 10px; }
+.piece.is-closed { cursor: default; }
+.piece.is-closed .piece-art { filter: brightness(.38) saturate(.35) drop-shadow(0 8px 6px rgba(0, 0, 0, .5)); }
+.piece.is-closed:hover .piece-art { transform: translateY(-4px); filter: brightness(.5) saturate(.4) drop-shadow(0 14px 10px rgba(0, 0, 0, .55)); }
+/* 旁边的卷名与简介：像压在器物旁的一张小笺 */
+.piece-tip {
+  position: absolute;
+  top: 18%;
+  width: 196px;
+  padding: 10px 14px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+  text-align: left;
+  background: var(--slip);
+  color: var(--slip-ink);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .55), inset 0 0 0 1px var(--card-edge);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity .25s ease, transform .35s var(--ease-out);
+  z-index: 4;
+}
+.tip-r .piece-tip { left: calc(100% + 6px); }
+.tip-l .piece-tip { right: calc(100% + 6px); }
+.piece:hover .piece-tip, .piece:focus-visible .piece-tip { opacity: 1; transform: none; }
+.piece-name { font-family: var(--f-display); font-size: 24px; line-height: 1.2; letter-spacing: .14em; }
+.piece-name small { font-family: var(--f-text); font-size: 12px; letter-spacing: .16em; margin-left: .7em; opacity: .75; }
+.piece-intro { font-size: 13px; line-height: 1.6; }
+.piece-tag { font-size: 12px; letter-spacing: .2em; color: var(--ink-dim); }
+.piece.is-closed .piece-tag { color: var(--slip-ink); opacity: .7; }
+
+/* 桌上（仪式）：器物摆在桌面的中前部 */
+.desk {
+  position: absolute;
+  left: 40px; right: 40px; top: 336px; bottom: 28px;
+  z-index: 4;
+  pointer-events: none;
+}
+.desk-items {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .5s ease .25s, transform .7s var(--ease-out) .15s;
+  --ink: #ece4d0;
+  --ink-rgb: 236, 228, 208;
+  --ink-soft: rgba(236, 228, 208, .86);
+  --ink-dim: rgba(236, 228, 208, .72);
+  --ink-faint: rgba(236, 228, 208, .26);
+  color: var(--ink);
+}
+.shell[data-phase="ritual"] .desk { pointer-events: auto; }
+.shell[data-phase="ritual"] .desk-items { opacity: 1; transform: none; }
+.shell:not([data-phase="home"]) .pieces { opacity: 0; pointer-events: none; }
+.shell[data-phase="home"] .pieces .piece { pointer-events: auto; }
+.shell:not([data-phase="home"]) .pieces .piece { pointer-events: none; }
+
+/* 书在各个阶段的位置与大小（锚点见 book.css 的 .book-anchor） */
+.shell[data-phase="home"] .book-anchor { --bx: 570px; --by: 392px; --bs: 1.22; }
+.shell[data-phase="ritual"] .book-anchor { --bx: 350px; --by: 220px; --bs: .78; }
+.shell[data-phase="reading"] .book-anchor { --bx: 700px; --by: 400px; --bs: 1.5; }
+.shell[data-phase="doc"] .book-anchor { --bx: 570px; --by: 400px; --bs: 1.06; opacity: 0; pointer-events: none; }
+.shell[data-phase="reading"][data-reader="on"] .book-anchor { opacity: 0; pointer-events: none; }
+.shell[data-phase="home"] .book { --rx: 40deg; }
+
+/* 桌面这一块最大的字，也是 desk 里的：问事时的木牌、纸笺 */
+.desk .slips { display: flex; align-items: flex-end; gap: 26px; }
+
+/* ───────── 讲解页、关于、404：一张摊在桌上的纸 ───────── */
+.doc-sheet {
+  position: absolute;
+  left: 50%; top: 4px; bottom: 4px;
+  width: min(820px, 96%);
+  transform: translateX(-50%);
+  z-index: 5;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faint) transparent;
+  border-radius: 3px 5px 5px 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 18px 40px rgba(0, 0, 0, .6), inset 0 0 60px rgba(120, 84, 30, .14);
+  padding: 44px 56px 48px;
+  color: var(--ink);
+  background-image: none;
+}
+.doc-sheet.paper { background-color: var(--paper); }
+.doc-sheet .lp-name {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1.15;
+  letter-spacing: .14em;
+  color: var(--ink);
+}
+.screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+.only-narrow { display: none !important; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ───────── 命书：读的时候，书在桌子中央摊开（core/book/Reader.svelte） ───────── */
+.reader { position: absolute; inset: 0; z-index: 6; opacity: 0; pointer-events: none; transition: opacity .5s ease; touch-action: none; }
+.shell[data-reader="on"] .reader { opacity: 1; pointer-events: auto; }
+.reader canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.reader-2d { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0; padding: 14px 10px; }
+.reader-2d .rd-page { position: relative; height: 100%; max-width: 50%; aspect-ratio: 5 / 7; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+.reader-2d .rd-page canvas { position: static; width: 100%; height: 100%; }
+.reader-2d .rd-page.is-left { border-radius: 3px 0 0 3px; background: linear-gradient(270deg, rgba(40, 24, 6, .35), transparent 10%); }
+.reader-2d .rd-page.is-right { border-radius: 0 3px 3px 0; }
+.reader-2d .rd-page.is-blank { visibility: hidden; }
+.reader-2d .rd-page.is-turn { animation: rd-turn .45s var(--ease-out) both; }
+@keyframes rd-turn { from { opacity: 0; transform: translateX(var(--from, 24px)); } }
+.rd-nav { position: absolute; top: 0; bottom: 0; width: 22%; background: none; border: 0; cursor: pointer; opacity: 0; }
+.rd-nav:focus-visible { opacity: 1; outline: 2px solid var(--bar-ink); outline-offset: -4px; }
+.rd-prev { left: 0; } .rd-next { right: 0; }
+.rd-page-no { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 12px; letter-spacing: .2em; color: rgba(236, 228, 208, .6); pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .seal-doubt { opacity: .7; }
+}
+
+/* ───────── 矮窗口：1366×768 一类。场景整体缩小，只有天头栏与页脚收紧 ───────── */
+@media (min-width: 960px) and (max-height: 820px) {
+  .topbar { height: 46px; }
+  .botbar { min-height: 80px; padding: 6px 14px; }
+  .shell { padding: 4px 0; }
+}
+
+/* ───────── 手机（< 960px）：首页是器物网格，仪式时书缩成顶部的小图标，读命书是单页 ───────── */
+@media (max-width: 959px) {
+  .shell { width: 100vw; padding: 0; }
+  .topbar { border-radius: 0; border-left: 0; border-right: 0; height: 48px; grid-template-columns: auto 1fr auto; gap: 8px; padding: 0 10px; }
+  .top-title { justify-content: center; font-size: 17px; letter-spacing: .1em; }
+  .top-title small { display: none; }
+  .topbar .corner-theme { --s: 30px; font-size: 15px; }
+  .tag-btn { min-width: 44px; height: 32px; padding: 0 8px; font-size: 15px; }
+  .top-nav { display: none; }
+  .oracle-toggle.is-bar .oracle-name, .oracle-toggle.is-bar .oracle-state, .oracle-toggle.is-bar .oracle-quota { display: none; }
+
+  /* 没有固定的场景：书在上、器物在下 */
+  .scene { position: absolute; inset: 0; width: auto; height: auto; margin: 0; transform: none; overflow: hidden auto; }
+  .desk-plane { left: 6px; right: 6px; top: 6px; bottom: 6px; border-radius: 12px; }
+  .book-anchor { transition-duration: .7s; }
+  .shell[data-phase="home"] .book-anchor { --bx: 50%; --by: 112px; --bs: .5; }
+  .shell[data-phase="ritual"] .book-anchor { --bx: 46px; --by: 54px; --bs: .24; }
+  .shell[data-phase="reading"] .book-anchor { --bx: 50%; --by: 150px; --bs: .5; opacity: 0; }
+  .shell[data-phase="doc"] .book-anchor { --bx: 50%; --by: 112px; --bs: .5; }
+  .book { --rx: 0deg; }
+  /* 首页：器物排成网格，名字与简介一直显示（手机上没有悬停） */
+  .pieces { position: absolute; left: 0; right: 0; top: 222px; bottom: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 8px; padding: 6px 12px 24px; }
+  .piece { position: relative; left: auto; top: auto; width: auto; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+  .piece-art { width: min(108px, 32vw); }
+  .piece-tip { position: static; width: auto; padding: 0; background: none; box-shadow: none; opacity: 1; transform: none; color: var(--obj-hi); align-items: center; }
+  .piece-name { font-size: 20px; }
+  .piece-name small { display: block; margin: 0; }
+  .piece-intro { font-size: 12px; opacity: .85; }
+  .piece-tag { color: rgba(236, 228, 208, .7); }
+  .piece.is-closed .piece-tip { opacity: .6; }
+  .piece:hover .piece-art, .piece:focus-visible .piece-art { transform: none; }
+  /* 仪式：器物区在书的下面 */
+  .desk { left: 8px; right: 8px; top: 96px; bottom: 6px; }
+  .desk-items { gap: 14px; }
+  .doc-sheet { top: 0; bottom: 0; width: 100%; padding: 22px 20px 32px; border-radius: 0; }
+  .doc-sheet .lp-name { font-size: 34px; }
+  .only-narrow { display: block !important; }
+  .botbar {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    gap: 6px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0;
+    text-align: center;
+  }
+  .bot-doubt { position: absolute; left: 8px; bottom: 8px; z-index: 2; }
+  .bot-mid { align-items: center; padding: 0 44px; }
+  .bot-hint { font-size: 14px; line-height: 1.55; }
+  .bot-steps { justify-content: center; font-size: 12px; flex-wrap: nowrap; }
+  .bot-steps li:not(.is-cur) .stp-name, .bot-steps li:not(.is-cur) .stp-dot { display: none; }
+  .stp-arrow { margin: 0 .45em; }
+  .bot-notes { text-align: left; font-size: 12px; }
+  .bot-notes li:nth-child(n+3) { display: none; }
+  .bot-links { justify-content: center; font-size: 12px; }
+  .shell:not([data-phase="home"]):not([data-phase="doc"]) .bot-links { display: none; }
+  .bot-acts { justify-content: center; gap: 10px; }
+  .bot-acts .btn { padding: 6px 16px; min-height: 40px; }
+  .seal-doubt { --s: 40px; }
+  .reader-2d { padding: 6px; }
+  .reader-2d .rd-page { max-width: 100%; }
+}
+@media (max-width: 400px) {
+  .top-title { font-size: 15px; }
+}

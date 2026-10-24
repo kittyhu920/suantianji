@@ -24,21 +24,11 @@ function carveOf(d) {
   return c;
 }
 
-function body(g, y, d, { W, C, TEXT, BRUSH, center, wrap }) {
-  if (!d.main) {
-    y += 120;
-    center(g, '龟甲还没有裂', y, `60px ${BRUSH}`, C.gold);
-    return y;
-  }
-  if (location.search.includes('debug')) window.__buPoster = { main: crackSignature(d.main.crack), fan: d.fan ? crackSignature(d.fan.crack) : null }; // 调试：核对分享图里的兆与页面上的是同一道
-  const H = FIG_H;
-  const pw = FIG_W * SCALE;
-  const ph = H * SCALE;
-  y += 40;
-  const x0 = W / 2 - pw / 2;
+/** 画一块刻了辞的甲（分享图与命书共用）：龟甲、兆纹、兆序、刻辞，左上角在 (x0, y)，scale 是比兆图设计尺寸放大几倍。返回甲的高度 */
+export function drawFigure(g, x0, y, scale, d, BRUSH) {
   g.save();
   g.translate(x0, y);
-  g.scale(SCALE, SCALE);
+  g.scale(scale, scale);
   const mp = spotPos(d.main.spot);
   const fp = d.fan ? spotPos(d.fan.spot) : null;
   paintShell(g, { seed: d.main.crack.seed, bases: [mp, ...(fp ? [fp] : [])] });
@@ -63,7 +53,19 @@ function body(g, y, d, { W, C, TEXT, BRUSH, center, wrap }) {
     });
   }
   g.restore();
-  y += ph + 70;
+  return FIG_H * scale;
+}
+
+function body(g, y, d, { W, C, TEXT, BRUSH, center, wrap }) {
+  if (!d.main) {
+    y += 120;
+    center(g, '龟甲还没有裂', y, `60px ${BRUSH}`, C.gold);
+    return y;
+  }
+  if (location.search.includes('debug')) window.__buPoster = { main: crackSignature(d.main.crack), fan: d.fan ? crackSignature(d.fan.crack) : null }; // 调试：核对分享图里的兆与页面上的是同一道
+  y += 40;
+  y += drawFigure(g, W / 2 - (FIG_W * SCALE) / 2, y, SCALE, d, BRUSH);
+  y += 70;
 
   center(g, `兆曰${d.omenName}`, y, `76px ${BRUSH}`, C.gold);
   y += 66;

@@ -9,6 +9,7 @@
   let name = $state('');
   let file = $state(null);
   let closeBtn;
+  let cache = { id: -1, job: null }; // 同一局里图只画一次：再打开直接拿现成的
   const canShare = $derived(!!file && !!navigator.canShare?.({ files: [file] }));
 
   $effect(() => {
@@ -19,13 +20,15 @@
     url = '';
     file = null;
     closeBtn?.focus();
-    make().then(({ blob, name: n }) => {
+    const rid = ctx.round.id;
+    if (cache.id !== rid) cache = { id: rid, job: make() };
+    cache.job.then(({ blob, name: n }) => {
       if (gone) return;
       url = URL.createObjectURL(blob);
       name = n;
       file = new File([blob], n, { type: 'image/png' });
       status = false;
-    });
+    }).catch(() => { if (!gone) status = false; });
     return () => { gone = true; };
   });
 

@@ -12,10 +12,10 @@ import { mulberry32 } from '../../core/rng.js';
 
 const LH = 34; // 一爻的粗细
 const LG = 20; // 爻与爻的间距
-const FIG_H = 6 * LH + 5 * LG;
+export const FIG_H = 6 * LH + 5 * LG;
 
-// 一幅卦画：每一爻一笔墨，阳爻整条，阴爻中间断开；变爻右边点一圈朱
-function figure(g, cx, top, lines, w, { C, seed }) {
+// 一幅卦画（分享图与命书共用）：每一爻一笔墨，阳爻整条，阴爻中间断开；变爻右边点一圈朱
+export function figure(g, cx, top, lines, w, { C, seed }) {
   const rnd = mulberry32(seed);
   const left = cx - w / 2;
   const gap = w * 0.14;

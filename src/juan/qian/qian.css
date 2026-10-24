@@ -1,36 +1,6 @@
-/* ───────── 入卷 ───────── */
-.screen-title { justify-content: space-between; padding-top: 40px; }
-.screen-title { padding-top: 34px; }
-.title-block {
-  position: relative;
-  width: 100%;
-  height: 270px;
-}
-.title-ink, .title-ink-img { position: absolute; top: 0; bottom: 0; left: -44px; width: calc(100% + 88px); height: 100%; }
-.title-main {
-  position: absolute;
-  left: 50%; top: 46%;
-  transform: translate(-50%, -50%) rotate(-13deg);
-  margin: 0;
-  font-family: var(--f-display);
-  font-weight: 400;
-  font-size: clamp(56px, 17vw, 84px);
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--title-on-ink); /* 反白压在墨痕上；深色主题里墨痕是泥金，字反黑 */
-  text-shadow: none;
-}
-.title-sub {
-  margin: -6px 0 0;
-  font-family: var(--f-display);
-  font-size: 22px;
-  letter-spacing: .3em;
-  padding-left: .3em;
-  color: var(--ink);
-}
-.title-actions {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-}
+/* 签卷：器物（签筒、筊杯）的样子，与天头栏里的通灵开关。桌上的布局在 core/styles/desk.css */
+
+/* ───────── 通灵开关（天头栏里） ───────── */
 .oracle-toggle {
   margin-top: 10px;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -51,69 +21,9 @@
   background: var(--cinnabar); color: var(--on-zhu); box-shadow: none; opacity: 1;
 }
 .oracle-toggle input:focus-visible ~ .oracle-row .seal { outline: 2px solid var(--ink); outline-offset: 3px; }
-.oracle-desc { max-width: 19em; font-size: 13px; line-height: 1.7; color: var(--ink-dim); text-align: center; }
 
-/* ───────── 定盘 ───────── */
-.shichen {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ink-soft);
-  min-height: 1.75em;
-}
-.shichen b { font-family: var(--f-display); font-weight: 400; font-size: 20px; color: var(--ink); }
-.slips {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-.slip {
-  width: 64px;
-  height: 196px;
-  padding: 16px 0 12px;
-  border: 1px solid var(--ink-dim);
-  border-radius: 3px 3px 10px 10px;
-  background: linear-gradient(90deg, rgba(var(--ink-rgb), .03), rgba(var(--ink-rgb), .07) 50%, rgba(var(--ink-rgb), .03));
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  cursor: pointer;
-  transition: transform .25s var(--ease-out), background .25s, border-color .25s;
-}
-.slip-name, .slip-desc { white-space: nowrap; flex: none; }
-.slip-name {
-  writing-mode: vertical-rl;
-  font-family: var(--f-display);
-  font-size: 30px; line-height: 1;
-}
-.slip-desc {
-  writing-mode: vertical-rl;
-  font-size: 11px;
-  letter-spacing: .2em;
-  color: var(--ink-dim);
-}
-.slip:hover { border-color: var(--ink); }
-.slip[aria-checked="true"] {
-  transform: translateY(-10px);
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-.slip[aria-checked="true"] .slip-desc { color: rgba(var(--paper-rgb), .78); }
 
-.ask { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 300px; }
-.ask-label { font-size: 13px; color: var(--ink-dim); }
-.ask input {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--ink-dim);
-  color: var(--ink);
-  font: inherit;
-  font-size: 15px;
-  text-align: center;
-  padding: 6px 4px;
-}
-.ask input::placeholder { color: rgba(var(--ink-rgb), .32); }
-.ask input:focus { outline: none; border-bottom-color: var(--ink); }
-
-/* ───────── 摇签：仿真签筒（js/qian.js） ───────── */
+/* ───────── 摇签：仿真签筒（tube.js） ───────── */
 .tube-wrap { width: min(300px, 100%); aspect-ratio: 320 / 440; margin-top: 4px; }
 .tube {
   width: 100%; height: 100%;
@@ -127,119 +37,9 @@
 .tube:active { cursor: grabbing; }
 .tube svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
-.sign {
-  position: relative;
-  width: 100%;
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  animation: ink-in 1s var(--ease-out) both;
-  /* 签卡是一张有厚度的纸：边上一线暗边与一线纸边叠出厚度，下面落一道软影；悬停时轻微透视倾斜（core/tilt.js） */
-  padding: 20px 18px 18px;
-  border-radius: 3px;
-  background: linear-gradient(168deg, rgba(var(--paper-rgb), .55), var(--paper-deep));
-  box-shadow:
-    inset 0 1px 0 var(--card-hi), inset 0 0 0 1px var(--card-edge),
-    0 1px 0 var(--card-edge), 0 2px 0 var(--paper-deep), 0 3px 0 var(--card-edge),
-    0 14px 20px -8px var(--card-shadow);
-  transform: perspective(1100px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-  transition: transform .25s var(--ease-out);
-}
-.sign-head { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.sign-no { margin: 0; font-size: 13px; letter-spacing: .3em; color: var(--ink-dim); }
-.sign-name {
-  margin: 0;
-  font-family: var(--f-display);
-  font-weight: 400;
-  font-size: 44px;
-  line-height: 1.2;
-  letter-spacing: .1em;
-}
-.sign-level {
-  margin: 4px 0 0;
-  padding: 0 10px;
-  font-family: var(--f-display);
-  font-size: 18px;
-  color: var(--on-zhu);
-  background: var(--cinnabar);
-  border-radius: 2px;
-}
-.sign-level[data-tone="ping"] { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-dim); }
-.sign-level[data-tone="xiong"] { background: transparent; color: var(--ink-dim); box-shadow: inset 0 0 0 1px var(--ink-faint); }
-
-.poem {
-  font-family: var(--f-display); /* 签诗：汇文明朝体 */
-  writing-mode: vertical-rl;
-  display: block;
-  font-size: 19px;
-  line-height: 1.9;
-  letter-spacing: .28em;
-  color: var(--ink);
-  height: 9.6em;
-  padding: 4px 0;
-}
-.poem > span { display: block; margin-left: .45em; }
-.poem > span:last-child { margin-left: 0; }
-.sign-jie, .sign-domain {
-  margin: 0;
-  max-width: 21em;
-  font-size: 14px;
-  color: var(--ink-soft);
-  text-align: left;
-}
-.sign-jie b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); margin-right: .6em; }
-.sign-domain { color: var(--ink); }
-
-/* ───────── 掷筊 ───────── */
-.sign-bai {
-  margin: 0;
-  max-width: 21em;
-  text-align: left;
-  font-size: 15px;
-  line-height: 1.8;
-  color: var(--paper-ink);
-}
-.sign-bai b {
-  display: block;
-  font-family: var(--f-display);
-  font-weight: 400;
-  font-size: 16px;
-  color: var(--ink);
-}
-.jiao-legend {
-  list-style: none;
-  margin: 0; padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
-  color: var(--ink-soft);
-  text-align: left;
-}
-.jiao-legend b { font-family: var(--f-display); font-weight: 400; font-size: 16px; color: var(--ink); margin-right: .6em; }
-.jiao-legend .is-yin b { color: var(--cinnabar-hi); }
-.jiao-pair { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+/* ───────── 掷筊：一对筊杯 ───────── */
 .jiao-labels { display: flex; gap: 18px; }
 .jiao-labels span { width: 104px; min-height: 1.4em; font-size: 12px; color: var(--ink-soft); text-align: center; }
-.sign-wait {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--ink-soft);
-}
-.jiao-rule {
-  margin: -6px 0 0;
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--ink-dim);
-}
-.jiao-board {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 26px;
-  width: 100%;
-  min-height: 210px;
-  justify-content: center;
-}
 .jiao {
   display: flex;
   gap: 18px;
@@ -278,61 +78,3 @@
   40%  { transform: rotate(34deg) scaleX(-1) translateY(-68px) scale(1.15); }
   100% { transform: rotate(10deg) scaleX(-1) translateY(0); }
 }
-.cups {
-  list-style: none;
-  margin: 0; padding: 0;
-  display: flex;
-  gap: 14px;
-}
-.cup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 64px;
-  padding: 6px 0;
-  border: 1px solid var(--ink-faint);
-  opacity: .5;
-}
-.cup.is-pending { opacity: .8; border-style: dashed; }
-.cup.is-set { opacity: 1; border-color: var(--ink-dim); }
-.cup-tag { font-size: 11px; color: var(--ink-dim); }
-.cup-name { font-size: 13px; color: var(--ink-soft); }
-.cup-kind { font-family: var(--f-display); font-size: 20px; line-height: 1.3; color: var(--ink); }
-.cup.is-xiao .cup-kind { color: var(--ink-soft); }
-.cup.is-yin .cup-kind { color: var(--cinnabar-hi); }
-.jiao-result {
-  margin: 0;
-  min-height: 1.75em;
-  font-size: 15px;
-  color: var(--ink);
-}
-.jiao-result em { font-style: normal; color: var(--cinnabar-hi); }
-.jiao-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-
-/* 首页：墨痕被一笔"写"出来，标题随后在墨里洇出。
-   墨痕是一张静态图（img/title-ink.svg），"写"的动作是平移一张预先带毛边的蒙版：笔锋前端是飞白的毛边，
-   而每一帧只是挪一张已经画好的图，不用重算滤镜。不支持 mask 的浏览器会直接看到整笔墨痕。 */
-.title-ink-img {
-  display: block;
-  filter: var(--title-ink-filter);
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 100' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='30' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='-40' y='-10' width='165' height='120' fill='%23000' filter='url(%23r)'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 100' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='30' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='-40' y='-10' width='165' height='120' fill='%23000' filter='url(%23r)'/%3E%3C/svg%3E");
-  -webkit-mask-size: 250% 100%;
-  mask-size: 250% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: 0 0;
-  mask-position: 0 0;
-}
-.screen-title.is-active .title-ink-img { animation: brush-write 1.8s cubic-bezier(.45, .05, .3, 1) .25s both; }
-@keyframes brush-write {
-  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
-  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
-}
-.screen-title.is-active .brush-spots { animation: spots-in .6s ease-out 1.7s both; }
-@keyframes spots-in { from { opacity: 0; } }
-.screen-title.is-active .title-main { animation: title-soak 1.4s var(--ease-out) 1s both; }
-@keyframes title-soak { from { opacity: 0; filter: blur(9px); } }
-
-

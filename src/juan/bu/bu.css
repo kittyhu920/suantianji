@@ -1,75 +1,12 @@
-/* 卜卷各屏的样式。纸、印、按钮、眉批、注栏、结局页的公共部分在 src/core/styles/。
+/* 卜卷：龟甲、烟、兆图与刻辞的样子。桌上的布局（读兆的面板、纸笺、木牌）在 core/styles/desk.css。
    颜色：墨为主；炭火与裂缝尖端是低饱和的赭红 rgb(168,84,52)，不是朱；朱只给印、判词和关键按钮。 */
 
-/* ───────── 入卷 ───────── */
-.bu-title { justify-content: center; gap: 12px; }
-.bu-hero { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.glyph-hero { position: relative; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink); }
-.glyph-hero .bu-glyph { filter: drop-shadow(0 0 .6px rgba(var(--ink-rgb), .4)); }
-.glyph-ember { /* “卜”字脚下的一点余烬：赭红的柔边光晕，缓缓明灭 */
-  position: absolute; left: calc(50% - 22px); top: 132px; width: 44px; height: 44px; border-radius: 50%; z-index: 0;
-  background: radial-gradient(closest-side, rgba(168, 84, 52, .62), rgba(168, 84, 52, .2) 55%, rgba(168, 84, 52, 0));
-  animation: ember 4.2s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes ember { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: .85; transform: scale(1.1); } }
-.glyph-hero figcaption, .glyph-note, .glyph-row figcaption { font-size: 12px; color: var(--ink-dim); letter-spacing: .06em; }
-.bu-title-main {
-  margin: 0;
-  font-family: var(--f-display);
-  font-weight: 400;
-  font-size: clamp(46px, 13vw, 68px);
-  letter-spacing: .12em;
-  padding-left: .12em;
-  line-height: 1.1;
-  color: var(--ink);
-}
-.glyph-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 4px 26px; max-width: 22em; color: var(--ink-soft); }
-.glyph-row figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.glyph-note { flex-basis: 100%; margin: 0; text-align: center; }
-.title-links { margin: 0; display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
-
-/* ───────── 验辞 ───────── */
-.yan-quote { margin: 0; padding: 10px 20px; border-left: 2px solid var(--ink-dim); text-align: left; max-width: 22em; }
-.yan-q { margin: 0; font-family: var(--f-display); font-size: 24px; line-height: 1.4; letter-spacing: .04em; overflow-wrap: anywhere; }
-.yan-meta { margin: 4px 0 0; font-size: 13px; color: var(--ink-dim); }
-.yan-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-.ledger-intro { margin: 0; font-size: 13px; color: var(--ink-dim); max-width: 22em; }
-
-/* ───────── 命辞 ───────── */
-.shichen { margin: 0; font-size: 14px; color: var(--ink-soft); }
-.slips { display: flex; justify-content: center; gap: 14px; }
-.slip {
-  width: 64px; height: 196px; padding: 16px 0 12px;
-  border: 1px solid var(--ink-dim); border-radius: 3px 3px 10px 10px;
-  background: linear-gradient(90deg, rgba(var(--ink-rgb), .03), rgba(var(--ink-rgb), .07) 50%, rgba(var(--ink-rgb), .03));
-  display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
-  transition: transform .25s var(--ease-out), background .25s, border-color .25s;
-}
-.slip-name, .slip-desc { white-space: nowrap; flex: none; }
-.slip-name { writing-mode: vertical-rl; font-family: var(--f-display); font-size: 30px; line-height: 1; }
-.slip-desc { writing-mode: vertical-rl; font-size: 11px; letter-spacing: .2em; color: var(--ink-dim); }
-.slip:hover { border-color: var(--ink); }
-.slip[aria-checked="true"] { transform: translateY(-10px); background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.slip[aria-checked="true"] .slip-desc { color: rgba(var(--paper-rgb), .78); }
-.ask { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 300px; }
-.ask-label { font-size: 13px; color: var(--ink-dim); }
-.ask input { background: transparent; border: 0; border-bottom: 1px solid var(--ink-dim); color: var(--ink); font: inherit; font-size: 15px; text-align: center; padding: 6px 4px; }
-.ask input::placeholder { color: rgba(var(--ink-rgb), .32); }
-.ask input:focus { outline: none; border-bottom-color: var(--ink); }
-.ming-preview { margin: 0; min-height: 1.6em; font-family: var(--f-display); font-size: 24px; letter-spacing: .06em; overflow-wrap: anywhere; max-width: 18em; }
-
-/* ───────── 灼与读兆 ───────── */
-.screen-zhuo { gap: 10px; }
-.ming-line { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .05em; max-width: 20em; overflow-wrap: anywhere; min-height: 1.5em; }
-.zhuo-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+/* ───────── 龟甲：按住钻凿来灼 ───────── */
 .card { --cw: min(310px, calc(100vw - 72px)); width: var(--cw); height: calc(var(--cw) * 1.4); perspective: 1400px; transition: height .7s var(--ease-out), transform .25s var(--ease-out); transform: perspective(1400px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); }
 .card-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .95s cubic-bezier(.3, .6, .2, 1); }
 .card.is-flipped .card-inner { transform: rotateY(180deg); }
 .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; align-items: center; justify-content: center; }
 .face-front { transform: rotateY(180deg); }
-.card-note { min-height: 3.2em; }
-.card-note:empty, .zhuo-side.is-idle { display: none; }
 
 .plastron { position: relative; width: 100%; height: 100%; filter: drop-shadow(0 8px 10px rgba(60, 42, 20, .3)); }
 .plastron-svg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -83,24 +20,9 @@
 .spot:hover:not(:disabled), .spot.is-active { box-shadow: 0 0 0 1px rgba(var(--ink-rgb), .3); }
 .spot:disabled { cursor: default; }
 
-.zhuo-side { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 24em; }
-.burn-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 13px; color: var(--ink-dim); }
-.burn-chips li span { font-family: var(--f-display); font-size: 16px; margin-right: .4em; color: var(--ink-soft); }
-.burn-chips li.is-cur { color: var(--ink); }
-.read { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; animation: ink-in .9s var(--ease-out) both; }
-.read-name { margin: 0; font-family: var(--f-display); display: flex; align-items: baseline; gap: .5em; }
-.read-name small { font-size: 18px; color: var(--ink-soft); }
-.read-name b { font-weight: 400; font-size: 58px; line-height: 1.1; letter-spacing: .08em; }
-.read-line { margin: 0; font-size: 15px; line-height: 1.8; color: var(--paper-ink); }
-.read-how, .read-dui, .read-hint { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-dim); }
-.read-dui { color: var(--ink-soft); }
-.read-dui b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
-.read-actions { display: flex; gap: 10px 14px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
-.fan-ask { align-items: center; }
 
 /* ───────── 兆图：一块甲，兆在上，刻辞在下 ───────── */
-.omen-fig { position: relative; width: min(100%, 400px, calc((100dvh - 400px) / 1.7)); min-width: 200px; }
-.omen-fig.end-fig { width: min(100%, 360px, calc((100dvh - 300px) / 1.75)); }
+.omen-fig { position: relative; width: 300px; }
 .omen-fig canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .fig-xu, .kcol { position: absolute; margin: 0; font-family: var(--f-display); color: rgba(40, 28, 16, .9); white-space: nowrap; line-height: 1; }
 .fig-xu { font-size: calc(var(--u) * 16px); }
@@ -116,46 +38,9 @@
 }
 .kcol.is-zhan { color: rgba(30, 20, 12, .96); }
 @keyframes carve-in { from { clip-path: inset(0 0 100% 0); opacity: .25; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
-.end-fig { margin-bottom: 4px; }
 
-/* ───────── 结局 ───────── */
-.screen-ke { gap: 14px; }
-.jq-zhan { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .06em; }
-.omen-tone { font-family: var(--f-display); font-size: 15px; padding: 0 10px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--ink-dim); color: var(--ink); }
-.omen-tone[data-tone="xiong"] { color: var(--ink-soft); box-shadow: inset 0 0 0 1px var(--ink-faint); }
-.jq-note { font-size: 13px !important; color: var(--ink-dim) !important; }
-.title-links { margin: 6px 0 0; }
 
-/* 桌面上书的大小固定（book.css 的 .scene），图的大小不再跟窗口高度走 */
-@media (min-width: 960px) {
-  .omen-fig { width: min(100%, 300px); }
-  .omen-fig.end-fig { width: min(100%, 290px); }
-}
-/* 右页里的版式：卡（龟甲）居中；读兆的内容在左页，手机上排在卡的下面 */
-.card { --cw: min(300px, calc(100vw - 72px), calc((100dvh - 380px) / 1.4)); }
-@media (min-width: 960px) { .card { --cw: 300px; } }
-.zhuo-card { align-items: center; }
-.lp-extra .zhuo-side, .lp-extra .read { align-items: flex-start; text-align: left; }
-.lp-extra .burn-chips { justify-content: flex-start; margin-bottom: 8px; }
-.lp-extra .read-name b { font-size: 52px; }
-.lp-extra .read-line { font-size: 15.5px; }
-.lp-extra .read-how, .lp-extra .read-dui, .lp-extra .read-hint { font-size: 14px; }
-.zhuo-side .read { align-items: flex-start; text-align: left; }
-.fan-ask { align-items: flex-start; max-width: none; }
-.screen-zhuo { justify-content: flex-start; }
-.bu-title { padding-top: 24px; }
-@media (max-width: 520px) {
-  .slips { gap: 10px; }
-  .slip { width: 56px; height: 176px; }
-  .slip-desc { font-size: 12px; }
-  body { font-size: 16px; }
-  .note, .shichen { font-size: 15px; }
-  .read-line, .confess li, .critique, .jq-row, .screen-about p, .screen-about li { font-size: 16px; line-height: 1.85; }
-  .read-how, .read-dui, .read-hint, .ledger-intro { font-size: 14px; }
-  .ledger dl { font-size: 15px; }
-  .endings li { font-size: 14px; }
-  .loom-legend, .loom figcaption { font-size: 13px; }
-  .ming-line { font-size: 21px; }
-}
-@media (max-width: 959px) and (max-height: 800px) { .bu-hero .bu-glyph { height: 110px; width: 83px; } .glyph-ember { top: 74px; } .screen-title { gap: 10px; } .glyph-row { display: none; } }
-@media (prefers-reduced-motion: reduce) { .glyph-ember { animation: none; opacity: .6; } .card-inner, .card { transition-duration: .01ms !important; } }
+/* 桌上的龟甲：卡的大小固定 */
+.card { --cw: 300px; }
+@media (max-width: 959px) { .card { --cw: 210px; } .omen-fig { width: 220px; } }
+@media (prefers-reduced-motion: reduce) { .card-inner, .card { transition-duration: .01ms !important; } }

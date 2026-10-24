@@ -1,5 +1,6 @@
 // 通灵：把这一局送去云端（functions/api/oracle.js，Workers AI），请 AI 用大白话解读。
 // 这里管状态：开关、今日剩余次数、请求与等待；怎么拼请求体、说什么话由各卷决定（见 src/juan/index.js 的 copy）。
+// 回话写进命书的一页（pages.js），请求在页脚（ReadFoot.svelte）。
 // 回复回来时要与发出请求时的局号比对：玩家已经开了新的一局，就把迟到的回复丢掉。
 
 export const oracle = $state({
@@ -33,17 +34,6 @@ export function resetOracle() {
 export function offerOracle(has) {
   oracle.text = '';
   oracle.phase = has ? 'offer' : 'hidden';
-}
-
-// 解签文字一段段写出来，像在纸上落笔
-async function inkReveal(ctx, text, stale) {
-  oracle.text = '';
-  if (ctx.reduced) { oracle.text = text; return; }
-  for (let i = 0; i < text.length; i += 2) {
-    if (stale()) return;
-    oracle.text = text.slice(0, i + 2);
-    await ctx.sleep(22);
-  }
 }
 
 /**
@@ -85,8 +75,8 @@ export async function consultOracle(ctx, { body, question, onShi }) {
     if (!data.text) throw new Error('empty');
     ctx.gloss('云端回话了');
     if (Array.isArray(data.shi) && data.shi.length) { shi = data.shi.slice(0, 3); onShi?.(shi); }
+    oracle.text = data.text; // 回话整段交给命书（画成一页，见 core/book/pages.js 的 oraclePages）
     oracle.phase = 'text';
-    await inkReveal(ctx, data.text, stale);
   } catch {
     if (stale()) return STALE;
     oracle.phase = 'text';
