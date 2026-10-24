@@ -3,6 +3,7 @@
 // 页里的按钮、输入框、链接、术语不触发翻页；拖动时纸跟着指尖走，松手时拖过一小半就翻过去，否则弹回。
 
 import { nav, target, beginDrag, flip, bounce } from './book.svelte.js';
+import { bookMap } from './geo.js';
 
 const INTERACTIVE = 'a, button, input, textarea, select, label, summary, [contenteditable], .zhu-term, .zhu-pop, [data-noflip], .poster';
 const SLOP = 9; // 拖多远才算拖（像素）
@@ -14,12 +15,6 @@ const SLOP = 9; // 拖多远才算拖（像素）
  */
 export function mountGesture(huaxin, { left, right, mobile, resist }) {
   let st = null; // 正在按着：{ id, dir, x0, y0, page, hinge, w, off, drag, dead, el }
-
-  const geom = (dir) => {
-    const r = (dir > 0 ? right : left).getBoundingClientRect();
-    const spine = dir > 0 ? r.left : r.right;
-    return { w: r.width, spine };
-  };
 
   function down(e) {
     if (e.button || !e.isPrimary || flip.on) return;
@@ -47,11 +42,14 @@ export function mountGesture(huaxin, { left, right, mobile, resist }) {
         bounce(st.dir);
         return;
       }
-      const { w, spine } = geom(st.dir);
-      st.w = w; st.spine = spine;
+      // 在页面坐标里算（书在缩放、倾斜过的场景里，屏幕上的横向距离不等于页面里的）
+      st.map = bookMap(huaxin);
+      st.w = (st.dir > 0 ? right : left).offsetWidth;
+      st.spine = mobile() ? 0 : huaxin.offsetWidth / 2; // 书脊：两页的交界（手机单页：页的左缘）
       st.maxRot = mobile() ? 104 : 180;
       const e0 = st.dir > 0 ? 0 : 1;
-      st.off = (spine + w * Math.cos((st.maxRot * e0 * Math.PI) / 180)) - st.x0; // 纸的自由边相对按下处的位置
+      const down = st.map.toLocal(st.x0, st.y0)[0];
+      st.off = (st.spine + st.w * Math.cos((st.maxRot * e0 * Math.PI) / 180)) - down; // 纸的自由边相对按下处的位置
       st.drag = beginDrag(t.commit, t.revert, st.dir);
       if (!st.drag) { st.dead = true; return; }
       huaxin.classList.add('is-dragging');
@@ -59,8 +57,9 @@ export function mountGesture(huaxin, { left, right, mobile, resist }) {
     }
     if (!st.drag) return;
     e.preventDefault?.();
-    const c = Math.max(-1, Math.min(1, (e.clientX + st.off - st.spine) / st.w));
-    st.drag.set((Math.acos(c) * 180) / Math.PI / st.maxRot);
+    const x = st.map.toLocal(e.clientX, e.clientY)[0];
+    const c = Math.max(-1, Math.min(1, (x + st.off - st.spine) / st.w));
+    st.drag.set((Math.acos(c) * 180) / Math.PI / st.maxRot, e.timeStamp || performance.now());
   }
 
   function up(e) {
@@ -69,12 +68,7 @@ export function mountGesture(huaxin, { left, right, mobile, resist }) {
     st = null;
     huaxin.classList.remove('is-dragging');
     try { huaxin.releasePointerCapture?.(e.pointerId); } catch { /* 同上 */ }
-    if (s.drag) {
-      const e1 = s.drag.e;
-      const go = s.dir > 0 ? e1 > 0.28 : e1 < 0.72;
-      s.drag.release(go);
-      return;
-    }
+    if (s.drag) { s.drag.release(); return; } // 过没过中线、手的速度，由 beginDrag 的手柄判断
     if (!s.moved && e.type === 'pointerup') nav(s.dir); // 点一下：翻一页
   }
 
@@ -83,7 +77,7 @@ export function mountGesture(huaxin, { left, right, mobile, resist }) {
     const s = st;
     st = null;
     huaxin.classList.remove('is-dragging');
-    s.drag?.release(false);
+    s.drag?.release();
   };
 
   function key(e) {

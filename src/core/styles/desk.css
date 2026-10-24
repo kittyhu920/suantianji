@@ -2,26 +2,25 @@
    书平摊在案的里侧；摇签、掷筊、起卦、灼，都用案上的实物完成，摆在书前、靠近玩家的桌面上，视角微微俯视。
    有器物的那一步，书缩到上面一截，器物升起在下面；没有器物的步骤（读结果、结局），书占满整个案。 */
 
-.shell { --desk-h: clamp(236px, 37vh, 340px); }
+/* 案在场景（book.css 的 .scene）的前沿，高度固定；书不再被它挤扁，器物只是摆在书前，可以遮住书的下沿 */
+.shell { --desk-h: 262px; }
 
 .desk {
-  position: relative;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: var(--desk-h);
   z-index: 4;
-  flex: none;
-  height: 0;
-  margin-top: 0;
   pointer-events: none;
-  transition: height .75s var(--ease-out), margin-top .75s var(--ease-out);
 }
-.shell.has-desk .desk { height: var(--desk-h); margin-top: -34px; pointer-events: auto; }
+.shell.has-desk .desk { pointer-events: auto; }
 .desk-items {
   position: relative;
   height: 100%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: clamp(20px, 5vw, 70px);
-  padding: 0 20px 12px;
+  gap: 70px;
+  padding: 0 20px 20px;
   opacity: 0;
   transform: translateY(26px);
   transition: opacity .5s ease .25s, transform .7s var(--ease-out) .15s;
@@ -46,13 +45,15 @@
 /* 桌面：向后退去的一块台面，微微俯视；近处亮，远处没入黑暗 */
 .desk-plane {
   position: absolute;
-  left: -16px; right: -16px;
-  top: 0; bottom: -10px;
+  left: -60px; right: -60px;
+  bottom: -10px; height: calc(var(--desk-h) + 10px); /* 在书的底下（书与器物都压在它上面），不会把纹路画到书页上 */
   overflow: hidden;
   opacity: 0;
   transition: opacity .6s ease;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 38%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 38%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 38%), linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(180deg, transparent 0, #000 38%), linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 .shell.has-desk .desk-plane { opacity: 1; }
 .desk-plane::before {
@@ -76,10 +77,10 @@
 }
 
 /* ───────── 择域：三支木牌 ───────── */
-.desk .slips { align-items: flex-end; gap: clamp(12px, 3vw, 26px); }
+.desk .slips { align-items: flex-end; gap: 26px; }
 .desk .slip {
   width: 66px;
-  height: min(188px, calc(var(--desk-h) - 46px));
+  height: 176px;
   padding: 16px 0 12px;
   border: 0;
   border-radius: 4px 4px 11px 11px;
@@ -121,8 +122,8 @@
 .desk .slip:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 
 /* ───────── 摇签、起卦：签筒与龟壳摆在桌面上 ───────── */
-.desk .tube-wrap { width: auto; height: calc(100% - 4px); max-height: 330px; aspect-ratio: 320 / 440; margin: 0; }
-.desk .shell-wrap { width: auto; height: calc(100% - 4px); max-height: 330px; aspect-ratio: 320 / 440; }
+.desk .tube-wrap { width: auto; height: 296px; aspect-ratio: 320 / 440; margin: 0; flex: none; }
+.desk .shell-wrap { width: auto; height: 296px; aspect-ratio: 320 / 440; flex: none; }
 .desk .tube svg { filter: drop-shadow(0 12px 10px rgba(0, 0, 0, .55)); }
 
 /* ───────── 掷筊 ───────── */
@@ -191,7 +192,8 @@
 /* ───────── 手机：书在上，器物区在下；主按钮固定在页脚 ───────── */
 @media (max-width: 959px) {
   .shell { --desk-h: min(280px, 36dvh); }
-  .shell.has-desk .desk { margin-top: -22px; }
+  .desk { position: relative; left: auto; right: auto; bottom: auto; flex: none; height: 0; margin-top: 0; transition: height .75s var(--ease-out), margin-top .75s var(--ease-out); }
+  .shell.has-desk .desk { height: var(--desk-h); margin-top: -22px; }
   .desk-items { gap: 14px; padding: 0 10px 8px; }
   .top-nav { display: none; }
   .oracle-toggle.is-bar .oracle-name, .oracle-toggle.is-bar .oracle-state, .oracle-toggle.is-bar .oracle-quota { display: none; }
@@ -200,11 +202,9 @@
   .bot-steps { flex-wrap: nowrap; font-size: 12px; }
   .bot-steps li:not(.is-cur) .stp-name, .bot-steps li:not(.is-cur) .stp-dot { display: none; }
   .stp-arrow { margin: 0 .45em; }
-  .desk .slip { width: 60px; }
+  .desk .tube-wrap, .desk .shell-wrap { height: calc(100% - 8px); max-height: 330px; }
+  .desk .slip { width: 60px; height: min(188px, calc(var(--desk-h) - 46px)); }
   .desk .card { --cw: calc((var(--desk-h) - 24px) / 1.4); }
-}
-@media (min-width: 960px) and (max-height: 820px) {
-  .shell { --desk-h: clamp(220px, 36vh, 300px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .desk, .desk-items, .desk-plane { transition-duration: .01ms !important; }

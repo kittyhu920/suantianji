@@ -5,14 +5,21 @@ let master = null;
 let muted = false;
 let drone = null;
 
-export function initAudio() {
-  if (ctx) { ctx.resume(); return; }
+/** 先把声音引擎建好（不出声、不需要用户手势）：第一次建 AudioContext 要占主线程约 60ms，放在空闲时做，别落在第一次点按的那一帧里 */
+export function warmAudio() {
+  if (ctx) return;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   ctx = new AC();
   master = ctx.createGain();
   master.gain.value = muted ? 0 : 0.9;
   master.connect(ctx.destination);
+}
+
+/** 用户点按之后调用：唤醒声音引擎（没建好就现建） */
+export function initAudio() {
+  warmAudio();
+  ctx?.resume();
 }
 
 export function setMuted(m) {

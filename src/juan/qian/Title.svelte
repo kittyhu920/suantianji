@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import Seal from '../../core/Seal.svelte';
   import Spread from '../../core/Spread.svelte';
+  import { bookMap } from '../../core/book/geo.js';
 
   let { ctx, game } = $props();
   let inkSvg;
@@ -25,10 +26,9 @@
     const m = inkSvg.getScreenCTM();
     if (!m) return null;
     const [x, y] = cubic(EDGES[edge], rand(lo, hi));
-    const c = ctx.el.huaxin.getBoundingClientRect();
-    const px = m.a * x + m.c * y + m.e - c.left;
-    const py = m.b * x + m.d * y + m.f - c.top;
-    return px > 24 && px < c.width - 24 && py > 0 && py < c.height ? { x: px, y: py } : null;
+    const hx = ctx.el.huaxin;
+    const [px, py] = bookMap(hx).toLocal(m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f);
+    return px > 24 && px < hx.offsetWidth - 24 && py > 0 && py < hx.offsetHeight ? { x: px, y: py } : null;
   }
 
   onMount(() => {
@@ -44,8 +44,8 @@
             nextBead = performance.now() + rand(7500, 11500);
             const q = inkEdgePoint('bottom', 0.3, 0.85);
             if (q) {
-              const c = ctx.el.huaxin.getBoundingClientRect();
-              const blockBottom = block.getBoundingClientRect().bottom - c.top;
+              const bb = block.getBoundingClientRect();
+              const blockBottom = bookMap(ctx.el.huaxin).toLocal(bb.left + bb.width / 2, bb.bottom)[1];
               const land = Math.min(q.y + rand(80, 140), blockBottom + 6);
               if (land > q.y + 30) ctx.fx.fall(q.x, q.y - 3, land, { size: 1, hang: 1.6, onRelease: () => ctx.sfx.drip(0.04) });
             }

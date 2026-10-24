@@ -7,16 +7,21 @@
 
 import { inkChar } from './inkchars.js';
 import { numberIndexes } from './marks.js';
+import { bookMap } from './book/geo.js';
 
 const CLAUSE = /[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g;
 const WIDTHS = [330, 270, 220];
 const rand = (a, b) => a + Math.random() * (b - a);
 
-/** 一页上已经有字、有图的地方（视口坐标），向外多留一点 */
-function occupied(body, pad = 16) {
+/** 一页上已经有字、有图的地方（页面坐标，见 book/geo.js），向外多留一点 */
+function occupied(body, map, pad = 16) {
   const out = [];
   if (!body) return out;
-  const push = (r) => { if (r.width > 1 && r.height > 1) out.push({ l: r.left - pad, t: r.top - pad, r: r.right + pad, b: r.bottom + pad }); };
+  const push = (r) => {
+    if (r.width <= 1 || r.height <= 1) return;
+    const q = map.rect(r);
+    out.push({ l: q.l - pad, t: q.t - pad, r: q.r + pad, b: q.b + pad });
+  };
   const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -73,16 +78,17 @@ export function createGloss(host, { reduced = false, pages } = {}) {
   // 找一块空白放 el（el 已量好宽高）。返回 { x, y, edge }：host 内的坐标
   function spot(w, h) {
     const ps = pages?.() ?? [];
-    const hr = host.getBoundingClientRect();
+    const map = bookMap(host.closest('.huaxin') ?? host); // 书在缩放、倾斜过的场景里：先把量到的矩形都换成页面坐标
     const others = [...host.querySelectorAll('.gloss:not(.is-measure)')].map((n) => {
-      const r = n.getBoundingClientRect();
-      return { l: r.left - 12, t: r.top - 12, r: r.right + 12, b: r.bottom + 12 };
+      const r = map.rect(n.getBoundingClientRect());
+      return { l: r.l - 12, t: r.t - 12, r: r.r + 12, b: r.b + 12 };
     });
+    const local = (el) => ({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight, right: el.offsetLeft + el.offsetWidth, bottom: el.offsetTop + el.offsetHeight });
     const found = [];
     for (const pg of ps) {
-      const pr = pg.page.getBoundingClientRect();
+      const pr = local(pg.page);
       if (!pr.width) continue;
-      const bad = occupied(pg.body).concat(others);
+      const bad = occupied(pg.body, map).concat(others);
       const m = 26; // 离纸边的距离
       for (let y = pr.top + m + 4; y + h <= pr.bottom - m - 6; y += 14) {
         for (let x = pr.left + m + 6; x + w <= pr.right - m - 6; x += 22) {
@@ -100,11 +106,11 @@ export function createGloss(host, { reduced = false, pages } = {}) {
     if (found.length) {
       found.sort((a, b) => a.d - b.d);
       const f = found[Math.floor(Math.random() * Math.min(found.length, 6))];
-      return { x: f.x - hr.left, y: f.y - hr.top, edge: false };
+      return { x: f.x, y: f.y, edge: false };
     }
     // 没有放得下的空白：写在页边（右页上缘，字带一圈纸色的柔光，不遮正文）
-    const pr = ps[0]?.page.getBoundingClientRect() ?? hr;
-    return { x: Math.max(8, pr.left - hr.left + 18), y: pr.top - hr.top + 8, edge: true };
+    const pr = ps[0] ? local(ps[0].page) : { left: 0, top: 0 };
+    return { x: Math.max(8, pr.left + 18), y: pr.top + 8, edge: true };
   }
 
   function build(item, lead, step) {

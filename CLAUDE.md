@@ -47,6 +47,7 @@ npx wrangler pages deploy dist --project-name suantianji --branch main --commit-
 - 注疏：术语用 `<Zhu term="…">`，注写在各卷的 `zhu.json`，要有依据、不编造典故，原创设定标"原创"。注写在左页下方，用霞鹜文楷、墨色，不用朱。
 - 字体自托管在 `public/fonts/`，是按站内用字（扫描 `src/` 下的 .astro/.svelte/.js/.css/.md/.json）裁出的子集。**改了任何中文文案后都要重跑** `python tools/subset-fonts.py`，否则新字会回落到系统字体。分工：标题类用汇文明朝体（`--f-display`），书的话与注用霞鹜文楷（`--f-kai`），正文、按钮、账本用思源宋体（`--f-text`）；字体族名只在 `src/core/styles/base.css` 一处改，来源在 `tools/subset-fonts.py`。
 - **汇文明朝体的许可待确认**，正式上线前可能换成文津明朝（`@free-fonts/wenjin-mincho`，MIT AND OFL-1.1）或思源宋体；换的时候只改 `--f-display` 与 `subset-fonts.py` 里的 `DISPLAY`。
+- 书在缩放过、向后倾了几度的场景里（`docs/DESIGN.md` §19）：页的尺寸用 `offsetWidth / offsetHeight`，屏幕坐标与书里的坐标互换用 `src/core/book/geo.js` 的 `bookMap`，**不要把 `getBoundingClientRect` 的结果直接当书里的 px**。翻页的纸每帧只直接写 `transform / opacity`，**不要写 CSS 变量**（性能预算见 §19）。
 - 竖排文字不要用全角竖线"｜"，竖排后会转成横线。
 - 测试中文接口请用 Node 的 fetch，不要用 Windows Git Bash 的 curl（后者发出的中文不是 UTF-8）。
 - 选 Workers AI 模型时，要确认它对**免费计划**开放。

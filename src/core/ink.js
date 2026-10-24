@@ -36,11 +36,11 @@ export function createInk(canvas, { reduced = false } = {}) {
   let dead = false;
 
   function fit() {
-    const r = canvas.getBoundingClientRect();
-    if (!r.width || !r.height) return false;
+    // 用布局尺寸，不用 getBoundingClientRect：书在缩放过的场景里，还向后倾了几度，外接矩形不是画布的 px 尺寸
+    if (!canvas.clientWidth || !canvas.clientHeight) return false;
     const d = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.round(r.width);
-    const h = Math.round(r.height);
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
     if (w === W && h === H && d === dpr) return true;
     W = w; H = h; dpr = d;
     canvas.width = Math.round(w * d);

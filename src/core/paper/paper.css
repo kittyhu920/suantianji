@@ -170,11 +170,13 @@
 .kaijuan .huaxin {
   animation: kaijuan-open 1.15s cubic-bezier(.5, .05, .25, 1) both;
 }
+.kaijuan .cov, .kaijuan .bk, .kaijuan .bk-shadow { animation: kaijuan-edge 1.15s cubic-bezier(.5, .05, .25, 1) both; }
+@keyframes kaijuan-edge { from { opacity: 0; } 60% { opacity: 0; } to { opacity: 1; } }
 @keyframes kaijuan-open {
   from { clip-path: inset(-30px 50% -30px 50%); }
   to { clip-path: inset(-30px -30px -30px -30px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .kaijuan .zhou { display: none; }
-  .kaijuan .huaxin { animation: none; }
+  .kaijuan .huaxin, .kaijuan .cov, .kaijuan .bk, .kaijuan .bk-shadow { animation: none; }
 }

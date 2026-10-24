@@ -26,6 +26,7 @@ import { createInk } from './ink.js';
 import { createGloss } from './gloss.js';
 import { turn, onFlip, resetBook } from './book/book.svelte.js';
 import { tear, tremble, thud } from './book/motion.js';
+import { bookMap } from './book/geo.js';
 import { store, daysAgo } from './store.js';
 import { hashString } from './rng.js';
 import * as sfx from './audio.js';
@@ -91,9 +92,9 @@ export function createCtx(juan) {
 
     // 某个元素上的一点，换算成墨画布里的坐标
     fxPoint(el, ax = 0.5, ay = 0.5) {
-      const c = ctx.el.huaxin.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      return { x: r.left - c.left + r.width * ax, y: r.top - c.top + r.height * ay };
+      const [x, y] = bookMap(ctx.el.huaxin).toLocal(r.left + r.width * ax, r.top + r.height * ay);
+      return { x, y };
     },
 
     // onCommit：换屏的那一刻（书合拢的一瞬）同步执行，卷用它重置自己的状态，免得书合拢的时候页面先变了
@@ -201,9 +202,7 @@ export function createCtx(juan) {
 
       // 指尖落在纸上：一小团墨晕、两圈水纹
       const onDown = (e) => {
-        const c = canvas.getBoundingClientRect();
-        const x = e.clientX - c.left;
-        const y = e.clientY - c.top;
+        const [x, y] = bookMap(huaxin).toLocal(e.clientX, e.clientY);
         ctx.lastTap = { x, y, t: performance.now() };
         // 签筒上手指一直在动、红色按钮自己就有按下的反馈，都不再落墨
         if (e.target.closest?.('.tube, .seal, .btn-primary')) return;

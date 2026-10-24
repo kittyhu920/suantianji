@@ -131,28 +131,89 @@
 @keyframes breathe { 0%, 100% { opacity: .22; } 50% { opacity: .75; } }
 .seal-doubt:hover, .seal-doubt:focus-visible { animation: none; opacity: 1; }
 
-/* ───────── 书 ───────── */
-.table { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.book-wrap { position: relative; flex: 1 1 0; min-height: 0; display: grid; place-items: center; padding: 14px 10px 16px; }
-.book {
-  position: relative;
-  height: 100%;
-  width: min(100%, 1180px);
-  perspective: 3000px;
+/* ───────── 书桌场景 ─────────
+   书与案是一块固定大小的场景（1140×800，Codex.svelte 里量好比例，写进 --k）：窗口不够大就整体等比缩小，
+   绝不单独压书的高度；书的宽高比永远不变。书微微俯视，平摊在案的里侧；器物摆在书前，可以遮住书的下沿一点。 */
+.table { position: relative; flex: 1; min-height: 0; }
+.scene {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1140px; height: 820px;
+  margin: -410px 0 0 -570px;
+  transform: scale(var(--k, .9));
+  transform-origin: 50% 50%;
 }
-.huaxin { position: absolute; inset: 0; --pg-w: 50%; }
-.huaxin::before { /* 书落在案上的影 */
+.book-wrap {
+  position: absolute;
+  left: 40px; top: 26px;
+  width: 1060px; height: 630px;
+  perspective: 2000px;
+  perspective-origin: 50% 30%;
+  transition: transform .8s var(--ease-out);
+}
+.shell:not(.has-desk) .book-wrap { transform: translateY(60px); } /* 案上没有器物：书落在案的中央 */
+.book {
+  position: absolute;
+  inset: 0;
+  --tilt: rotateX(11deg);
+  transform: var(--tilt); /* 书平放在桌上：向后微微倾倒，远处略窄、近处略宽 */
+  transform-origin: 50% 100%;
+}
+.huaxin { position: absolute; inset: 0; --pg-w: 50%; z-index: 1; }
+.probe { position: absolute; width: 0; height: 0; pointer-events: none; } /* 四个角的探针：量出书在屏幕上的四边形，换算坐标（book/geo.js） */
+.probe-tl { left: 0; top: 0; } .probe-tr { right: 0; top: 0; } .probe-bl { left: 0; bottom: 0; } .probe-br { right: 0; bottom: 0; }
+
+/* 封面：布面书函，比书页大一圈，从书页底下露出边缘；深靛，和宣纸、墨相配 */
+.cov {
+  position: absolute;
+  top: -11px; bottom: -38px;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .09), transparent 34%, rgba(0, 0, 0, .2)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .045) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .1) 0 1px, transparent 1px 3px),
+    var(--cover);
+}
+.cov-l { left: -13px; right: 50%; border-radius: 8px 0 0 8px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .16), inset 0 -7px 0 var(--cover-edge), inset 18px 0 22px -14px rgba(0, 0, 0, .55); }
+.cov-r { left: 50%; right: -13px; border-radius: 0 8px 8px 0; box-shadow: inset -1px 1px 0 rgba(255, 255, 255, .16), inset 0 -7px 0 var(--cover-edge), inset -18px 0 22px -14px rgba(0, 0, 0, .55); }
+.cov-l::after, .cov-r::after { /* 书脊处布面向里凹下去 */
+  content: ""; position: absolute; top: 0; bottom: 0; width: 46px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, .42));
+}
+.cov-l::after { right: 0; }
+.cov-r::after { left: 0; transform: scaleX(-1); }
+/* 书落在案上的影：贴地的一圈又深又实，往外渐淡；书脊下沿最深 */
+.bk-shadow {
+  position: absolute;
+  left: -13px; right: -13px; top: -11px; bottom: -38px;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, .85), 0 12px 16px -3px rgba(0, 0, 0, .55), 0 34px 54px -12px rgba(0, 0, 0, .6);
+}
+.bk-shadow::after {
   content: "";
   position: absolute;
-  inset: 10px -6px -12px;
-  background: rgba(0, 0, 0, .55);
-  filter: blur(20px);
-  border-radius: 6px;
-  z-index: 0;
+  left: 26%; right: 26%; bottom: -22px; height: 44px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(0, 0, 0, .55), transparent 70%);
 }
+/* 书页的厚度：一叠纸的边。下沿是层层叠叠的纸边，靠书脊一端收窄；两侧各露一条，厚度跟着翻页变（Codex.svelte 写进 height / width） */
+.bk { position: absolute; top: 2px; bottom: 0; width: 50%; pointer-events: none; }
+.bk-l { left: 0; } .bk-r { left: 50%; }
+.bk i { position: absolute; display: block; transition: height .9s var(--ease-out), width .9s var(--ease-out), left .9s var(--ease-out), right .9s var(--ease-out); }
+.bk .eb {
+  top: 100%; margin-top: -1px;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 235, .3), transparent 28%, rgba(60, 38, 12, .14) 74%, rgba(40, 24, 6, .42)),
+    repeating-linear-gradient(180deg, var(--edge-a) 0 1.4px, var(--edge-b) 1.4px 2.8px);
+}
+.bk-r .eb { left: 0; border-radius: 0 0 5px 72% / 0 0 5px 100%; }
+.bk-l .eb { right: 0; border-radius: 0 0 72% 5px / 0 0 100% 5px; }
+.bk .es { top: 3px; bottom: 0; }
+.bk-l .es { right: 100%; border-radius: 3px 0 0 0; background: linear-gradient(90deg, rgba(0, 0, 0, .34), rgba(0, 0, 0, .04)), repeating-linear-gradient(90deg, var(--edge-b) 0 1.4px, var(--edge-a) 1.4px 2.8px); }
+.bk-r .es { left: 100%; border-radius: 0 3px 0 0; background: linear-gradient(270deg, rgba(0, 0, 0, .34), rgba(0, 0, 0, .04)), repeating-linear-gradient(90deg, var(--edge-a) 0 1.4px, var(--edge-b) 1.4px 2.8px); }
 
 /* 纸：纤维、深浅斑驳；字盘和快照、翻动的纸共用这一张底 */
-.pg, .snap, .lf-face, .tear-in {
+.pg, .snap, .lf-inner, .tear-in {
   background-color: var(--paper);
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
@@ -169,31 +230,41 @@
   overflow: hidden;
   z-index: 1;
 }
-/* 纸页的厚度：边上叠着的几层纸边 */
-.pg-left {
-  left: 0;
-  border-radius: 6px 0 0 6px;
-  box-shadow:
-    -1px 1px 0 var(--edge-a), -2px 2px 0 var(--edge-b), -3px 3px 0 var(--edge-a),
-    -4px 4px 0 var(--edge-b), -5px 5px 0 var(--edge-a), -6px 6px 0 var(--edge-b), -7px 7px 0 var(--edge-line);
-}
-.pg-right {
-  left: 50%;
-  border-radius: 0 6px 6px 0;
-  box-shadow:
-    1px 1px 0 var(--edge-a), 2px 2px 0 var(--edge-b), 3px 3px 0 var(--edge-a),
-    4px 4px 0 var(--edge-b), 5px 5px 0 var(--edge-a), 6px 6px 0 var(--edge-b), 7px 7px 0 var(--edge-line);
-}
-.pg::before { /* 页心向书脊的方向渐暗；页边略亮 */
+.pg-left { left: 0; border-radius: 4px 1px 2px 7px; }
+.pg-right { left: 50%; border-radius: 1px 4px 7px 2px; }
+/* 盖在内容上的一层光：靠书脊的页面是个弧面（订口暗，向外渐亮，中段最亮，外沿微暗）；四角略泛黄、磨损。文字与器物图像一起受光 */
+.pg::before, .lf-inner::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 4;
 }
-.pg-left::before { background: linear-gradient(90deg, transparent 72%, rgba(0, 0, 0, var(--gutter)) 100%); }
-.pg-right::before { background: linear-gradient(270deg, transparent 72%, rgba(0, 0, 0, var(--gutter)) 100%); }
-.pg::after { /* 盖在内容上的一层极淡纸纹：墨字也带上纤维 */
+.pg-right::before, .lf-front .lf-inner::before {
+  background:
+    radial-gradient(95% 75% at 8% 22%, rgba(var(--lamp-rgb), var(--lamp-pg)), transparent 72%), /* 深色主题：书上方那盏灯照亮的一块 */
+    radial-gradient(170px 120px at 100% 100%, rgba(150, 108, 44, .17), transparent 72%),
+    radial-gradient(120px 90px at 100% 0, rgba(150, 108, 44, .09), transparent 70%),
+    radial-gradient(100px 80px at 0 100%, rgba(120, 84, 30, .1), transparent 70%),
+    linear-gradient(180deg, rgba(40, 25, 5, .07), transparent 7%, transparent 92%, rgba(40, 25, 5, .1)),
+    linear-gradient(90deg,
+      rgb(18 9 0 / calc(var(--gutter) * 1.9)) 0, rgb(18 9 0 / calc(var(--gutter) * 1.5)) 1.4%, rgb(18 9 0 / calc(var(--gutter) * 1)) 3.6%,
+      rgb(18 9 0 / calc(var(--gutter) * .55)) 7%, rgb(18 9 0 / calc(var(--gutter) * .22)) 12%, transparent 22%,
+      rgb(255 248 228 / .07) 46%, transparent 74%, rgb(50 30 6 / .045) 92%, rgb(50 30 6 / .13) 100%);
+}
+.pg-left::before, .lf-back .lf-inner::before {
+  background:
+    radial-gradient(95% 75% at 92% 22%, rgba(var(--lamp-rgb), var(--lamp-pg)), transparent 72%),
+    radial-gradient(170px 120px at 0 100%, rgba(150, 108, 44, .17), transparent 72%),
+    radial-gradient(120px 90px at 0 0, rgba(150, 108, 44, .09), transparent 70%),
+    radial-gradient(100px 80px at 100% 100%, rgba(120, 84, 30, .1), transparent 70%),
+    linear-gradient(180deg, rgba(40, 25, 5, .07), transparent 7%, transparent 92%, rgba(40, 25, 5, .1)),
+    linear-gradient(270deg,
+      rgb(18 9 0 / calc(var(--gutter) * 1.9)) 0, rgb(18 9 0 / calc(var(--gutter) * 1.5)) 1.4%, rgb(18 9 0 / calc(var(--gutter) * 1)) 3.6%,
+      rgb(18 9 0 / calc(var(--gutter) * .55)) 7%, rgb(18 9 0 / calc(var(--gutter) * .22)) 12%, transparent 22%,
+      rgb(255 248 228 / .07) 46%, transparent 74%, rgb(50 30 6 / .045) 92%, rgb(50 30 6 / .13) 100%);
+}
+.pg::after, .lf-inner::after { /* 盖在内容上的一层极淡纸纹：墨字也带上纤维 */
   content: "";
   position: absolute;
   inset: 0;
@@ -203,15 +274,14 @@
   z-index: 3;
 }
 
-.spine { /* 书脊：中缝的阴影 */
+.spine { /* 订口：中缝一道细而深的阴影，两侧是页面的弧面（.pg::before） */
   position: absolute;
   top: 0; bottom: 0; left: 50%;
-  width: 70px;
-  margin-left: -35px;
+  width: 26px;
+  margin-left: -13px;
   z-index: 4;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 0, rgba(0, 0, 0, .12) 30%, rgba(0, 0, 0, .3) 49%, rgba(0, 0, 0, .34) 50%, rgba(0, 0, 0, .3) 51%, rgba(0, 0, 0, .12) 70%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, .1) 34%, rgba(0, 0, 0, .34) 49%, rgba(0, 0, 0, .38) 50%, rgba(0, 0, 0, .34) 51%, rgba(0, 0, 0, .1) 66%, transparent 100%);
 }
 
 /* 版心：鱼尾与页码（克制） */
@@ -366,7 +436,9 @@
 
 .ink-fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
 
-/* ───────── 翻页的纸（core/book/flip.js） ───────── */
+/* ───────── 翻页的纸（core/book/flip.js） ─────────
+   纸沿横向切成十条窄纸，一条套着一条，每条相对上一条再弯一点；每一帧由脚本直接写各条的 transform / opacity。
+   背面的纸略透，底下是正面的反面（正面不隐藏背面），于是文字的反影隐约透出来。 */
 .leafbox {
   position: absolute;
   left: 50%; top: 0;
@@ -375,27 +447,24 @@
   pointer-events: none;
   perspective: 4200px;
   perspective-origin: 0% 45%;
-  --rot: 0deg; --bend: 0deg; --shf: 0; --shb: 0;
 }
 .leafbox.is-single { left: 0; width: 100%; perspective-origin: 0% 50%; }
-.leaf { position: absolute; left: 0; top: 0; transform-origin: 0 50%; transform-style: preserve-3d; transform: rotateY(var(--rot)); will-change: transform; }
+.leaf { position: absolute; left: 0; top: 0; transform-origin: 0 50%; transform-style: preserve-3d; will-change: transform; }
 .lf-strip { position: absolute; left: 0; top: 0; height: 100%; transform-origin: 0 50%; transform-style: preserve-3d; }
-.lf-next { left: calc(100% - 1px); transform: rotateY(var(--bend)); }
-.lf-face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-.lf-back { transform: rotateY(180deg); }
+.lf-next { left: calc(100% - 1px); }
+.lf-face { position: absolute; inset: 0; overflow: hidden; }
+.lf-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; transform: rotateY(180deg) translateZ(.6px); opacity: .92; }
+.is-single .lf-front { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.lf-last.lf-strip > .lf-front { border-radius: 0 4px 7px 0; }
 .lf-inner { position: relative; overflow: hidden; }
 .lf-inner > * { position: absolute; inset: 0; }
-.lf-shade { position: absolute; inset: 0; pointer-events: none; }
-.lf-front .lf-shade { background: rgba(20, 12, 4, .55); opacity: calc(var(--shf) * var(--k, 1)); }
-.lf-back .lf-shade { background: rgba(20, 12, 4, .55); opacity: calc(var(--shb) * var(--k, 1)); }
-.lf-front::after { /* 翻起时纸边的高光 */
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(90deg, rgba(255, 250, 235, .22), transparent 14%);
-  opacity: var(--shf);
-}
-.lf-cast { position: absolute; top: 2px; bottom: 2px; left: 0; width: 0; opacity: 0; pointer-events: none; }
-.lf-cast[data-side="r"] { background: linear-gradient(90deg, rgba(0, 0, 0, .06), rgba(0, 0, 0, .42)); }
-.lf-cast[data-side="l"] { background: linear-gradient(270deg, rgba(0, 0, 0, .06), rgba(0, 0, 0, .42)); }
+.lf-shade, .lf-hi { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 5; will-change: opacity; } /* 各自一层：每帧只改透明度，合成器就能办，不用把底下的页重画 */
+.lf-shade { background: rgb(24 14 4 / .62); }
+.lf-hi { background: linear-gradient(90deg, rgb(255 250 235 / .8), rgb(255 250 235 / .35)); }
+/* 翻起的纸投在底下那一页上的影：近书脊处深，往外渐淡；宽度、浓淡由脚本随纸的位置写（scaleX / opacity） */
+.lf-cast { position: absolute; top: 3px; bottom: 3px; left: 0; opacity: 0; pointer-events: none; z-index: -1; }
+.lf-cast-r { transform-origin: 0 50%; background: linear-gradient(90deg, rgb(10 5 0 / .5), rgb(10 5 0 / .34) 60%, rgb(10 5 0 / 0)); border-radius: 0 12px 12px 0; }
+.lf-cast-l { transform-origin: 100% 50%; background: linear-gradient(270deg, rgb(10 5 0 / .5), rgb(10 5 0 / .34) 60%, rgb(10 5 0 / 0)); border-radius: 12px 0 0 12px; }
 
 /* 只在单页（手机）上显示的块：左页放不下的内容，排进右页 */
 .only-narrow { display: none !important; }
@@ -413,14 +482,30 @@
   .top-title small { display: none; }
   .topbar .corner-theme { --s: 30px; font-size: 15px; }
   .tag-btn { min-width: 44px; height: 32px; padding: 0 8px; font-size: 15px; }
-  .book-wrap { padding: 8px 6px; }
-  .book { width: 100%; }
-  .huaxin::before { display: none; }
-  .spine { display: none; }
+  /* 手机：没有固定的场景，书在上、器物在下；书仍是一本有厚度的书（单页），翻页同样跟手 */
+  .table { display: flex; flex-direction: column; }
+  .scene { display: contents; }
+  .book-wrap { position: relative; left: auto; top: auto; width: auto; height: auto; flex: 1 1 0; min-height: 0; display: grid; place-items: center; padding: 10px 8px 20px; perspective: none; transform: none !important; }
+  .book { position: relative; inset: auto; height: 100%; width: 100%; --tilt: none; }
+  .spine, .bk-l, .cov-l { display: none; }
+  .cov { top: -6px; bottom: -15px; }
+  .cov-r { left: -6px; right: -6px; border-radius: 6px; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .16), inset 0 -5px 0 var(--cover-edge); }
+  .cov-r::after { display: none; }
+  .bk-shadow { left: -6px; right: -6px; top: -6px; bottom: -15px; box-shadow: 0 2px 3px rgba(0, 0, 0, .8), 0 10px 14px -3px rgba(0, 0, 0, .55), 0 22px 30px -10px rgba(0, 0, 0, .5); }
+  .bk-shadow::after { display: none; }
+  .bk-r { left: 0; width: 100%; }
+  .bk-r .eb { max-height: 9px; border-radius: 0 0 4px 4px; left: 0; right: 0 !important; }
+  .bk-r .es { display: none; }
   /* 左页在手机上不显示（它的内容排进右页）；大师的话写在书页的空白处 */
   .pg.pg-left { display: none; }
-  .pg-right { left: 0; width: 100%; border-radius: 3px; box-shadow: 0 6px 16px rgba(0, 0, 0, .4); }
-  .pg-right::before { display: none; }
+  .pg-right { left: 0; width: 100%; border-radius: 2px 3px 4px 2px; }
+  .pg-right::before, .lf-front .lf-inner::before {
+    background:
+      radial-gradient(130px 100px at 100% 100%, rgba(150, 108, 44, .16), transparent 72%),
+      radial-gradient(100px 80px at 100% 0, rgba(150, 108, 44, .08), transparent 70%),
+      linear-gradient(180deg, rgba(40, 25, 5, .07), transparent 6%, transparent 93%, rgba(40, 25, 5, .1)),
+      linear-gradient(90deg, rgb(18 9 0 / calc(var(--gutter) * 1.1)) 0, rgb(18 9 0 / calc(var(--gutter) * .5)) 3%, transparent 10%, rgb(255 248 228 / .06) 50%, transparent 80%, rgb(50 30 6 / .12) 100%);
+  }
   .pg-right .fish { left: 50%; margin-left: -11px; }
   .pg-right .folio { left: auto; right: 12px; bottom: 10px; writing-mode: horizontal-tb; }
   .screen { padding: 30px 22px 26px; gap: 12px; }
@@ -447,20 +532,11 @@
   .screen { padding: 26px 16px 22px; }
 }
 
-/* 矮窗口：1366×768 一类 */
+/* 矮窗口：1366×768 一类。书与案整体缩小（.scene），只有天头栏与页脚收紧 */
 @media (min-width: 960px) and (max-height: 820px) {
   .topbar { height: 46px; }
   .botbar { min-height: 80px; padding: 6px 14px; }
   .shell { padding: 4px 0; }
-  .book-wrap { padding: 10px 10px 12px; }
-  .lp { padding: 72px 40px 28px 42px; }
-  .lp-name { font-size: 46px; }
-  .screen { padding: 34px 40px 28px; gap: 12px; }
-}
-@media (min-width: 960px) and (max-height: 700px) {
-  .lp { padding-top: 60px; }
-  .lp-name { font-size: 40px; }
-  .screen { padding: 26px 36px 22px; gap: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -483,21 +559,21 @@
 .pg-right:not(:has(a:hover, button:hover, input:hover, textarea:hover)) { cursor: pointer; }
 
 /* ───────── 书自己的动作 ───────── */
-.huaxin.is-tremble { animation: book-tremble .85s ease-in-out; }
+.book.is-tremble { animation: book-tremble .85s ease-in-out; }
 @keyframes book-tremble {
-  0%, 100% { transform: none; }
-  12% { transform: translate(1.4px, -.8px) rotate(.16deg); }
-  30% { transform: translate(-1.6px, .6px) rotate(-.2deg); }
-  48% { transform: translate(1.1px, .4px) rotate(.12deg); }
-  66% { transform: translate(-.8px, -.3px) rotate(-.07deg); }
-  84% { transform: translate(.4px, .2px); }
+  0%, 100% { transform: var(--tilt); }
+  12% { transform: var(--tilt) translate(1.4px, -.8px) rotate(.16deg); }
+  30% { transform: var(--tilt) translate(-1.6px, .6px) rotate(-.2deg); }
+  48% { transform: var(--tilt) translate(1.1px, .4px) rotate(.12deg); }
+  66% { transform: var(--tilt) translate(-.8px, -.3px) rotate(-.07deg); }
+  84% { transform: var(--tilt) translate(.4px, .2px); }
 }
-.huaxin.is-thud { animation: book-thud .5s cubic-bezier(.3, .8, .3, 1); }
+.book.is-thud { animation: book-thud .5s cubic-bezier(.3, .8, .3, 1); }
 @keyframes book-thud {
-  0% { transform: none; }
-  22% { transform: translateY(3px); }
-  52% { transform: translateY(-.8px); }
-  100% { transform: none; }
+  0% { transform: var(--tilt); }
+  22% { transform: var(--tilt) translateY(3px); }
+  52% { transform: var(--tilt) translateY(-.8px); }
+  100% { transform: var(--tilt); }
 }
 .huaxin.is-shut .pg-left { transform-origin: 100% 50%; }
 .huaxin.is-shut .pg-right { transform-origin: 0 50%; }

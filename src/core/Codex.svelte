@@ -3,7 +3,7 @@
   // 从目录进入某一卷、再回目录，都是在这本书里翻页，不整页刷新；字盘的 three.js 画布同样常驻。
   //   天头栏   卷名、回目录、源流与关于、通灵开关、昼夜、声
   //   书       左页是大师的页（这一步的名字），右页是玩家的页（写下的结果）；大师的话写在书页的空白处
-  //   案       仪式在书外：器物摆在书前的桌面上，书缩到案的里侧（屏用 <Spread desk> 交进来）
+  //   案       仪式在书外：器物摆在书前的桌面上，可以遮住书的下沿一点，书不变形（屏用 <Spread desk> 交进来）
   //   页脚     这一步的说明、本卷的步骤、按钮（主按钮朱印）、存疑印
   // 页面（目录、关于、讲解、各卷）只交一个 <template id="stj-page">（PageData.astro），换页时读它。
   import { onMount } from 'svelte';
@@ -19,13 +19,17 @@
   import { mountTilt } from './tilt.js';
   import { mountToggle } from './theme.js';
   import { mountBoard } from './paper/board.js';
-  import { setMuted } from './audio.js';
+  import { setMuted, warmAudio } from './audio.js';
   import { spread, flip, view, attachBook, turn, toLive, resetBook } from './book/book.svelte.js';
   import { mountGesture } from './book/gesture.js';
   import { shut } from './book/motion.js';
   import { session } from './session.svelte.js';
   import { recall } from './zhu.svelte.js';
   import { cn } from './book/folio.js';
+
+  // 书桌场景的设计尺寸（px）：书 1060×630，案前留 170px 摆器物；样式见 book.css 的 .scene
+  const SCENE_W = 1140;
+  const SCENE_H = 800;
 
   // 往后翻不动时，书说的话（初稿，待审读）
   const RESIST = ['后面还没写，别急着翻。', '再往后，我还没落笔。', '这一页之后是白纸，等你走到那一步。', '后面的字，我还没写出来。'];
@@ -54,6 +58,8 @@
 
   let page = $state.raw(blank);
   let mounted = $state(false);
+  let table;
+  let scene;
   let muted = $state(false);
   let narrow = $state(false);
 
@@ -84,6 +90,10 @@
   const atStart = $derived(!ctx || ctx.screen === juan?.start);
   const spreadNo = $derived(view.pos + (live ? (cur?.pager?.i ?? 0) : 0));
   const pager = $derived(live ? cur?.pager : null);
+  // 书页的厚度：越往后翻，左边的一叠越厚、右边的越薄（docs/DESIGN.md §19）。目录在最前，说明页居中
+  const progress = $derived(page.kind === 'juan' ? Math.min(1, spreadNo / 8) : page.kind === 'toc' ? 0.1 : 0.5);
+  const thickL = $derived(Math.round((3 + 17 * progress) * 10) / 10);
+  const thickR = $derived(Math.round((3 + 17 * (1 - progress)) * 10) / 10);
 
   // 回看写下的页时，大师不开口
   $effect(() => {
@@ -152,6 +162,19 @@
     const onMq = () => { narrow = mq.matches; };
     mq.addEventListener('change', onMq);
 
+    // 书和书桌是一块固定大小的场景（SCENE_W × SCENE_H），窗口不够大就整体等比缩小，绝不单独压书
+    const fit = () => {
+      if (!table || !scene) return;
+      const w = table.clientWidth;
+      const h = table.clientHeight;
+      if (!w || !h) return;
+      const k = Math.min(w / SCENE_W, h / SCENE_H, 1.12);
+      scene.style.setProperty('--k', k.toFixed(4));
+    };
+    const ro = new ResizeObserver(fit);
+    ro.observe(table);
+    fit();
+
     mountBoard(document.getElementById('an-board'));
     mountToggle(themeBtn);
     const offTilt = mountTilt(huaxin);
@@ -177,11 +200,15 @@
     };
     huaxin.addEventListener('click', onTermClick);
 
+    // 声音引擎在空闲时建好（见 audio.js 的 warmAudio）
+    const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 4000 }) : (f) => setTimeout(f, 1500);
+    idle(() => { try { warmAudio(); } catch { /* 没有声音就没有 */ } });
     document.addEventListener('astro:page-load', onLoad);
     return () => {
       document.removeEventListener('astro:page-load', onLoad);
       huaxin.removeEventListener('click', onTermClick);
       mq.removeEventListener('change', onMq);
+      ro.disconnect();
       offTilt();
       offBook();
     };
@@ -223,9 +250,15 @@
     </div>
   </header>
 
-  <div class="table">
+  <div class="table" bind:this={table}>
+   <div class="scene" bind:this={scene}>
+    <div class="desk-plane" aria-hidden="true"></div>
     <div class="book-wrap">
       <div class="book" class:is-flipping={flip.on} bind:this={shell}>
+        <i class="bk-shadow" aria-hidden="true"></i>
+        <i class="cov cov-l" aria-hidden="true"></i><i class="cov cov-r" aria-hidden="true"></i>
+        <div class="bk bk-l" aria-hidden="true"><i class="es" style:width="{thickL * 0.55}px"></i><i class="eb" style:height="{thickL}px" style:left="{-thickL * 0.55}px"></i></div>
+        <div class="bk bk-r" aria-hidden="true"><i class="es" style:width="{thickR * 0.55}px"></i><i class="eb" style:height="{thickR}px" style:right="{-thickR * 0.55}px"></i></div>
         <div class="huaxin" bind:this={huaxin}>
           <section class="pg pg-left" aria-label="大师的页" bind:this={pgLeft}>
             <div class="pg-body" bind:this={leftBody}>
@@ -270,6 +303,7 @@
           </section>
 
           <i class="spine" aria-hidden="true"></i>
+          <i class="probe probe-tl" aria-hidden="true"></i><i class="probe probe-tr" aria-hidden="true"></i><i class="probe probe-bl" aria-hidden="true"></i><i class="probe probe-br" aria-hidden="true"></i>
           <canvas class="ink-fx" id="ink-fx" aria-hidden="true" bind:this={canvas}></canvas>
           <div class="voice" id="voice" aria-live="polite" aria-label="大师的话" bind:this={voiceHost}></div>
         </div>
@@ -278,9 +312,9 @@
     </div>
 
     <div class="desk" class:is-on={hasDesk} aria-label="案上" aria-hidden={!hasDesk}>
-      <div class="desk-plane" aria-hidden="true"></div>
       <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
     </div>
+   </div>
   </div>
 
   <footer class="botbar">

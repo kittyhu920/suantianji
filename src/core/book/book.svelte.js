@@ -12,7 +12,7 @@
 // 翻页的纸本身见 flip.js；拖页角翻页用 beginDrag，点页翻页与抗拒见 gesture.js。
 
 import { tick } from 'svelte';
-import { snapshot, playLeaf, createLeaf, animateLeaf } from './flip.js';
+import { snapshot, playLeaf, createLeaf, springTo } from './flip.js';
 
 let cur = $state.raw(null);
 export const spread = {
@@ -27,6 +27,9 @@ export function registerSpread(entry) {
 
 export const flip = $state({ on: false, dir: 1, fps: 0 });
 export const view = $state({ pos: 0, live: 0 });
+
+// 翻页开始与结束，广播给字盘（它在翻页时暂停渲染）
+const announce = (on) => { try { document.dispatchEvent(new CustomEvent('stj-flip', { detail: on })); } catch { /* 没有 document 就不用广播 */ } };
 
 const hist = []; // 已封存的对页：{ L, R }（两页的快照）
 let env = null; // { shell, right, left, mobile(), reduced, snaps(l,r), review(entry|null), ready() }
@@ -73,15 +76,14 @@ function seal() {
   view.pos = hist.length;
 }
 
-/** 等一个元素的尺寸停下来（案升起、书缩小的过渡），最多等 1.2 秒 */
+/** 等一个元素的尺寸停下来（兜底：书现在是固定大小，一般不会变），最多等 1.2 秒 */
 async function settle(el) {
   let last = '';
   let same = 0;
   const t0 = performance.now();
   while (same < 4 && performance.now() - t0 < 1200) {
     await new Promise((r) => requestAnimationFrame(r));
-    const r = el.getBoundingClientRect();
-    const k = `${Math.round(r.width)}x${Math.round(r.height)}`;
+    const k = `${el.offsetWidth}x${el.offsetHeight}`; // 布局尺寸（书在缩放、倾斜过的场景里，外接矩形不是页的 px 尺寸）
     same = k === last ? same + 1 : 0;
     last = k;
   }
@@ -91,12 +93,12 @@ async function settle(el) {
 async function prepare(commit, dir) {
   const { shell } = env;
   const single = env.mobile();
-  const rect = env.right.getBoundingClientRect();
-  let page = { w: Math.round(rect.width), h: Math.round(rect.height) };
+  let page = { w: env.right.offsetWidth, h: env.right.offsetHeight };
   const oldR = snapshot(env.right);
   const oldL = single ? null : snapshot(env.left);
   flip.on = true;
   flip.dir = dir;
+  announce(true);
   subs.forEach((f) => f('start', dir));
   env.snaps(dir > 0 ? oldL : null, dir > 0 ? null : oldR); // 向后翻：旧左页盖住新左页；向前翻：旧右页盖住新右页
   commit();
@@ -104,13 +106,11 @@ async function prepare(commit, dir) {
   await raf2(); // 新页排好版
   if (env?.ready) await env.ready();
   // 案升起或收起、书跟着缩放：先盖着旧页等它停下来，再翻（纸的大小要与最后的页一样大）
-  const now = env.right.getBoundingClientRect();
-  if (Math.abs(now.height - page.h) > 3 || Math.abs(now.width - page.w) > 3) {
+  if (Math.abs(env.right.offsetHeight - page.h) > 3 || Math.abs(env.right.offsetWidth - page.w) > 3) {
     env.snaps(single ? null : snapshot(oldL), snapshot(oldR));
     await settle(env.right);
     env.snaps(dir > 0 ? oldL : null, dir > 0 ? null : oldR);
-    const r2 = env.right.getBoundingClientRect();
-    page = { w: Math.round(r2.width), h: Math.round(r2.height) };
+    page = { w: env.right.offsetWidth, h: env.right.offsetHeight };
   }
   // 新的两页：向后翻时背面是新左页，向前翻时正面是新右页
   const newL = single ? null : snapshot(env.left);
@@ -121,6 +121,7 @@ async function prepare(commit, dir) {
 function endFlip(dir) {
   env?.snaps(null, null);
   flip.on = false;
+  announce(false);
   subs.forEach((f) => f('end', dir));
 }
 
@@ -139,9 +140,11 @@ export async function turn(commit, { dir = 1, ms = PAGE_MS, record = true, revie
     if (running) { running.finish(); running = null; }
     if (sealIt) seal();
     flip.on = true;
+    announce(true);
     subs.forEach((f) => f('start', dir));
     await env.shut(commit);
     flip.on = false;
+    announce(false);
     subs.forEach((f) => f('end', dir));
     return;
   }
@@ -152,8 +155,7 @@ export async function turn(commit, { dir = 1, ms = PAGE_MS, record = true, revie
   }
   if (running) { running.finish(); running = null; } // 上一张还没落定：直接落定
   const id = ++seq;
-  const rect = env.right.getBoundingClientRect();
-  if (!rect.width) { if (sealIt) seal(); commit(); return; }
+  if (!env.right.offsetWidth) { if (sealIt) seal(); commit(); return; }
   if (sealIt) seal();
 
   const p = await prepare(commit, dir);
@@ -182,31 +184,53 @@ export function stepHist(dir) {
 
 /**
  * 开始拖一页。commit() 先把新的一对页换到纸下面，revert() 在放弃（拖得不够就松手）时换回来。
- * 返回手柄 { ready: Promise, set(e), release(complete, v), cancel() }；e 是纸翻开的程度，0 平放在右边，1 翻到左边（向前翻时从 1 往 0）。
+ * 返回手柄 { ready: Promise, set(e), release(), e }；e 是纸翻开的程度，0 平放在右边，1 翻到左边（向前翻时从 1 往 0）。
+ * 拖动时记下手的速度：纸边随速度落在后面（动态的卷曲）；松手时带着这个速度，过了中线就翻过去，没过就弹回（弹簧，见 flip.js）。
  */
 export function beginDrag(commit, revert, dir) {
   if (!env || env.reduced || running) return null;
   const id = ++seq;
   let leaf = null;
   let want = dir > 0 ? 0 : 1;
+  let lag = 0;
+  const samples = []; // [时间, 翻过去的程度 p]，用来估计松手时的速度
+  const pOf = (e) => (dir > 0 ? e : 1 - e);
+  const velocity = () => {
+    const now = performance.now();
+    while (samples.length > 1 && now - samples[0][0] > 120) samples.shift();
+    if (samples.length < 2) return 0;
+    const [t0, p0] = samples[0];
+    const [t1, p1] = samples[samples.length - 1];
+    return t1 - t0 > 8 ? ((p1 - p0) / (t1 - t0)) * 1000 : 0;
+  };
   let dead = false;
   const ready = (async () => {
     const p = await prepare(commit, dir);
     if (id !== seq || dead) { endFlip(dir); return false; }
     leaf = createLeaf(p.shell, { front: p.front, back: p.back, page: p.page, single: p.single });
-    leaf.set(want);
+    leaf.set(want, lag);
     return true;
   })();
   const handle = {
     ready,
-    set(e) { want = Math.min(1, Math.max(0, e)); leaf?.set(want); },
+    set(e, t = performance.now()) {
+      want = Math.min(1, Math.max(0, e));
+      samples.push([t, pOf(want)]);
+      if (samples.length > 12) samples.shift();
+      if (!leaf) return;
+      const v = velocity();
+      const dth = v * leaf.maxRot * (dir > 0 ? 1 : -1);
+      lag += (clamp(-dth * 0.05, -22, 22) - lag) * 0.35; // 手动得快，纸边落在后面
+      leaf.set(want, lag);
+    },
     get e() { return want; },
-    async release(complete) {
+    async release() {
       const ok = await ready;
       if (!ok) return;
-      const to = complete ? (dir > 0 ? 1 : 0) : (dir > 0 ? 0 : 1);
-      const ms = Math.round(520 * Math.max(0.35, Math.abs(to - want)));
-      const job = animateLeaf(leaf, want, to, ms);
+      const p = pOf(want);
+      const v = velocity();
+      const complete = p + v * 0.16 > 0.5; // 过了中线，或者手是朝着翻过去的方向甩出去的
+      const job = springTo(leaf, { from: p, to: complete ? 1 : 0, v0: v, dir, omega: 11, zeta: 0.62 });
       running = job;
       await job.done;
       if (running === job) running = null;
@@ -218,31 +242,26 @@ export function beginDrag(commit, revert, dir) {
   return handle;
 }
 
-/** 在最新的一页再往后翻：纸被拎起一点，露出还没写的空白，再弹回去。dir 1：右页往后；-1：左页往前 */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+/** 在最新的一页再往后翻：纸被拎起一点，露出还没写的空白，再弹回去并抖一下。dir 1：右页往后；-1：左页往前 */
 export async function bounce(dir = 1) {
   if (!env || env.reduced || running || document.hidden) return;
   const { shell } = env;
   const single = env.mobile();
   if (single && dir < 0) return;
   const src = dir > 0 ? env.right : env.left;
-  const rect = src.getBoundingClientRect();
-  if (!rect.width) return;
-  const page = { w: Math.round(rect.width), h: Math.round(rect.height) };
+  if (!src.offsetWidth) return;
+  const page = { w: src.offsetWidth, h: src.offsetHeight };
   const blank = () => { const d = document.createElement('div'); d.className = 'pg-blank'; return d; };
   const front = snapshot(src);
   if (dir > 0) env.snaps(null, blank()); else env.snaps(blank(), null);
   const leaf = createLeaf(shell, dir > 0 ? { front, back: single ? null : blank(), page, single } : { front: blank(), back: front, page, single });
-  const peak = single ? 0.22 : 0.15;
-  const base = dir > 0 ? 0 : 1;
-  const sgn = dir > 0 ? 1 : -1;
-  const wrap = { set: (v) => leaf.set(base + sgn * Math.max(0, v)), remove: () => leaf.remove() };
-  const job = animateLeaf(wrap, 0, peak, 260, { keep: true });
+  // 从原处被拎起（初速度），弹簧把它拉回去：欠阻尼，落回去时碰一下再抖两下
+  const job = springTo(leaf, { from: 0, to: 0, v0: single ? 1.5 : 1.25, omega: 21, zeta: 0.3, dir, maxMs: 1200 });
   running = job;
   await job.done;
-  const back = animateLeaf(wrap, peak, 0, 520, { easing: (t) => 1 - (1 - t) ** 3 * Math.cos(t * 7) });
-  running = back;
-  await back.done;
-  if (running === back) running = null;
+  if (running === job) running = null;
   env?.snaps(null, null);
 }
 
