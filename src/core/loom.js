@@ -3,6 +3,10 @@
 // 被你弃掉的那一次（kept 为 false）也织进去，只是淡一些——重来越多，锦越乱。
 // 所有丝线都连续穿过中缝，织它的始终是同一个人。
 //
+// 画法（性能）：每束丝先在内存里走完全程，再把相邻 RUN 段并成一笔画出，丝的总数封顶。
+// 早先是一段一笔、每次操作约 60 束丝：起卦三次就有数十万次 multiply 混合的微小描边，分享图导出时 toBlob 一次性光栅化，
+// 浏览器会卡死；现在总笔数在两万多笔以内，且每画若干笔就让出一次主线程。
+//
 // 各卷的织法 style（可选，缺省时所有丝都是平直的墨线；签卷见 src/juan/qian/loom-style.js）：
 //   halos(kind)                  这一束丝底下除了墨底之外的晕：[{ cx, rx, ry, color, a }]，cx、rx 是画布宽的倍数，ry 是丝带厚度的倍数
 //   offset(kind, off, o, x, g)   丝在横坐标 x 处的纵向偏移（off 为默认值，o 为丝在带内的位置 -1..1，g = { W, thick }）
@@ -27,9 +31,13 @@ export const smoothstep = (e0, e1, x) => {
 };
 export const lerp = (a, b, t) => a + (b - a) * t;
 
-// width：直接指定像素宽度（分享图离屏重织时用），缺省按页面上的显示宽度
-// dark：深色画面；缺省时按当前主题，但指定了 width（分享图的离屏重织）一律用浅色，因为分享图是要带走的一张纸
-export function weave(canvas, { seed, throws, reduced = false, width, style = {}, dark = false }) {
+// width：直接指定像素宽度（按页面的纹理尺寸画），缺省按画布的显示宽度
+// dark：深色画面（滤色叠加）；缺省是宣纸上的墨丝（正片叠底）
+const RUN = 7; // 相邻几段并成一笔
+const MAX_THREADS = 360; // 丝的总数封顶：不论织了几次，笔数都不会无限增长
+const YIELD_EVERY = 5000; // 每画这么多笔就让出主线程
+
+export async function weave(canvas, { seed, throws, width, style = {}, dark = false }) {
   pal = dark ? PALETTE.dark : PALETTE.light;
   const P = pal;
   // 指定宽度时，按页面上约 380px 宽的命盘等比放大丝线粗细
@@ -44,15 +52,15 @@ export function weave(canvas, { seed, throws, reduced = false, width, style = {}
   // 宣纸底 + 经线
   g.fillStyle = P.paper; // 宣纸（深色：墨底）
   g.fillRect(0, 0, W, H);
-  g.strokeStyle = P.warp; // 经线用极淡的丝
+  g.strokeStyle = P.warp; // 经线用极淡的丝：一次描完
   g.lineWidth = 1;
   const warp = 5 * dpr;
+  g.beginPath();
   for (let x = warp / 2; x < W; x += warp) {
-    g.beginPath();
     g.moveTo(x, 0);
     g.lineTo(x, H);
-    g.stroke();
   }
+  g.stroke();
 
   // 至少按三束排布，掷得少时居中
   const slots = Math.max(3, throws.length);
@@ -81,7 +89,7 @@ export function weave(canvas, { seed, throws, reduced = false, width, style = {}
     for (const h of style.halos?.(kind) ?? []) soft(W * h.cx, center(b), W * h.rx, thick * h.ry, h.color, h.a * k);
   }
 
-  const perBand = Math.round((58 + rand() * 14) * Math.min(1, 6 / slots + 0.3));
+  const perBand = Math.max(8, Math.min(Math.round((58 + rand() * 14) * Math.min(1, 6 / slots + 0.3)), Math.floor(MAX_THREADS / Math.max(1, throws.length))));
   const threads = [];
   for (let b = 0; b < throws.length; b++) {
     const { kind, kept } = throws[b];
@@ -117,47 +125,51 @@ export function weave(canvas, { seed, throws, reduced = false, width, style = {}
 
   g.globalCompositeOperation = P.blend; // 墨线越密越浓（深色下是金线越密越亮）
   g.lineCap = 'butt'; // 平头：相邻线段的圆头叠在一起，透明度会叠出一串串小珠
+  g.lineJoin = 'round';
   const step = W / 420;
+  let strokes = 0;
 
-  const advance = () => {
-    for (const th of threads) {
-      const nx = th.x + step;
-      const ny = lerp(th.y, target(th, nx), 0.22);
-      const c = colorAt(th, nx);
-      const press = 0.5 + 0.5 * Math.sin((nx / W) * Math.PI * 2 * th.kp + th.pp);
-      const tail = smoothstep(W * 0.86, W, nx); // 收笔：越到右端越细越淡
-      const dry = !th.stray && press < 0.1 && rand() < 0.55; // 笔压最轻处，丝断出一小截飞白
-      if (!dry) {
-        g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(th.a * (0.9 + 0.7 * press) * (1 - 0.5 * tail)).toFixed(3)})`;
-        g.lineWidth = th.w * (0.62 + 0.8 * press) * (1 - 0.55 * tail);
-        g.beginPath();
-        g.moveTo(th.x, th.y);
-        g.lineTo(nx, ny);
-        g.stroke();
+  for (const th of threads) {
+    th.y = target(th, th.x); // 先让丝线在画外就位，免得起笔处有收束痕迹
+    while (th.x < W + 8) {
+      // 走满一笔（RUN 段），段内笔压、颜色取平均，飞白处断开
+      const pts = [[th.x, th.y]];
+      let a = 0;
+      let w = 0;
+      let n = 0;
+      let rgb = [0, 0, 0];
+      let cut = [];
+      for (let k = 0; k < RUN && th.x < W + 8; k++) {
+        const nx = th.x + step;
+        const ny = lerp(th.y, target(th, nx), 0.22);
+        const c = colorAt(th, nx);
+        const press = 0.5 + 0.5 * Math.sin((nx / W) * Math.PI * 2 * th.kp + th.pp);
+        const tail = smoothstep(W * 0.86, W, nx); // 收笔：越到右端越细越淡
+        const dry = !th.stray && press < 0.1 && rand() < 0.55; // 笔压最轻处，丝断出一小截飞白
+        cut.push(dry);
+        pts.push([nx, ny]);
+        if (!dry) {
+          a += th.a * (0.9 + 0.7 * press) * (1 - 0.5 * tail);
+          w += th.w * (0.62 + 0.8 * press) * (1 - 0.55 * tail);
+          rgb = [rgb[0] + c[0], rgb[1] + c[1], rgb[2] + c[2]];
+          n++;
+        }
+        th.x = nx;
+        th.y = ny;
       }
-      th.x = nx;
-      th.y = ny;
-    }
-  };
-
-  // 先让丝线在画外就位，免得起笔处有收束痕迹
-  for (const th of threads) th.y = target(th, th.x);
-
-  return new Promise((resolve) => {
-    if (reduced) {
-      while (threads.length && threads[0].x < W + 8) advance();
-      g.globalCompositeOperation = 'source-over';
-      resolve();
-      return;
-    }
-    const frame = () => {
-      for (let k = 0; k < 3; k++) advance();
-      if (threads.length && threads[0].x < W + 8) requestAnimationFrame(frame);
-      else {
-        g.globalCompositeOperation = 'source-over';
-        resolve();
+      if (!n) continue;
+      g.strokeStyle = `rgba(${Math.round(rgb[0] / n)},${Math.round(rgb[1] / n)},${Math.round(rgb[2] / n)},${(a / n).toFixed(3)})`;
+      g.lineWidth = w / n;
+      g.beginPath();
+      let pen = false;
+      for (let k = 1; k < pts.length; k++) {
+        if (cut[k - 1]) { pen = false; continue; }
+        if (!pen) { g.moveTo(pts[k - 1][0], pts[k - 1][1]); pen = true; }
+        g.lineTo(pts[k][0], pts[k][1]);
       }
-    };
-    requestAnimationFrame(frame);
-  });
+      g.stroke();
+      if (++strokes % YIELD_EVERY === 0) await new Promise((r) => setTimeout(r));
+    }
+  }
+  g.globalCompositeOperation = 'source-over';
 }
