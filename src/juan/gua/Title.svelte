@@ -1,19 +1,19 @@
 <script>
-  // 卦卷入口：标题墨痕、“问”字印章。墨痕是静态图（img/title-ink.svg），入卷时被一笔“写”出来（样式在 qian.css，两卷共用）。
+  // 卦卷入口：桌上摆着龟壳与三枚铜钱，书合着在里侧看着；点右下角朱红的“问”字印开始。
   import Seal from '../../core/Seal.svelte';
   import Spread from '../../core/Spread.svelte';
+  import Instrument from '../../core/desk/Instrument.svelte';
 
   let { ctx, game } = $props();
 </script>
 
-<section class="screen screen-title is-active" data-screen="title" aria-labelledby="t-title">
-  <div class="title-block">
-    <img class="title-ink-img" src="/img/title-ink.svg" alt="" aria-hidden="true">
-    <h1 id="t-title" class="title-main">演算天机</h1>
-  </div>
-  <p class="title-sub">你起卦，我算你</p>
-</section>
+{#snippet desk()}
+  <figure class="idle-piece">
+    <div class="idle-art"><Instrument id="gua" /></div>
+    <figcaption>你起卦，我算你</figcaption>
+  </figure>
+{/snippet}
 
-<Spread name="卦" sub="金钱卦" hint="点右下角朱红的“问”字印开始。三枚铜钱，掷六回，约三分钟，建议打开声音。">
+<Spread hint="点右下角朱红的“问”字印开始。三枚铜钱，掷六回，约三分钟，建议打开声音。" {desk}>
   {#snippet foot()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
 </Spread>

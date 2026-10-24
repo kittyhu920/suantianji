@@ -1,8 +1,7 @@
 <script>
-  // 灼与读兆：龟甲摆在书外的案上，背面预先凿好钻凿，按住一处来灼；“卜”的一声，兆就在书页上长出来。
-  // 读兆时案收起，书占满整个案，兆图写在右页，读法写在左页。
+  // 灼与读兆：龟甲摆在桌上，背面预先凿好钻凿，按住一处来灼；“卜”的一声，兆就在龟甲上裂出来（Canvas，一道一道长出）。
+  // 读兆时，兆图换到桌上，旁边是我的读法；解兆的白话与建议写进命书。
   // 读完兆可以：王占曰（受兆 / 兆凶则改判）、再灼一处、或对贞——把同一件事反过来问一次。
-  import Zhu from '../../core/Zhu.svelte';
   import Spread from '../../core/Spread.svelte';
   import Plastron from './Plastron.svelte';
   import OmenFigure from './OmenFigure.svelte';
@@ -13,7 +12,7 @@
   const { S } = game;
   let showFan = $state(false);
   let fanText = $state('');
-  let away = $state(false); // 灼过之后，案收起（等“卜”的一声与烟散一会儿），书占满整个案
+  let away = $state(false); // 灼过之后，等“卜”的一声与烟散一会儿，龟甲换成兆图
 
   const cur = $derived(S.cur >= 0 ? S.burns[S.cur] : null);
   const crack = $derived(cur ? game.crackOf(cur) : null);
@@ -32,13 +31,13 @@
   });
 
   const pickNote = $derived(
-    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住案上与第一灼左右对称的那一处。'
+    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住桌上与第一灼左右对称的那一处。'
       : S.nextKind === 'again' ? '另选一处钻凿，再灼。火红了就别松手。'
-        : '按住案上龟甲的一处钻凿，别松手；火红了，“卜”的一声就来。'
+        : '按住桌上龟甲的一处钻凿，别松手；火红了，“卜”的一声就来。'
   );
 
   const hint = $derived(!reading ? pickNote
-    : !S.grown ? '兆正在书页上裂开……'
+    : !S.grown ? '兆正在龟甲上裂开……'
       : showFan ? '把同一件事反过来问一次，改成你要问的话（也可以不改），再点“去灼”。'
         : zhengB && isXiong(zhengB.omen) ? '兆是凶的。你可以受下，也可以以王的身份，改判成吉。'
           : '读完这一兆，可以受兆，也可以再灼一处，或者对贞——把同一件事反过来问一次。');
@@ -62,12 +61,11 @@
   {#if reading && S.grown && cur}
     {@const o = OMENS[cur.omen]}
     <div class="read" id="read">
-      <p class="read-name" data-tone={o.tone}><small>兆曰</small><b>{#if o.name === '亡尤' || o.name === '有祟'}<Zhu term={o.name} />{:else}{o.name}{/if}</b></p>
+      <p class="read-name" data-tone={o.tone}><small>兆曰</small><b>{o.name}</b></p>
       <p class="read-line">{o.line}</p>
-      <p class="read-how">我是这样读的：{explain(crack.metrics)}。<Zhu term="兆干兆枝" />的形状决定<Zhu term="兆象" />，这套读法是我定的规矩。</p>
-      <p class="read-hint">读完之后，由你来<Zhu term="王占曰" />：从兆，或者改判。</p>
+      <p class="read-how">我是这样读的：{explain(crack.metrics)}。兆干兆枝的形状决定兆象，这套读法是我定的规矩。</p>
       {#if cur.kind === 'fan' && zhengB}
-        <p class="read-dui"><Zhu term="正反对贞" />：正问是<b>{OMENS[zhengB.omen].name}</b>，反问是<b>{o.name}</b>。{isXiong(zhengB.omen) === isXiong(cur.omen) ? '两边一个调子，哪边都说得通。' : '一正一反，两兆相应。'}</p>
+        <p class="read-dui">正反对贞：正问是<b>{OMENS[zhengB.omen].name}</b>，反问是<b>{o.name}</b>。{isXiong(zhengB.omen) === isXiong(cur.omen) ? '两边一个调子，哪边都说得通。' : '一正一反，两兆相应。'}</p>
       {/if}
       {#if showFan}
         <label class="ask fan-ask">
@@ -79,28 +77,25 @@
   {/if}
 {/snippet}
 
-<section class="screen screen-zhuo is-active" data-screen="zhuo" aria-labelledby="z-h">
-  <h2 id="z-h" class="h-brush">{reading ? '读兆' : '灼'}</h2>
-  <p class="ming-line" id="ming-line">贞：{ming}</p>
-  {#if reading && crack}
-    {#key S.cur}
-      <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={1500} onDone={game.onGrown} />
-    {/key}
-  {:else}
-    <p class="wait-line">龟甲在案上。按住一处钻凿，兆就裂在这一页上。</p>
-  {/if}
-  <div class="only-narrow zhuo-side">{@render side()}</div>
-</section>
-
 {#snippet desk()}
-  <div class="zhuo-card">
-    <div class="card">
-      <Plastron {ctx} {game} />
-    </div>
+  <div class="zhuo-main">
+    <p class="ming-line" id="ming-line">贞：{ming}</p>
+    {#if reading && away && crack}
+      {#key S.cur}
+        <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={300} onDone={game.onGrown} />
+      {/key}
+    {:else}
+      <div class="zhuo-card">
+        <div class="card">
+          <Plastron {ctx} {game} />
+        </div>
+      </div>
+    {/if}
   </div>
+  <div class="zhuo-side">{@render side()}</div>
 {/snippet}
 
-<Spread name={reading ? '读兆' : '灼'} sub="一灼一兆" {hint} left={side} record={reading} desk={reading && away ? undefined : desk}>
+<Spread {hint} {desk}>
   {#snippet foot()}
     {#if reading && S.grown && cur}
       {#if showFan}

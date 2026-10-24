@@ -54,7 +54,6 @@ export function createGame(ctx) {
   const ui = $state({ posterOpen: false });
   let lastVisit = ctx.memory.get(); // 上一局的记录，只存在玩家本机
   let shell = null;
-  let castApi = null; // 起卦屏挂上来的：卦画上某一爻的位置
   let fin = null; // 收尾时算好的：整局用时、画像
   let timers = [];
 
@@ -108,7 +107,7 @@ export function createGame(ctx) {
     if (changed) gloss(G.pick(d.name, S.pickMs, d.persona), { key: 'pick' });
   }
 
-  // 问题写在书上：字被纸吸进去，书回一句，再翻到下一页
+  // 问题写在桌上的纸笺上：字被纸吸进去，书回一句，再进入起卦
   async function confirmDing(question) {
     S.question = question.trim().slice(0, 40);
     if (S.question) gloss(G.question([...S.question].length, questionMood(S.question)));
@@ -149,8 +148,6 @@ export function createGame(ctx) {
     return () => { shell?.stop(); shake.holdEnd(); shell = null; };
   }
 
-  function registerCast(api) { castApi = api; return () => { castApi = null; }; }
-
   // 出手：三枚铜钱的朝向在这一刻就定了（真随机）；可以在页面里注入 window.__coins 来复现某一掷（调试用）
   function rollCoins() {
     S.rolling = true;
@@ -173,13 +170,6 @@ export function createGame(ctx) {
     else if (y.kind === 'laoyin') gloss(G.laoyin);
     gloss(G.bits(bits));
     sfx.drip(0.05);
-    later(() => { // 爻写出来的一刻：落点洇开一团墨晕、起一圈水纹
-      if (ctx.screen !== 'cast') return;
-      const p = castApi?.point(idx);
-      if (!p) return;
-      ctx.fx.wash(p.x, p.y, { R: 70, a: 0.1, grow: 1.0, hold: 0.2, fade: 1.4 });
-      ctx.fx.ripple(p.x, p.y, { r: 60, rings: 2, a: 0.18 });
-    }, 260);
     if (S.cur.length < 6) {
       later(() => { S.rolling = false; S.tried = false; S.readyAt = performance.now(); ctx.touch(); }, 900);
       return;
@@ -375,7 +365,7 @@ export function createGame(ctx) {
     timers = [];
     shake.holdEnd();
     ui.posterOpen = false;
-    if (clear) { ctx.clearGloss(); ctx.fx.clear(); }
+    if (clear) ctx.clearGloss();
     ctx.resetRound();
     fin = null;
     Object.assign(S, freshState());
@@ -400,7 +390,7 @@ export function createGame(ctx) {
     db,
     shake,
     // 屏要用的
-    begin, pickDomain, confirmDing, attachShell, registerCast, toJie, accept, recast, again, toStart, settle,
+    begin, pickDomain, confirmDing, attachShell, toJie, accept, recast, again, toStart, settle,
     confessItems, ledgerRows, lastCast, bitOf,
     // 公共层要用的（接口见 src/juan/index.js）
     attitude, ledgerData, memory, onEnd, finish, makePoster, statData,
@@ -408,6 +398,7 @@ export function createGame(ctx) {
     busy: () => shake.holding || (ctx.screen === 'cast' && !!shell?.active) || S.rolling,
     canOracle: () => false, // 本卷不接通灵
     askOracle: () => {},
+    openPoster() { ui.posterOpen = true; },
     get posterOpen() { return ui.posterOpen; },
     set posterOpen(v) { ui.posterOpen = v; },
     destroy() {

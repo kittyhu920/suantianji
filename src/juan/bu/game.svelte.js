@@ -518,18 +518,12 @@ export function createGame(ctx) {
     return rows.map(([k, v]) => ({ k, v, note: e.notes[k] }));
   }
 
-  /* ───────── 分享图 ───────── */
-  async function makePoster() {
-    const { endKey, seed, state } = S.end;
+  /* ───────── 分享图与命书里的兆 ───────── */
+  // 一块刻了辞的甲要画的东西（分享图与命书共用，画法见 poster.js 的 drawFigure）
+  function figureData() {
     const z = decisive();
     const f = fanBurn();
-    const now = new Date();
-    const blob = await drawPoster({
-      ending: ENDINGS[endKey],
-      throws: loomThrows(),
-      seed,
-      date: `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`,
-      // 本卷的字段（见 poster.js）
+    return {
       question: S.question,
       fanQuestion: f ? S.qFan : '',
       qianci: qianci(S.clock),
@@ -537,6 +531,19 @@ export function createGame(ctx) {
       main: z && { crack: crackOf(z), spot: z.spot, xu: cnNum(S.burns.indexOf(z) + 1) },
       fan: f && { crack: crackOf(f), spot: f.spot, xu: cnNum(S.burns.indexOf(f) + 1), name: OMENS[f.omen].name },
       zhan: S.zhan,
+    };
+  }
+
+  async function makePoster() {
+    const { endKey, seed, state } = S.end;
+    const z = decisive();
+    const now = new Date();
+    const blob = await drawPoster({
+      ending: ENDINGS[endKey],
+      throws: loomThrows(),
+      seed,
+      date: `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`,
+      ...figureData(),
       state: state.text,
       stateNo: state.key === 'no',
     }, posterSpec);
@@ -548,7 +555,7 @@ export function createGame(ctx) {
   function resetAll({ clear = true } = {}) {
     stopTimer();
     ui.posterOpen = false;
-    if (clear) { ctx.clearGloss(); ctx.fx.clear(); }
+    if (clear) ctx.clearGloss();
     ctx.resetRound();
     fin = null;
     Object.assign(S, freshState());
@@ -574,7 +581,7 @@ export function createGame(ctx) {
     onGrown, startFan, again, accept, overrule, finish, playAgain, toStart,
     // 对贞要在与正问左右对称的那一处灼（同一排的另一格）；那一处已用过就不限
     mirrorSpot: () => { const z = decisive(); const m = z ? z.spot ^ 1 : -1; return m >= 0 && !S.used[m] ? m : -1; },
-    crackOf, zhengBurns, fanBurn, decisive, decisiveIdx, spotsLeft, carveData, loomThrows,
+    crackOf, zhengBurns, fanBurn, decisive, decisiveIdx, spotsLeft, carveData, loomThrows, figureData,
     confessItems, ledgerRows,
     pending: () => pendingYan,
     lastVisit: () => lastVisit,
@@ -584,6 +591,7 @@ export function createGame(ctx) {
     canOracle: () => false,
     canDoubt: () => RITUAL.includes(ctx.screen),
     busy: () => S.holding || (ctx.screen === 'zhuo' && S.phase === 'read' && !S.grown),
+    openPoster() { ui.posterOpen = true; },
     get posterOpen() { return ui.posterOpen; },
     set posterOpen(v) { ui.posterOpen = v; },
     destroy() { stopTimer(); },
