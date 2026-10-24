@@ -26,6 +26,13 @@
     fit();
   }
 
+  // 页在滚动时（长文、结局的页），纸条跟不上术语，收起
+  $effect(() => {
+    const close = () => { if (zhu.pop) closePop(); };
+    document.addEventListener('scroll', close, true);
+    return () => document.removeEventListener('scroll', close, true);
+  });
+
   function onWindowDown(e) {
     if (!zhu.pop) return;
     if (e.target.closest?.('.zhu-pop, .zhu-term')) return;

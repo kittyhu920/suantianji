@@ -7,7 +7,6 @@
 //   kind        toc（目录）或 doc（默认）
 //   back        左上角小木牌的去向与字（不传就没有）
 //   tou         纸背透字（字符串，取前三个字），写在右页的底下
-//   kaijuan     本次会话第一次进入时，书像卷轴一样展开（目录页用）
 import Paper from './Paper.astro';
 import PageData from './PageData.astro';
 
@@ -17,13 +16,12 @@ interface Props {
   description?: string;
   back?: { href: string; label: string; aria?: string };
   tou?: string;
-  kaijuan?: boolean;
   long?: boolean;
   kind?: 'toc' | 'doc';
 }
-const { title = '演算天机', pageTitle, description, back, tou, kaijuan = false, long = false, kind = 'doc' } = Astro.props;
+const { title = '演算天机', pageTitle, description, back, tou, long = false, kind = 'doc' } = Astro.props;
 ---
-<Paper title={pageTitle ?? title} description={description} kaijuan={kaijuan}>
+<Paper title={pageTitle ?? title} description={description}>
   <PageData kind={kind} title={title} back={back} tou={tou} long={long}>
     <slot name="left" slot="left" />
     <slot />

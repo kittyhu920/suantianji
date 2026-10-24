@@ -100,6 +100,7 @@ export function createCtx(juan) {
     show(name, { dir = 1, shut = false, reset = false, onCommit } = {}) {
       ctx.prevScreen = ui.screen;
       ctx.touch();
+      if (shut && !reset) ctx.gloss('我合上这一页，再翻开一页新的', { key: 'shut' });
       return turn(() => {
         onCommit?.();
         if (reset) resetBook();
@@ -111,6 +112,7 @@ export function createCtx(juan) {
 
     turn(commit, opts) {
       ctx.touch();
+      if (opts?.shut) ctx.gloss('我合上这一页，再翻开一页新的', { key: 'shut' });
       return turn(() => { closePop(); commit(); }, opts);
     },
 

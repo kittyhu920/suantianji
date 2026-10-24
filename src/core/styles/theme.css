@@ -24,7 +24,7 @@
 
   /* 朱 */
   --cinnabar: #b3261f;         /* 印面、按钮底 */
-  --cinnabar-hi: #b3261f;      /* 朱字、朱圈、朱线（深色下提亮） */
+  --cinnabar-hi: #b3261f;      /* 朱字、朱圈、朱线（深色下书仍是纸色，朱字反而更深） */
   --cinnabar-press: #9c1f19;
   --zhu-rgb: 179, 38, 31;
   --zhu-rule: rgba(179, 38, 31, .22);
@@ -122,7 +122,7 @@
   --ink-ghost: rgba(26, 21, 16, .44);
 
   --cinnabar: #b3261f;
-  --cinnabar-hi: #a3221b;       /* 朱字、朱圈：在暖黄的纸上略深一点，对比度够 AA */
+  --cinnabar-hi: #861b16;       /* 朱字、朱圈：在暖黄的纸上更深一点，对比度达到 AA（5.4:1 / 4.8:1） */
   --cinnabar-press: #c92f26;
   --seal-body: #680f0b;
   --seal-cast: rgba(0, 0, 0, .55);

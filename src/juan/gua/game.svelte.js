@@ -112,8 +112,9 @@ export function createGame(ctx) {
   async function confirmDing(question) {
     S.question = question.trim().slice(0, 40);
     if (S.question) gloss(G.question([...S.question].length, questionMood(S.question)));
+    else gloss('你什么也没写，我就凭这块木牌来猜');
     sfx.bronze(392, 1.6, 0.12);
-    await ctx.sleep(S.question ? 2600 : 300);
+    await ctx.sleep(2600);
     if (ctx.screen !== 'ding') return; // 玩家已回卷首
     enterCast();
   }

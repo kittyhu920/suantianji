@@ -61,6 +61,15 @@ export function createGloss(host, { reduced = false, pages } = {}) {
     if (!busy) drain();
   }
 
+  // 等当前页上有内容（最多约半秒）
+  async function pageReady() {
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => requestAnimationFrame(r));
+      const ps = pages?.() ?? [];
+      if (!ps[0] || ps[0].body?.querySelector('.screen, article, section')) return;
+    }
+  }
+
   // 找一块空白放 el（el 已量好宽高）。返回 { x, y, edge }：host 内的坐标
   function spot(w, h) {
     const ps = pages?.() ?? [];
@@ -127,6 +136,8 @@ export function createGloss(host, { reduced = false, pages } = {}) {
     while (queue.length) {
       if (holding) await holding;
       if (!live) { await new Promise((r) => { resume = r; }); continue; }
+      await pageReady(); // 书页还没排好（刚进卷、刚换屏）就先等一等，免得把字写在后来出现的内容底下
+      if (!queue.length || !live) continue;
       const item = queue.shift();
       cur = item;
       const backlog = queue.length; // 后面还排着几条：写快些、停得短些

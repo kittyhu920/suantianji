@@ -24,6 +24,7 @@
   import { mountGesture } from './book/gesture.js';
   import { shut } from './book/motion.js';
   import { session } from './session.svelte.js';
+  import { recall } from './zhu.svelte.js';
   import { cn } from './book/folio.js';
 
   // 往后翻不动时，书说的话（初稿，待审读）
@@ -135,6 +136,16 @@
     const first = readPage();
     if (first) page = first;
     mounted = true;
+    // 卷首开卷：本次会话第一次进入目录页时，书像卷轴一样展开（书是常驻的岛，首帧之前页面上本来就没有书，不会先闪出整页）
+    if (first?.kind === 'toc') {
+      try {
+        if (!sessionStorage.getItem('stj-kaijuan') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.documentElement.classList.add('kaijuan');
+          setTimeout(() => document.documentElement.classList.remove('kaijuan'), 1500);
+        }
+        sessionStorage.setItem('stj-kaijuan', '1');
+      } catch { /* 不让存储的问题拦住页面 */ }
+    }
 
     const mq = matchMedia('(max-width: 959px)');
     narrow = mq.matches;
@@ -160,11 +171,9 @@
       resist,
     });
     // 点注：回看的页里的术语是快照，没有自己的点击处理，在这里统一接
-    const onTermClick = async (e) => {
+    const onTermClick = (e) => {
       const t = e.target.closest?.('.is-snap .zhu-term');
-      if (!t || !t.dataset.term) return;
-      const { recall } = await import('./zhu.svelte.js');
-      recall(t.dataset.term, t);
+      if (t?.dataset.term) recall(t.dataset.term, t);
     };
     huaxin.addEventListener('click', onTermClick);
 
@@ -186,8 +195,6 @@
 
   const el = () => ({ huaxin, stage, canvas, voice: voiceHost, pages: voicePages });
 </script>
-
-<svelte:window />
 
 <div class="shell" data-kind={page.kind} class:has-desk={hasDesk} class:is-narrow={narrow}>
   <header class="topbar">

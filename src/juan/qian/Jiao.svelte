@@ -74,7 +74,6 @@
 <section class="screen screen-jiao is-active" data-screen="jiao" aria-labelledby="j-h">
   <h2 id="j-h" class="h-brush"><Zhu term="掷筊" />请示</h2>
   {#if S.sign}<p class="jiao-sign">{signNo(S.sign)}　{S.sign.name}</p>{/if}
-  <div class="only-narrow jiao-intro">{@render legend()}</div>
   <div class="jiao-play">
     <ol class="cups" id="cups" aria-label="三杯">
       {#each [0, 1, 2] as i}
@@ -90,6 +89,7 @@
       {/if}
     </p>
   </div>
+  <div class="only-narrow jiao-intro">{@render legend()}</div>
 </section>
 
 {#snippet desk()}
