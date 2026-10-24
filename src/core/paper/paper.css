@@ -1,7 +1,21 @@
 /* 纸面的活动部分：案上字盘、纸背透字、卷首开卷（docs/DESIGN.md §13）
    共同的约束：静止时零开销；动起来只用 transform 与 opacity；页面隐藏时暂停；减少动效下静止。 */
 
+/* ───────── 书上方的灯 ─────────
+   深色主题：案和字盘沉进黑暗，书上方有一盏灯照下来，光晕落在书和靠近书的桌面上；浅色主题里这一层是透明的。 */
+.an::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 62% at 50% 30%, rgba(var(--lamp-rgb), var(--lamp-a)) 0%, rgba(var(--lamp-rgb), calc(var(--lamp-a) * .35)) 38%, transparent 70%),
+    radial-gradient(130% 110% at 50% 28%, transparent 20%, rgba(0, 0, 0, var(--dim)) 78%);
+}
+
 /* ───────── 案上字盘 ───────── */
+:root[data-theme="dark"] .an-board { filter: brightness(.62) saturate(.55); }
 .an-board {
   position: absolute;
   inset: 0;

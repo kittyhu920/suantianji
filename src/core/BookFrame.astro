@@ -1,14 +1,15 @@
 ---
-// 静态页的书（目录、关于、源流、404）：天头栏 + 一册摊开的书 + 页脚，版式同仪式页（见 docs/DESIGN.md §19）。
+// 静态页的书（目录、关于、源流、404）：把内容交给常驻的书（docs/DESIGN.md §19），版式同仪式页。
 //   默认插槽    右页的内容（读者的页）
 //   left 插槽   左页的内容（书名、标题）
 //   hint 插槽   页脚的说明文字
 //   foot 插槽   页脚右侧的链接或按钮
-//   title       天头栏中间的标题（默认“演算天机”）
+//   kind        toc（目录）或 doc（默认）
 //   back        左上角小木牌的去向与字（不传就没有）
 //   tou         纸背透字（字符串，取前三个字），写在右页的底下
 //   kaijuan     本次会话第一次进入时，书像卷轴一样展开（目录页用）
 import Paper from './Paper.astro';
+import PageData from './PageData.astro';
 
 interface Props {
   title?: string;
@@ -18,49 +19,15 @@ interface Props {
   tou?: string;
   kaijuan?: boolean;
   long?: boolean;
+  kind?: 'toc' | 'doc';
 }
-const { title = '演算天机', pageTitle, description, back, tou, kaijuan = false, long = false } = Astro.props;
-const touChars = tou ? Array.from(tou).slice(0, 3) : [];
+const { title = '演算天机', pageTitle, description, back, tou, kaijuan = false, long = false, kind = 'doc' } = Astro.props;
 ---
 <Paper title={pageTitle ?? title} description={description} kaijuan={kaijuan}>
-  <div class="shell shell-static">
-    <header class="topbar">
-      {back ? <a class="tag-btn" href={back.href} aria-label={back.aria ?? back.label}>{back.label}</a> : <span></span>}
-      <p class="top-title"><span class="top-book">{title}</span></p>
-      <div class="top-tools">
-        <button class="seal corner-theme" id="btn-theme" type="button" aria-label="切换到深色主题：乌金拓">昼</button>
-      </div>
-    </header>
-
-    <div class="book-wrap">
-      <div class="book">
-        <div class="huaxin">
-          <section class="pg pg-left" aria-label="扉页">
-            <div class="pg-body"><div class="lp lp-plain"><slot name="left" /></div></div>
-            <i class="fish" aria-hidden="true"></i>
-          </section>
-          <section class="pg pg-right">
-            {touChars.length > 0 && (
-              <div class="tou" aria-hidden="true">
-                {touChars.map((c) => <span class="tou-ch">{c}</span>)}
-              </div>
-            )}
-            <div class="stage" id="stage" class:list={{ 'is-long': long }}>
-              <div class="only-narrow static-head"><slot name="left" /></div>
-              <slot />
-            </div>
-            <i class="fish" aria-hidden="true"></i>
-          </section>
-          <i class="spine" aria-hidden="true"></i>
-        </div>
-        {kaijuan && <><i class="zhou zhou-l" aria-hidden="true"></i><i class="zhou zhou-r" aria-hidden="true"></i></>}
-      </div>
-    </div>
-
-    <footer class="botbar">
-      <div class="bot-doubt"></div>
-      <div class="bot-mid"><p class="bot-hint"><slot name="hint" /></p></div>
-      <div class="bot-acts"><slot name="foot" /></div>
-    </footer>
-  </div>
+  <PageData kind={kind} title={title} back={back} tou={tou} long={long}>
+    <slot name="left" slot="left" />
+    <slot />
+    <slot name="hint" slot="hint" />
+    <slot name="foot" slot="foot" />
+  </PageData>
 </Paper>

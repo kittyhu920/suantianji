@@ -4,7 +4,7 @@
 .cast-rule { margin: -4px 0 0; max-width: 30em; font-size: 13px; line-height: 1.8; color: var(--ink-dim); }
 .cast-cols { display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%; }
 .shell-wrap { width: min(250px, 52%); aspect-ratio: 320 / 440; flex: none; }
-.shell { width: 100%; height: 100%; }
+.kegui { width: 100%; height: 100%; }
 .cast-hex { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; }
 .cast-line { margin: 0; max-width: 11em; text-align: center; font-size: 13px; line-height: 1.7; color: var(--ink-soft); min-height: 4.2em; }
 .cast-line b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
@@ -68,5 +68,5 @@
 .screen-cast { justify-content: flex-start; }
 
 /* 器物直接放在纸上，不加框（docs/DESIGN.md：墨线用来分隔，不用来包框）；键盘聚焦时靠龟壳自己的晃动示意 */
-.shell:focus { outline: none; }
-.shell:focus-visible { outline: 1px dashed rgba(var(--ink-rgb), .4); outline-offset: 8px; border-radius: 50%; }
+.kegui:focus { outline: none; }
+.kegui:focus-visible { outline: 1px dashed rgba(var(--ink-rgb), .4); outline-offset: 8px; border-radius: 50%; }

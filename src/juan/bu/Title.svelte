@@ -28,10 +28,6 @@
   </div>
   <div class="title-actions">
     <p id="enter-note" class="note">三千多年前的<Zhu term="殷墟" />，人们在<Zhu term="甲骨" />上占卜。我替你备了一块<Zhu term="龟腹甲" />，按住<Zhu term="钻凿" />来<Zhu term="灼" />，看裂出的<Zhu term="兆" />。</p>
-    <p class="title-links">
-      <a class="about-link" href="/bu/yuanliu/">卜卷源流</a>
-      <a class="about-link" href="/about/">关于这件作品</a>
-    </p>
   </div>
 </section>
 

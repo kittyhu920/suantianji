@@ -86,7 +86,6 @@
 
 {#snippet l4()}
   <EndingsList endings={db.endings} got={e.got} current={e.endKey} />
-  <a class="about-link" href="/about/">关于这件作品</a>
 {/snippet}
 
 {#snippet r4()}

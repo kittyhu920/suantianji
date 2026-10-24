@@ -102,9 +102,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 定盘 ───────── */
-  function enterDing(dir = 1) {
-    ctx.show('ding', { dir });
-    S.dingEnterAt = performance.now();
+  function enterDing({ onCommit, ...opts } = {}) {
+    ctx.show('ding', { ...opts, onCommit: () => { onCommit?.(); S.dingEnterAt = performance.now(); } });
     const { zhi } = branch();
     const hh = String(S.clock.getHours()).padStart(2, '0');
     const mm = String(S.clock.getMinutes()).padStart(2, '0');
@@ -121,17 +120,19 @@ export function createGame(ctx) {
     if (changed) gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒。${d.persona}`, { key: 'pick' });
   }
 
-  function confirmDing(question) {
+  // 问题写在书上：字被纸吸进去，书回一句，再翻到下一页
+  async function confirmDing(question) {
     S.question = question.trim().slice(0, 40);
     if (S.question) gloss(`你写了 ${[...S.question].length} 个字，我读出了${questionMood(S.question)}`);
     sfx.bronze(392, 1.6, 0.12);
+    await ctx.sleep(S.question ? 2600 : 300);
+    if (ctx.screen !== 'ding') return; // 玩家已回卷首
     enterQian();
   }
 
   /* ───────── 摇签：仿真签筒 ───────── */
-  function enterQian(dir = 1) {
-    ctx.show('qian', { dir });
-    S.signShown = false;
+  function enterQian({ onCommit, ...opts } = {}) {
+    ctx.show('qian', { ...opts, onCommit: () => { onCommit?.(); S.signShown = false; } });
   }
 
   // 摇签屏挂上时创建签筒；离开时停掉
@@ -270,19 +271,23 @@ export function createGame(ctx) {
     finish();
   }
 
-  // 右边的按钮：重求一签。前面的签作废，它们的掷筊记录在命盘里变淡
+  // 右边的按钮：重求一签。前面的签作废，它们的掷筊记录在命盘里变淡；书合拢一下再打开，前面写下的页还在
   function reroll() {
     ctx.touch();
     const n = S.draws;
     gloss(`你不认，重求一签 ×${n}`, { alarm: true });
     if (n === 2) gloss('我越来越懂你了……');
     ctx.revealDoubt();
-    S.throws.forEach((t) => { t.kept = false; });
-    S.sign = null;
-    S.cups = [];
-    S.pending = null;
-    S.reads.disappoint = null;
-    enterQian(-1); // 不认这支签，翻回去重求
+    enterQian({
+      shut: true,
+      onCommit: () => {
+        S.throws.forEach((t) => { t.kept = false; });
+        S.sign = null;
+        S.cups = [];
+        S.pending = null;
+        S.reads.disappoint = null;
+      },
+    });
   }
 
   /* ───────── 结局 ───────── */
@@ -461,7 +466,6 @@ export function createGame(ctx) {
     shake.holdEnd();
     ui.posterOpen = false;
     if (clear) { ctx.clearGloss(); ctx.fx.clear(); } // 回卷首才清眉批与墨；“再求一签”不清，大师接着记
-    ctx.el.huaxin.classList.remove('is-broken');
     resetOracle();
     ctx.resetRound();
     fin = null;
@@ -471,16 +475,14 @@ export function createGame(ctx) {
   // 回卷首：放弃这一局，回到签卷的入口
   function toStart() {
     tube?.stop();
-    resetAll();
-    ctx.show('title', { dir: -1 });
+    ctx.show('title', { reset: true, onCommit: () => resetAll() });
     bootTitle();
   }
 
   function again() {
     const visits = ctx.visits.bump();
-    resetAll({ clear: false });
     gloss(`你又来问了，第 ${visits} 次`);
-    enterDing(-1);
+    enterDing({ reset: true, onCommit: () => resetAll({ clear: false }) });
   }
 
   bootTitle();

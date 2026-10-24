@@ -1,7 +1,7 @@
 ---
 import Paper from '../../core/Paper.astro';
-import Qian from '../../juan/qian/Qian.svelte';
+import PageData from '../../core/PageData.astro';
 ---
 <Paper title="签 · 演算天机" description="演算天机·签卷：六十甲子签。摇签、掷筊、解签，一场被算法旁观的求签仪式。">
-  <Qian client:only="svelte" />
+  <PageData kind="juan" juan="qian" />
 </Paper>

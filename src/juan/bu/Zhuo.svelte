@@ -1,5 +1,6 @@
 <script>
-  // 灼与读兆：龟甲背面按住钻凿来灼；“卜”的一声，龟甲翻到正面，兆在这里长出来。
+  // 灼与读兆：龟甲摆在书外的案上，背面预先凿好钻凿，按住一处来灼；“卜”的一声，兆就在书页上长出来。
+  // 读兆时案收起，书占满整个案，兆图写在右页，读法写在左页。
   // 读完兆可以：王占曰（受兆 / 兆凶则改判）、再灼一处、或对贞——把同一件事反过来问一次。
   import Zhu from '../../core/Zhu.svelte';
   import Spread from '../../core/Spread.svelte';
@@ -12,6 +13,7 @@
   const { S } = game;
   let showFan = $state(false);
   let fanText = $state('');
+  let away = $state(false); // 灼过之后，案收起（等“卜”的一声与烟散一会儿），书占满整个案
 
   const cur = $derived(S.cur >= 0 ? S.burns[S.cur] : null);
   const crack = $derived(cur ? game.crackOf(cur) : null);
@@ -23,14 +25,20 @@
   const reading = $derived(S.phase === 'read');
   const ming = $derived(S.nextKind === 'fan' ? S.qFan : S.question);
 
+  $effect(() => {
+    if (!reading) { away = false; return; }
+    const t = setTimeout(() => { away = true; }, ctx.reduced ? 0 : 900);
+    return () => clearTimeout(t);
+  });
+
   const pickNote = $derived(
-    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住与第一灼左右对称的那一处。'
+    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住案上与第一灼左右对称的那一处。'
       : S.nextKind === 'again' ? '另选一处钻凿，再灼。火红了就别松手。'
-        : '按住一处钻凿，别松手；火红了，“卜”的一声就来。'
+        : '按住案上龟甲的一处钻凿，别松手；火红了，“卜”的一声就来。'
   );
 
   const hint = $derived(!reading ? pickNote
-    : !S.grown ? '龟甲翻过来了，兆正在裂开……'
+    : !S.grown ? '兆正在书页上裂开……'
       : showFan ? '把同一件事反过来问一次，改成你要问的话（也可以不改），再点“去灼”。'
         : zhengB && isXiong(zhengB.omen) ? '兆是凶的。你可以受下，也可以以王的身份，改判成吉。'
           : '读完这一兆，可以受兆，也可以再灼一处，或者对贞——把同一件事反过来问一次。');
@@ -74,26 +82,25 @@
 <section class="screen screen-zhuo is-active" data-screen="zhuo" aria-labelledby="z-h">
   <h2 id="z-h" class="h-brush">{reading ? '读兆' : '灼'}</h2>
   <p class="ming-line" id="ming-line">贞：{ming}</p>
-  <div class="zhuo-card">
-    <div class="card" class:is-flipped={reading}>
-      <div class="card-inner">
-        <div class="face face-back" aria-hidden={reading}>
-          <Plastron {ctx} {game} />
-        </div>
-        <div class="face face-front" aria-hidden={!reading}>
-          {#key S.cur}
-            {#if crack}
-              <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={850} onDone={game.onGrown} />
-            {/if}
-          {/key}
-        </div>
-      </div>
-    </div>
-  </div>
+  {#if reading && crack}
+    {#key S.cur}
+      <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={1500} onDone={game.onGrown} />
+    {/key}
+  {:else}
+    <p class="wait-line">龟甲在案上。按住一处钻凿，兆就裂在这一页上。</p>
+  {/if}
   <div class="only-narrow zhuo-side">{@render side()}</div>
 </section>
 
-<Spread name={reading ? '读兆' : '灼'} sub="一灼一兆" {hint} left={side}>
+{#snippet desk()}
+  <div class="zhuo-card">
+    <div class="card">
+      <Plastron {ctx} {game} />
+    </div>
+  </div>
+{/snippet}
+
+<Spread name={reading ? '读兆' : '灼'} sub="一灼一兆" {hint} left={side} record={reading} desk={reading && away ? undefined : desk}>
   {#snippet foot()}
     {#if reading && S.grown && cur}
       {#if showFan}

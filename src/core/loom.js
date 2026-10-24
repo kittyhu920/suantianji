@@ -9,7 +9,6 @@
 //   color(kind, x, W)            丝在 x 处的颜色 [r,g,b]；返回 null 用墨色
 
 import { mulberry32 } from './rng.js';
-import { isDark } from './theme.js';
 
 // 两套配色：浅色是宣纸上的墨丝（正片叠底），深色是墨底上的淡金丝（滤色叠加）
 const PALETTE = {
@@ -30,7 +29,7 @@ export const lerp = (a, b, t) => a + (b - a) * t;
 
 // width：直接指定像素宽度（分享图离屏重织时用），缺省按页面上的显示宽度
 // dark：深色画面；缺省时按当前主题，但指定了 width（分享图的离屏重织）一律用浅色，因为分享图是要带走的一张纸
-export function weave(canvas, { seed, throws, reduced = false, width, style = {}, dark = width ? false : isDark() }) {
+export function weave(canvas, { seed, throws, reduced = false, width, style = {}, dark = false }) {
   pal = dark ? PALETTE.dark : PALETTE.light;
   const P = pal;
   // 指定宽度时，按页面上约 380px 宽的命盘等比放大丝线粗细

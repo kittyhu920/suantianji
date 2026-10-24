@@ -1,7 +1,8 @@
 /* 双主题（docs/DESIGN.md §17）
-   浅色"宣纸"是默认；深色"乌金拓"是书的夜间版：磁青纸，纸白字，泥金点缀。由 <html data-theme="dark"> 启用，只重定义变量。
+   浅色"宣纸"是默认；深色"乌金拓"是夜里的书房：书仍是纸色（稍暗、带一点灯下的暖黄），字仍是墨；
+   案和字盘沉进黑暗，书上方有一盏灯照下来；泥金（--leaf）只用在书外的装饰上。由 <html data-theme="dark"> 启用，只重定义变量。
    所有颜色都走这里的变量。--ink-rgb / --paper-rgb 是三个通道，用来写 rgba(var(--ink-rgb), .3)。
-   泥金（--leaf）只在深色主题里出现，浅色下它就是墨。朱的规则两套主题相同：只给印、朱批圈点、阴杯、判词与关键按钮。 */
+   朱的规则两套主题相同：只给印、朱批圈点、阴杯、判词与关键按钮。 */
 
 :root {
   color-scheme: light;
@@ -52,6 +53,18 @@
   --board-lo: #14120f;
   --board-vignette: rgba(8, 7, 5, .55);
 
+  /* 案面（器物摆在上面的桌面）与书上方那盏灯 */
+  --desk-far: rgba(40, 28, 16, 0);
+  --desk-near: rgba(74, 52, 30, .72);
+  --lamp-rgb: 255, 226, 170;
+  --lamp-a: 0;
+  --dim: 0;
+
+  /* 注：贴在书页上的小纸条 */
+  --slip: #f4ecd2;
+  --slip-hi: #faf4de;
+  --slip-ink: #2a2218;
+
   /* 书页上盖的纤维层 */
   --fiber-op: .5;
   --paper-shadow: rgba(0, 0, 0, .55);
@@ -97,42 +110,53 @@
   --table: #0b0a08;
   --table-hi: #14120f;
   --table-lo: #050504;
-  --paper: #1b2a33;             /* 磁青纸 */
-  --paper-rgb: 27, 42, 51;
-  --paper-deep: #243742;
-  --ink: #ece4d0;              /* 纸白 */
-  --ink-rgb: 236, 228, 208;
-  --ink-soft: rgba(236, 228, 208, .82);
-  --ink-dim: rgba(236, 228, 208, .64);
-  --ink-faint: rgba(236, 228, 208, .2);
-  --ink-ghost: rgba(236, 228, 208, .42);
+  /* 书仍是纸色：稍暗，带一点灯下的暖黄；字仍是墨 */
+  --paper: #d3c297;
+  --paper-rgb: 211, 194, 151;
+  --paper-deep: #c7b588;
+  --ink: #1a1510;
+  --ink-rgb: 26, 21, 16;
+  --ink-soft: rgba(26, 21, 16, .88);
+  --ink-dim: rgba(26, 21, 16, .76);
+  --ink-faint: rgba(26, 21, 16, .22);
+  --ink-ghost: rgba(26, 21, 16, .44);
 
   --cinnabar: #b3261f;
-  --cinnabar-hi: #ef6b5d;
+  --cinnabar-hi: #a3221b;       /* 朱字、朱圈：在暖黄的纸上略深一点，对比度够 AA */
   --cinnabar-press: #c92f26;
   --seal-body: #680f0b;
-  --seal-cast: rgba(0, 0, 0, .6);
+  --seal-cast: rgba(0, 0, 0, .55);
   --zhu-rule: rgba(179, 38, 31, .3);
 
-  --leaf: #d0aa5e;             /* 泥金 */
+  --leaf: #d0aa5e;             /* 泥金：只用在书外的装饰上 */
   --leaf-rgb: 208, 170, 94;
   --leaf-soft: rgba(208, 170, 94, .78);
   --leaf-faint: rgba(208, 170, 94, .3);
 
-  --jade: #86b093;
-  --jade-deep: #6f9a7d;
+  --jade: #4f7a5c;
+  --jade-deep: #3e6249;
 
-  --edge-a: #2a3d48;
-  --edge-b: #1c2b34;
-  --edge-line: rgba(0, 0, 0, .6);
-  --gutter: .42;
+  --edge-a: #c9b78a;
+  --edge-b: #b6a275;
+  --edge-line: rgba(30, 20, 8, .55);
+  --gutter: .3;
 
-  --board-hi: #1a1b1d;
-  --board-mid: #0f1012;
-  --board-lo: #070708;
-  --board-vignette: rgba(0, 0, 0, .6);
+  /* 案与字盘沉进黑暗；书上方有一盏灯，光晕落在书和靠近书的桌面上 */
+  --board-hi: #121110;
+  --board-mid: #0a0908;
+  --board-lo: #040403;
+  --board-vignette: rgba(0, 0, 0, .75);
+  --desk-far: rgba(10, 8, 6, 0);
+  --desk-near: rgba(56, 40, 24, .8);
+  --lamp-rgb: 255, 214, 140;
+  --lamp-a: .26;
+  --dim: .86;
 
-  --fiber-op: .55;
+  --slip: #e6d8b0;
+  --slip-hi: #eee2bf;
+  --slip-ink: #241c12;
+
+  --fiber-op: .5;
   --paper-shadow: rgba(0, 0, 0, .8);
 
   --wood-hi: #3a2f22;
@@ -142,11 +166,11 @@
   --wood-light: rgba(230, 196, 120, .22);
   --wood-ink: #e0c27a;
 
-  --card-edge: rgba(208, 170, 94, .34);
-  --card-shadow: rgba(0, 0, 0, .6);
-  --card-hi: rgba(236, 228, 208, .08);
-  --title-on-ink: #15130f;
-  --title-ink-filter: invert(1) sepia(.75) saturate(2.4) brightness(.92);
+  --card-edge: rgba(60, 40, 14, .34);
+  --card-shadow: rgba(0, 0, 0, .5);
+  --card-hi: rgba(255, 244, 214, .3);
+  --title-on-ink: #fffdf6;
+  --title-ink-filter: none;
 
   --obj-ink: #ddd3ba;
   --obj-ink2: #b9ae92;

@@ -41,8 +41,8 @@ export function followSystem() {
   system?.addEventListener?.('change', h);
 }
 
-// 画布用的墨色：浅色是墨，深色是淡金偏白的一点光
-export const inkRgb = () => (isDark() ? [226, 208, 160] : [27, 23, 18]);
+// 画布用的墨色：书页上落的墨，昼夜都是墨（深色主题里书仍是纸色）
+export const inkRgb = () => [27, 23, 18];
 
 /** 把页面上的主题开关接起来 */
 export function mountToggle(btn) {

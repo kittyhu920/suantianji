@@ -4,7 +4,6 @@
   import { onMount } from 'svelte';
   import Seal from '../../core/Seal.svelte';
   import Spread from '../../core/Spread.svelte';
-  import OracleToggle from '../../core/OracleToggle.svelte';
 
   let { ctx, game } = $props();
   let inkSvg;
@@ -77,15 +76,8 @@
     <h1 id="t-title" class="title-main">演算天机</h1>
   </div>
   <p class="title-sub">你求签，我算你</p>
-  <div class="title-actions">
-    <OracleToggle desc={ctx.copy.oracleToggleDesc} />
-    <p class="title-links">
-      <a class="about-link" href="/qian/yuanliu/">签卷源流</a>
-      <a class="about-link" href="/about/">关于这件作品</a>
-    </p>
-  </div>
 </section>
 
-<Spread name="签" sub="六十甲子签" hint="点右下角朱红的“问”字印开始。全程约两分钟，建议打开声音。">
+<Spread name="签" sub="六十甲子签" hint="点右下角朱红的“问”字印开始。全程约两分钟，建议打开声音。通灵开关、源流与关于，在上面的天头栏里。">
   {#snippet foot()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
 </Spread>

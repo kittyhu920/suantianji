@@ -1,23 +1,33 @@
 <script>
-  // 掷筊请示：三杯都由玩家亲手掷。圣杯同意，笑杯再掷，阴杯不同意；连得三个圣杯，这支签才算数。
+  // 掷筊请示：一对筊杯摆在书外的案上，三杯都由玩家亲手掷。圣杯同意，笑杯再掷，阴杯不同意；连得三个圣杯，这支签才算数。
+  // 每一杯的结果写在书页上。
   import { onMount } from 'svelte';
   import Zhu from '../../core/Zhu.svelte';
   import Spread from '../../core/Spread.svelte';
   import { trueRandom } from '../../core/rng.js';
   import { CUP_NAMES, CUP_LABELS } from './jiao.js';
+  import { signNo } from './game.svelte.js';
 
   let { ctx, game } = $props();
   const { S } = game;
   const J = S.jiao;
-  let blocks = [];
-  let bodies = [];
+  const blocks = [];
+  const bodies = [];
   let throwBtn = $state();
   const rot = [0, 0];
 
-  // 两块筊在空中各自翻转、落地；落点各洇开一小团墨晕和水纹
+  // 案上的两块筊：把节点记下来（它们由 Codex 渲染）
+  function cup(node, i) {
+    blocks[i] = node;
+    bodies[i] = node.querySelector('.jiao-body');
+    return { destroy() { blocks[i] = bodies[i] = null; } };
+  }
+
+  // 两块筊在空中各自翻转、落地
   async function toss(res, dur = 1250) {
     blocks.forEach((c, i) => {
       const body = bodies[i];
+      if (!c || !body) return;
       const face = res.flat[i] ? 0 : 180;
       const spins = 2 + Math.floor(trueRandom() * 3);
       rot[i] = Math.ceil(rot[i] / 360) * 360 + spins * 360 + face;
@@ -31,11 +41,13 @@
     });
     await ctx.sleep(dur + 120);
     ctx.sfx.thud();
-    blocks.forEach((c) => {
-      const p = ctx.fxPoint(c, 0.5, 0.7);
+    // 结果写进书里：这一杯落在书页上，洇开一小团墨晕
+    const li = ctx.el.stage.querySelectorAll('.cups .cup')[S.cups.length];
+    if (li) {
+      const p = ctx.fxPoint(li);
       ctx.fx.wash(p.x, p.y, { R: 34, a: 0.12, grow: 0.7, hold: 0.1, fade: 1.2 });
       ctx.fx.ripple(p.x, p.y, { r: 46, rings: 2, a: 0.18 });
-    });
+    }
   }
 
   onMount(() => game.registerToss(toss));
@@ -61,31 +73,17 @@
 
 <section class="screen screen-jiao is-active" data-screen="jiao" aria-labelledby="j-h">
   <h2 id="j-h" class="h-brush"><Zhu term="掷筊" />请示</h2>
+  {#if S.sign}<p class="jiao-sign">{signNo(S.sign)}　{S.sign.name}</p>{/if}
   <div class="only-narrow jiao-intro">{@render legend()}</div>
   <div class="jiao-play">
-    <div class="jiao-board">
-      <div class="jiao-pair">
-        <div class="jiao" id="jiao" aria-hidden="true">
-          {#each [0, 1] as i}
-            <div class={`jiao-block${i ? ' is-right' : ''}`} bind:this={blocks[i]}>
-              <div class="jiao-body" bind:this={bodies[i]}>
-                <div class="jiao-face front"><svg viewBox="0 0 120 60"><use href="#jiao-ping"/></svg></div>
-                <div class="jiao-face back"><svg viewBox="0 0 120 60"><use href="#jiao-tu"/></svg></div>
-              </div>
-            </div>
-          {/each}
-        </div>
-        <div class="jiao-labels" id="jiao-labels" aria-hidden="true"><span>{J.labels[0]}</span><span>{J.labels[1]}</span></div>
-      </div>
-      <ol class="cups" id="cups" aria-label="三杯">
-        {#each [0, 1, 2] as i}
-          {@const cup = slot(i)}
-          <li class={`cup ${S.cups[i] ? 'is-set' : cup ? 'is-pending' : ''} ${cup ? `is-${cup.kind}` : ''}`}>
-            <span class="cup-tag">你来掷</span><span class="cup-name">{CUP_LABELS[i]}</span><span class="cup-kind">{cup ? CUP_NAMES[cup.kind] : '　　'}</span>
-          </li>
-        {/each}
-      </ol>
-    </div>
+    <ol class="cups" id="cups" aria-label="三杯">
+      {#each [0, 1, 2] as i}
+        {@const c = slot(i)}
+        <li class={`cup ${S.cups[i] ? 'is-set' : c ? 'is-pending' : ''} ${c ? `is-${c.kind}` : ''}`}>
+          <span class="cup-tag">你来掷</span><span class="cup-name">{CUP_LABELS[i]}</span><span class="cup-kind">{c ? CUP_NAMES[c.kind] : '　　'}</span>
+        </li>
+      {/each}
+    </ol>
     <p class="jiao-result" id="jiao-result" aria-live="polite">
       {#if J.result}
         {CUP_LABELS[J.result.idx]}：{#if J.result.kind === 'sheng'}一平一凸，是圣杯：神明同意。{:else if J.result.kind === 'xiao'}两面都平，是笑杯：神明没说清，再掷一次。{:else}两面都凸，是<em>阴杯</em>：神明不同意这支签。{/if}
@@ -94,7 +92,23 @@
   </div>
 </section>
 
-<Spread name="掷筊" sub="请神明示下" hint={J.note} left={legend}>
+{#snippet desk()}
+  <div class="jiao-pair">
+    <div class="jiao" id="jiao" aria-hidden="true">
+      {#each [0, 1] as i}
+        <div class={`jiao-block${i ? ' is-right' : ''}`} use:cup={i}>
+          <div class="jiao-body">
+            <div class="jiao-face front"><svg viewBox="0 0 120 60"><use href="#jiao-ping"/></svg></div>
+            <div class="jiao-face back"><svg viewBox="0 0 120 60"><use href="#jiao-tu"/></svg></div>
+          </div>
+        </div>
+      {/each}
+    </div>
+    <div class="jiao-labels" id="jiao-labels" aria-hidden="true"><span>{J.labels[0]}</span><span>{J.labels[1]}</span></div>
+  </div>
+{/snippet}
+
+<Spread name="掷筊" sub="请神明示下" hint={J.note} left={legend} desk={desk}>
   {#snippet foot()}
     {#if J.mode === 'choose'}
       <button class="btn btn-ghost" id="btn-reroll" disabled={J.busy} onclick={game.reroll}>{J.reroll}</button>
