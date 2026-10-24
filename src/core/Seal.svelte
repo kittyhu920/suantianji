@@ -1,4 +1,5 @@
 <script>
+  import { bookMap } from './book/geo.js';
   // 印章按钮：朱色只给印章。size：sm / md / lg
   // 按下：印往下压（base.css 的 :active）；松手：轻微一震，印迹在边上晕开一圈（.is-print，见下）。
   // 所有朱印按钮共用这一个效果；减少动效下不播。
@@ -14,13 +15,20 @@
   }
 
   function ghost(src, rect, host) {
-    const h = host.getBoundingClientRect();
     src.removeAttribute('id');
     src.removeAttribute('disabled');
     src.setAttribute('aria-hidden', 'true');
     src.tabIndex = -1;
+    let box;
+    if (host.classList.contains('huaxin')) { // 书在缩放、倾斜过的场景里：位置换成页面坐标，尺寸用布局尺寸
+      const [x, y] = bookMap(host).toLocal(rect.left, rect.top);
+      box = { x, y, w: src.dataset.w, h: src.dataset.h };
+    } else {
+      const h = host.getBoundingClientRect();
+      box = { x: rect.left - h.left, y: rect.top - h.top, w: rect.width, h: rect.height };
+    }
     src.style.cssText = `position:absolute;margin:0;right:auto;bottom:auto;pointer-events:none;z-index:7;`
-      + `left:${rect.left - h.left}px;top:${rect.top - h.top}px;width:${rect.width}px;height:${rect.height}px;`;
+      + `left:${box.x}px;top:${box.y}px;width:${box.w}px;height:${box.h}px;`;
     src.classList.add('is-print');
     src.addEventListener('animationend', (e) => { if (e.animationName === 'seal-thud') src.remove(); });
     host.append(src);
@@ -31,6 +39,8 @@
     const el = e.currentTarget;
     if (still()) { onclick?.(e); return; }
     const src = el.cloneNode(true);
+    src.dataset.w = el.offsetWidth;
+    src.dataset.h = el.offsetHeight;
     const rect = el.getBoundingClientRect();
     const host = el.closest('.huaxin, .botbar');
     play(el);

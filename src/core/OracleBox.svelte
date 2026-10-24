@@ -14,8 +14,7 @@
     let timer = 0;
     const tick = () => {
       if (dead) return;
-      const r = canvas.getBoundingClientRect();
-      w.fall(r.width * rand(0.3, 0.7), -6, r.height * 0.5, { size: 0.9, onLand: () => drip(0.07) });
+      w.fall(canvas.clientWidth * rand(0.3, 0.7), -6, canvas.clientHeight * 0.5, { size: 0.9, onLand: () => drip(0.07) });
       timer = setTimeout(tick, rand(2300, 3200));
     };
     timer = setTimeout(tick, 300);

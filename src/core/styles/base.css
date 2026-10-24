@@ -12,6 +12,8 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+/* 换页由书自己翻（Codex 常驻、字盘常驻）：不要浏览器的整页交叉淡入——它每次换页都要给整个视口（含 WebGL 画布）截一张图，是一次明显的卡顿 */
+:root { view-transition-name: none; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;

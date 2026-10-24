@@ -126,8 +126,14 @@
 .jq-note { font-size: 13px !important; color: var(--ink-dim) !important; }
 .title-links { margin: 6px 0 0; }
 
+/* 桌面上书的大小固定（book.css 的 .scene），图的大小不再跟窗口高度走 */
+@media (min-width: 960px) {
+  .omen-fig { width: min(100%, 300px); }
+  .omen-fig.end-fig { width: min(100%, 290px); }
+}
 /* 右页里的版式：卡（龟甲）居中；读兆的内容在左页，手机上排在卡的下面 */
 .card { --cw: min(300px, calc(100vw - 72px), calc((100dvh - 380px) / 1.4)); }
+@media (min-width: 960px) { .card { --cw: 300px; } }
 .zhuo-card { align-items: center; }
 .lp-extra .zhuo-side, .lp-extra .read { align-items: flex-start; text-align: left; }
 .lp-extra .burn-chips { justify-content: flex-start; margin-bottom: 8px; }
@@ -151,5 +157,5 @@
   .loom-legend, .loom figcaption { font-size: 13px; }
   .ming-line { font-size: 21px; }
 }
-@media (max-height: 800px) { .bu-hero .bu-glyph { height: 110px; width: 83px; } .glyph-ember { top: 74px; } .screen-title { gap: 10px; } .glyph-row { display: none; } }
+@media (max-width: 959px) and (max-height: 800px) { .bu-hero .bu-glyph { height: 110px; width: 83px; } .glyph-ember { top: 74px; } .screen-title { gap: 10px; } .glyph-row { display: none; } }
 @media (prefers-reduced-motion: reduce) { .glyph-ember { animation: none; opacity: .6; } .card-inner, .card { transition-duration: .01ms !important; } }

@@ -68,7 +68,7 @@
 }
 
 /* ───────── 矮窗口（笔记本浏览器、小屏手机）───────── */
-@media (max-height: 820px) {
+@media (max-width: 959px) and (max-height: 820px) {
   .title-block { height: 220px; }
   .h-brush { font-size: 36px; }
   .jiao-board { gap: 16px; }
@@ -76,7 +76,7 @@
   .tube-wrap { width: min(250px, 100%); }
   .sign-name { font-size: 38px; }
 }
-@media (max-height: 700px) {
+@media (max-width: 959px) and (max-height: 700px) {
   .tube-wrap { width: min(200px, 100%); }
   .poem { font-size: 17px; }
   .cup-tag { display: none; }

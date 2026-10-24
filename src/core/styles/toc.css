@@ -1,7 +1,7 @@
 /* 卷首目录：古籍目录页的样子。竖排，自右向左，每一卷一列：卷名、全称、点线、页码，旁边是一句简介。
    朱色只给印章：开了卷的那一卷盖一枚"入"字小印；未开卷的墨色更淡，不可进入。 */
 
-.huaxin { --toc-h: min(500px, calc(100dvh - 330px)); }
+.huaxin { --toc-h: 470px; }
 .screen-toc { justify-content: center; padding: 20px 14px; }
 .toc-head {
   writing-mode: vertical-rl;
@@ -10,14 +10,14 @@
   align-items: flex-start;
   gap: 14px;
   height: var(--toc-h);
-  padding-left: clamp(8px, 2vw, 28px);
+  padding-left: 28px;
   border-left: 1px solid var(--ink-faint);
 }
 .toc-title {
   margin: 0;
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: clamp(54px, 6vw, 80px);
+  font-size: 72px;
   line-height: 1.15;
   letter-spacing: .12em;
   color: var(--ink);
@@ -137,7 +137,4 @@ a.toc-entry:hover .toc-leader { border-left-color: var(--ink); }
   .toc-page { font-size: 13px; }
   .toc-seal { --s: 28px; font-size: 13px; }
   .screen-toc { padding: 60px 14px 20px; justify-content: flex-start; }
-}
-@media (max-height: 700px) and (min-width: 960px) {
-  .toc-name { font-size: 34px; }
 }
