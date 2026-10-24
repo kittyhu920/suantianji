@@ -156,6 +156,16 @@ export function createGloss(host, { reduced = false, pages } = {}) {
         if (!place) place = { ...p, w };
       }
       el.classList.remove('is-measure');
+      // 写在页边时没有“避开”可言：先让别的字迹快快淡去，再落笔，同一处不叠字
+      if (place.edge) {
+        const olds = [...host.querySelectorAll('.gloss')].filter((n) => n !== el);
+        if (olds.length) {
+          el.style.display = 'none';
+          olds.forEach((n) => { n.classList.remove('is-sink'); n.classList.add('is-out'); setTimeout(() => n.remove(), 360); });
+          await new Promise((r) => setTimeout(r, 380));
+          el.style.display = '';
+        }
+      }
       el.style.left = `${place.x}px`;
       el.style.top = `${place.y}px`;
       el.style.width = `${place.w}px`;
