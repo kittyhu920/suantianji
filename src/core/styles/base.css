@@ -5,7 +5,8 @@
 :root {
   /* 字体分工（docs/DESIGN.md §4）。换字体时，族名只在这里改（来源在 tools/subset-fonts.py 的 DISPLAY） */
   --f-display: "Huiwen-mincho", "Noto Serif SC", "Songti SC", "STSong", serif;       /* 卷名、标题、签名、签诗、卦名、结局名、印文 */
-  --f-kai: "LXGW WenKai", "STKaiti", "KaiTi", "Kaiti SC", "Noto Serif SC", serif;   /* 眉批、注、账本旁注、通灵的"实话" */
+  --f-kai: "LXGW WenKai", "STKaiti", "KaiTi", "Kaiti SC", "Noto Serif SC", serif;   /* 注、账本旁注、通灵的"实话"（命书里的旁注与坦白） */
+  --f-voice: "Long Cang", "LXGW WenKai", "STKaiti", "KaiTi", "Kaiti SC", serif;      /* 书自己的字：书开口时写在扉页上的话、你写下的问题（开源行书，要换只改这里和 tools/subset-fonts.py 的 VOICE） */
   --f-text: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
 
   --ease-out: cubic-bezier(.2, .7, .2, 1);
@@ -128,7 +129,7 @@ button { font: inherit; color: inherit; }
 .btn:disabled { opacity: .35; cursor: default; }
 
 
-/* ───────── 墨与水（docs/DESIGN.md §8；画布部分见 js/ink.js） ───────── */
+/* ───────── 书的话（docs/DESIGN.md §4、§19） ───────── */
 
 /* 逐字洇开：墨一沾纸就渗进去，先糊后实 */
 .ink-ch {
@@ -141,29 +142,8 @@ button { font: inherit; color: inherit; }
   55% { opacity: 1; }
   to { opacity: 1; filter: blur(0); transform: none; }
 }
-.ink-wait .ink-ch { animation-play-state: paused; } /* 等它进入视野再写 */
-.ink-wait.in .ink-ch { animation-play-state: running; }
-
-/* 落印：签名与印章像盖下去的一样，先大后实，带一点回弹 */
-.sign-name { animation: stamp-in .8s cubic-bezier(.2, .9, .3, 1.1) .1s backwards; }
-@keyframes stamp-in {
-  0% { opacity: 0; transform: scale(1.8) rotate(-4deg); filter: blur(4px); }
-  50% { opacity: 1; transform: scale(.94) rotate(.6deg); filter: blur(0); }
-  100% { transform: none; }
-}
-.stamp-wait { opacity: 0; }
-.stamp-wait.is-stamped { animation: seal-stamp .85s cubic-bezier(.2, .9, .3, 1.1) both; }
-@keyframes seal-stamp {
-  0% { opacity: 0; transform: scale(2) rotate(-10deg); }
-  45% { opacity: 1; transform: scale(.9) rotate(1deg); }
-  100% { opacity: 1; transform: none; }
-}
-
-/* 通灵等待：一滴墨落进纸里，化开，再一滴 */
-.ink-well { display: block; width: 100%; height: 116px; margin-top: 4px; }
 
 /* ───────── 分享图 ───────── */
-.end-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .poster {
   position: fixed;
   inset: 0;

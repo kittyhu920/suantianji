@@ -1,12 +1,10 @@
 ---
-// 静态页的书（目录、关于、源流、404）：把内容交给常驻的书（docs/DESIGN.md §19），版式同仪式页。
-//   默认插槽    右页的内容（读者的页）
-//   left 插槽   左页的内容（书名、标题）
+// 静态页（关于、讲解、404）：把内容交给常驻的书桌（docs/DESIGN.md §19），摊在桌上的一张纸。
+//   默认插槽    正文
+//   left 插槽   题名（书名、标题）
 //   hint 插槽   页脚的说明文字
 //   foot 插槽   页脚右侧的链接或按钮
-//   kind        toc（目录）或 doc（默认）
 //   back        左上角小木牌的去向与字（不传就没有）
-//   tou         纸背透字（字符串，取前三个字），写在右页的底下
 import Paper from './Paper.astro';
 import PageData from './PageData.astro';
 
@@ -15,14 +13,11 @@ interface Props {
   pageTitle?: string;
   description?: string;
   back?: { href: string; label: string; aria?: string };
-  tou?: string;
-  long?: boolean;
-  kind?: 'toc' | 'doc';
 }
-const { title = '演算天机', pageTitle, description, back, tou, long = false, kind = 'doc' } = Astro.props;
+const { title = '演算天机', pageTitle, description, back } = Astro.props;
 ---
 <Paper title={pageTitle ?? title} description={description}>
-  <PageData kind={kind} title={title} back={back} tou={tou} long={long}>
+  <PageData kind="doc" title={title} back={back}>
     <slot name="left" slot="left" />
     <slot />
     <slot name="hint" slot="hint" />

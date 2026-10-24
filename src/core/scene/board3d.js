@@ -496,7 +496,7 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   const drifting = () => !hovering && !document.hidden; // 滚动
   const fading = () => stamps.size > 0;
 
-  // 书在翻页（stj-flip，见 book/book.svelte.js）时暂停：翻页的纸要用满合成器，字盘慢慢漂移这一秒不画也看不出来
+  // 读命书（stj-flip，见 Codex.svelte）时暂停：翻页的纸要用满合成器，字盘慢慢漂移这一秒不画也看不出来
   let held = false;
 
   function frame(now) {

@@ -1,89 +1,23 @@
-/* 案：仪式在书外（docs/DESIGN.md §19）
-   书平摊在案的里侧；摇签、掷筊、起卦、灼，都用案上的实物完成，摆在书前、靠近玩家的桌面上，视角微微俯视。
-   有器物的那一步，书缩到上面一截，器物升起在下面；没有器物的步骤（读结果、结局），书占满整个案。 */
+/* 桌上的东西（docs/DESIGN.md §19）：仪式用桌上的实物完成。
+   桌面的位置、器物摆放的区域在 stage.css（.desk、.desk-items）；这里是桌上各件东西自己的样子：
+   入口屏的器物、择域的木牌、写问题的纸笺、签条、掷筊的三格、起卦的卦画、读兆的面板。
+   桌面是深色的：.desk-items 里的字用纸白，纸笺（.paper）自己带纸色与墨色。 */
 
-/* 案在场景（book.css 的 .scene）的前沿，高度固定；书不再被它挤扁，器物只是摆在书前，可以遮住书的下沿 */
-.shell { --desk-h: 262px; }
-
-.desk {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: var(--desk-h);
-  z-index: 4;
-  pointer-events: none;
-}
-.shell.has-desk .desk { pointer-events: auto; }
-.desk-items {
-  position: relative;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 70px;
-  padding: 0 20px 20px;
-  opacity: 0;
-  transform: translateY(26px);
-  transition: opacity .5s ease .25s, transform .7s var(--ease-out) .15s;
-  /* 案上的器物放在深色的桌面上：不论昼夜，都用"夜里"的那套器物配色（见 theme.css 的 --obj-*） */
-  --obj-ink: #ddd3ba;
-  --obj-ink2: #b9ae92;
-  --obj-ink3: #a39878;
-  --obj-mid: #6f6755;
-  --obj-mid2: #4d4739;
-  --obj-body: #1e1b16;
-  --obj-hi: #f4ecd6;
-  --obj-pool: #000;
-  --ink: #ece4d0;
-  --ink-rgb: 236, 228, 208;
-  --ink-soft: rgba(236, 228, 208, .86);
-  --ink-dim: rgba(236, 228, 208, .72);
-  --ink-faint: rgba(236, 228, 208, .26);
-  color: var(--ink);
-}
-.shell.has-desk .desk-items { opacity: 1; transform: none; }
-
-/* 桌面：向后退去的一块台面，微微俯视；近处亮，远处没入黑暗 */
-.desk-plane {
-  position: absolute;
-  left: -60px; right: -60px;
-  bottom: -10px; height: calc(var(--desk-h) + 10px); /* 在书的底下（书与器物都压在它上面），不会把纹路画到书页上 */
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity .6s ease;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 38%), linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(180deg, transparent 0, #000 38%), linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-}
-.shell.has-desk .desk-plane { opacity: 1; }
-.desk-plane::before {
-  content: "";
-  position: absolute;
-  left: -20%; right: -20%;
-  top: 0; bottom: 0;
-  background:
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, .34) 0 2px, transparent 2px 150px),
-    repeating-linear-gradient(90deg, rgba(255, 226, 170, .035) 0 60px, transparent 60px 150px),
-    linear-gradient(180deg, var(--desk-far), var(--desk-near));
-  transform-origin: 50% 0;
-  transform: perspective(520px) rotateX(38deg);
-}
-.desk-plane::after { /* 台面前沿的一线亮边 */
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: 8px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 226, 170, .22), transparent);
-}
+/* ───────── 入口屏：一件器物，题一句话 ───────── */
+.idle-piece { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.idle-art { width: 250px; filter: drop-shadow(0 14px 10px rgba(0, 0, 0, .55)); }
+.idle-piece figcaption { font-family: var(--f-display); font-size: 24px; letter-spacing: .2em; color: var(--ink); }
 
 /* ───────── 择域：三支木牌 ───────── */
 .desk .slips { align-items: flex-end; gap: 26px; }
 .desk .slip {
+  position: relative;
   width: 66px;
   height: 176px;
   padding: 16px 0 12px;
   border: 0;
   border-radius: 4px 4px 11px 11px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
   background:
     repeating-linear-gradient(0deg, var(--wood-grain) 0 1px, transparent 1px 9px),
     linear-gradient(90deg, var(--wood-lo), var(--wood-hi) 48%, var(--wood-lo));
@@ -103,46 +37,42 @@
   background: rgba(0, 0, 0, .55);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, .6), 0 1px 0 var(--wood-light);
 }
-.desk .slip { position: relative; }
-.desk .slip-name { font-size: 28px; margin-top: 8px; color: var(--wood-ink); }
-.desk .slip-desc { font-size: 11px; color: var(--wood-ink); opacity: .78; }
-.desk .slip:hover { filter: brightness(1.1); }
+.slip-name, .slip-desc { white-space: nowrap; flex: none; writing-mode: vertical-rl; }
+.desk .slip-name { font-family: var(--f-display); font-size: 28px; line-height: 1; margin-top: 8px; color: var(--wood-ink); }
+.desk .slip-desc { font-size: 11px; letter-spacing: .2em; color: var(--wood-ink); opacity: .78; }
+.desk .slip:hover:not(:disabled) { filter: brightness(1.1); }
 .desk .slip[aria-checked="true"] {
   transform: translateY(-16px);
-  background:
-    repeating-linear-gradient(0deg, var(--wood-grain) 0 1px, transparent 1px 9px),
-    linear-gradient(90deg, var(--wood-lo), var(--wood-hi) 48%, var(--wood-lo));
-  color: var(--wood-ink);
   filter: brightness(1.18);
   box-shadow:
     inset 0 1px 0 var(--wood-light), inset 0 0 0 1px rgba(0, 0, 0, .18),
     0 5px 0 var(--wood-edge), 0 26px 22px -6px rgba(0, 0, 0, .7);
 }
-.desk .slip[aria-checked="true"] .slip-desc { color: var(--wood-ink); opacity: .9; }
+.desk .slip[aria-checked="true"] .slip-desc { opacity: .9; }
 .desk .slip:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.desk .slip:disabled { cursor: default; }
 
-/* ───────── 摇签、起卦：签筒与龟壳摆在桌面上 ───────── */
-.desk .tube-wrap { width: auto; height: 296px; aspect-ratio: 320 / 440; margin: 0; flex: none; }
-.desk .shell-wrap { width: auto; height: 296px; aspect-ratio: 320 / 440; flex: none; }
-.desk .tube svg { filter: drop-shadow(0 12px 10px rgba(0, 0, 0, .55)); }
-
-/* ───────── 掷筊 ───────── */
-.desk .jiao-pair { gap: 10px; }
-.desk .jiao { height: 120px; gap: 26px; }
-.desk .jiao-block { width: 112px; height: 56px; }
-.desk .jiao-labels span { width: 112px; color: var(--ink-soft); }
-
-/* ───────── 卜：龟甲摆在桌上 ───────── */
-.desk .card { --cw: calc((var(--desk-h) - 34px) / 1.4); }
-.desk .zhuo-card { align-items: center; }
-
-/* ───────── 写在书上的问事 ───────── */
-.ask-page { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; max-width: 390px; text-align: left; }
-.ask-domain { margin: 0; font-size: 14px; color: var(--ink-soft); min-height: 1.6em; }
-.ask-domain b { font-family: var(--f-display); font-weight: 400; font-size: 20px; color: var(--ink); margin: 0 .3em; }
+/* ───────── 写问题的纸笺：摆在桌上的一张纸，字被纸吸进去 ───────── */
+.ask-sheet {
+  --ink: #1b1712;
+  --ink-rgb: 27, 23, 18;
+  --ink-soft: rgba(27, 23, 18, .8);
+  --ink-dim: rgba(27, 23, 18, .68);
+  --ink-faint: rgba(27, 23, 18, .16);
+  position: relative;
+  width: 340px;
+  padding: 22px 26px 18px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  text-align: left;
+  color: var(--ink);
+  transform: rotate(-.8deg);
+  clip-path: polygon(0 1%, 3% 0, 97% .6%, 100% 2%, 99.4% 98%, 96% 100%, 4% 99.4%, 0 97%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .5);
+}
+.ask-sheet .shichen, .ask-sheet .ask-domain { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
+.ask-sheet .ask-domain b { font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--ink); margin: 0 .3em; }
 .ask-label { font-size: 13px; color: var(--ink-dim); }
 .ask-paper {
-  position: relative;
   display: block;
   width: 100%;
   min-height: 3.2em;
@@ -151,61 +81,141 @@
   border-bottom: 1px solid var(--ink-dim);
   background: transparent;
   color: var(--ink);
-  font-family: var(--f-kai);
-  font-size: 22px;
-  line-height: 1.7;
-  letter-spacing: .06em;
+  font-family: var(--f-voice);
+  font-size: 26px;
+  line-height: 1.5;
+  letter-spacing: .05em;
   text-align: left;
   resize: none;
   overflow: hidden;
 }
-.ask-paper::placeholder { color: rgba(var(--ink-rgb), .42); font-size: 18px; }
+.ask-paper::placeholder { color: rgba(var(--ink-rgb), .42); font-family: var(--f-kai); font-size: 17px; }
 .ask-paper:focus { outline: none; border-bottom-color: var(--ink); }
 /* 写下之后：字被纸吸进去，墨色渐渐沉进纸里，只剩一行淡淡的字迹 */
-.ask-written { margin: 0; font-family: var(--f-kai); font-size: 22px; line-height: 1.7; letter-spacing: .06em; color: rgba(var(--ink-rgb), .82); overflow-wrap: anywhere; }
+.ask-written { margin: 0; font-family: var(--f-voice); font-size: 26px; line-height: 1.5; letter-spacing: .05em; color: rgba(var(--ink-rgb), .82); overflow-wrap: anywhere; }
 .ask-written.is-soak { animation: ask-soak 1.5s var(--ease-out) both; }
 @keyframes ask-soak {
-  0% { opacity: 1; filter: blur(0); letter-spacing: .06em; color: rgba(var(--ink-rgb), 1); }
+  0% { opacity: 1; filter: blur(0); letter-spacing: .05em; color: rgba(var(--ink-rgb), 1); }
   45% { opacity: .55; filter: blur(2.4px); letter-spacing: .12em; }
-  100% { opacity: .82; filter: blur(0); letter-spacing: .06em; }
+  100% { opacity: .82; filter: blur(0); letter-spacing: .05em; }
 }
-.ask-ghost { margin: 0; font-size: 14px; color: var(--ink-dim); min-height: 1.6em; }
 .ask-count { align-self: flex-end; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.ming-preview { margin: 0; min-height: 1.6em; font-family: var(--f-display); font-size: 22px; letter-spacing: .06em; overflow-wrap: anywhere; }
+.ledger-intro { margin: 0; font-size: 13px; color: var(--ink-dim); }
 
-/* ───────── 书页上的等待与提示 ───────── */
-.wait-line { margin: 0; max-width: 17em; font-family: var(--f-kai); font-size: 17px; line-height: 1.8; letter-spacing: .06em; color: var(--ink-dim); }
-.jiao-sign { margin: -4px 0 0; font-family: var(--f-display); font-size: 21px; letter-spacing: .1em; color: var(--ink); }
-.screen-jiao .jiao-play { gap: 14px; }
+/* 验辞：上回的命辞，也写在一张纸笺上 */
+.yan-h { margin: 0; font-family: var(--f-display); font-size: 26px; letter-spacing: .2em; }
+.yan-quote { margin: 0; padding: 4px 14px; border-left: 2px solid var(--ink-dim); }
+.yan-q { margin: 0; font-family: var(--f-display); font-size: 22px; line-height: 1.45; letter-spacing: .04em; overflow-wrap: anywhere; }
+.yan-meta { margin: 4px 0 0; font-size: 13px; color: var(--ink-dim); }
 
-/* ───────── 天头栏里的链接与通灵开关 ───────── */
-.top-nav { display: flex; gap: 16px; align-items: center; }
-.top-link { font-size: 13px; letter-spacing: .08em; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--ink-faint); }
-.top-link:hover { color: var(--ink); text-decoration-color: var(--ink); }
-.oracle-toggle.is-bar { margin: 0; display: inline-flex; flex-direction: row; align-items: center; gap: 6px; cursor: pointer; }
-.oracle-toggle.is-bar .oracle-row { gap: 8px; }
-.oracle-toggle.is-bar .oracle-name { font-size: 14px; color: var(--ink); letter-spacing: .1em; }
-.oracle-toggle.is-bar .oracle-state { font-size: 12px; }
-.oracle-toggle.is-bar .oracle-quota { font-size: 12px; }
-.oracle-toggle.is-bar .seal { --s: 30px; font-size: 14px; }
-.bot-links { display: none; margin: 0; gap: 16px; justify-content: center; }
+/* ───────── 摇签、起卦：签筒与龟壳摆在桌面上 ───────── */
+.desk .tube-wrap, .desk .shell-wrap { width: auto; height: 400px; aspect-ratio: 320 / 440; margin: 0; flex: none; }
+.desk .tube svg { filter: drop-shadow(0 12px 10px rgba(0, 0, 0, .55)); }
 
-/* ───────── 手机：书在上，器物区在下；主按钮固定在页脚 ───────── */
+/* 签条：签落地后，桌上多出的一支竹签（签号、签名、签级，竖排） */
+.sign-slip {
+  flex: none;
+  width: 76px; height: 340px;
+  padding: 18px 0 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  border-radius: 3px 3px 12px 12px;
+  background:
+    repeating-linear-gradient(0deg, var(--wood-grain) 0 1px, transparent 1px 9px),
+    linear-gradient(90deg, #bda472, #d8c497 48%, #bda472);
+  color: #2a2118;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 214, .55), inset 0 0 0 1px rgba(0, 0, 0, .18), 0 5px 0 rgba(70, 48, 22, .55), 0 18px 18px -6px rgba(0, 0, 0, .65);
+  animation: slip-in .7s cubic-bezier(.2, .9, .3, 1.1) both;
+}
+@keyframes slip-in { from { opacity: 0; transform: translateY(-40px) rotate(-6deg); } }
+.sign-slip span, .sign-slip b { writing-mode: vertical-rl; white-space: nowrap; }
+.sl-no { font-size: 13px; letter-spacing: .24em; opacity: .8; }
+.sl-name { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1; letter-spacing: .08em; }
+.sl-level { font-family: var(--f-display); font-size: 17px; letter-spacing: .3em; }
+
+/* ───────── 掷筊：一对筊杯、三格记录 ───────── */
+.desk .jiao-pair { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.desk .jiao { height: 130px; gap: 30px; }
+.desk .jiao-block { width: 120px; height: 60px; }
+.desk .jiao-labels span { width: 120px; color: var(--ink-soft); }
+.jiao-sign { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .1em; color: var(--ink); }
+.jiao-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-width: 12em; font-size: 13px; line-height: 1.6; color: var(--ink-soft); text-align: left; }
+.jiao-legend b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
+.jiao-tally { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 12em; }
+.jiao-tally .cups { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.jiao-tally .cup { display: flex; align-items: baseline; gap: 12px; font-size: 14px; color: var(--ink-dim); }
+.jiao-tally .cup-name { font-family: var(--f-display); font-size: 18px; color: var(--ink-soft); }
+.jiao-tally .cup-kind { font-family: var(--f-display); font-size: 24px; letter-spacing: .06em; color: var(--ink); min-width: 2.4em; }
+.jiao-tally .cup.is-yin .cup-kind { color: var(--cinnabar-hi); } /* 阴杯：朱 */
+.jiao-tally .cup.is-pending { opacity: .6; }
+.jiao-result { margin: 0; min-height: 3.4em; max-width: 13em; font-size: 14px; line-height: 1.7; color: var(--ink-soft); text-align: left; }
+.jiao-result em { font-style: normal; color: var(--cinnabar-hi); }
+
+/* ───────── 起卦：爻的算法、卦画 ───────── */
+.cast-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-soft); text-align: left; }
+.cast-legend b { display: inline-block; min-width: 3em; font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
+.cast-hex { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 13em; max-width: 15em; }
+.cast-line, .cast-result { margin: 0; font-size: 14px; line-height: 1.7; color: var(--ink-soft); text-align: left; }
+.cast-line b, .cast-result b { font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--ink); }
+.jie-board { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.jie-earlier { margin: 0; font-size: 13px; color: var(--ink-dim); }
+.jie-figs { display: flex; gap: 46px; align-items: flex-start; }
+.jie-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.jie-fig figcaption { font-size: 15px; color: var(--ink-soft); }
+.jie-fig figcaption b { font-family: var(--f-display); font-weight: 400; font-size: 22px; color: var(--ink); }
+.jie-fig figcaption small { display: block; font-size: 12px; color: var(--ink-dim); }
+.jiegua-ci { margin: 0; font-family: var(--f-display); font-size: 21px; line-height: 1.6; color: var(--ink); max-width: 20em; text-align: center; }
+.jiegua-ci b { display: block; font-weight: 400; font-size: 14px; letter-spacing: .3em; color: var(--ink-dim); }
+
+/* ───────── 灼与读兆 ───────── */
+.zhuo-main { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ming-line { margin: 0; font-family: var(--f-display); font-size: 21px; letter-spacing: .05em; max-width: 20em; overflow-wrap: anywhere; min-height: 1.5em; color: var(--ink); }
+.zhuo-side { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; max-width: 22em; text-align: left; }
+.zhuo-side:empty { display: none; }
+.ke-note { margin: 0; max-width: 14em; font-size: 14px; line-height: 1.8; color: var(--ink-soft); text-align: left; }
+.burn-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-dim); }
+.burn-chips li span { font-family: var(--f-display); font-size: 16px; margin-right: .4em; color: var(--ink-soft); }
+.burn-chips li.is-cur { color: var(--ink); }
+.read { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; animation: ink-in .9s var(--ease-out) both; }
+@keyframes ink-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: blur(0); } }
+.read-name { margin: 0; font-family: var(--f-display); display: flex; align-items: baseline; gap: .5em; }
+.read-name small { font-size: 18px; color: var(--ink-soft); }
+.read-name b { font-weight: 400; font-size: 54px; line-height: 1.1; letter-spacing: .08em; color: var(--ink); }
+.read-line { margin: 0; font-size: 15px; line-height: 1.8; color: var(--ink); }
+.read-how, .read-dui { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-dim); }
+.read-dui { color: var(--ink-soft); }
+.read-dui b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
+.ask { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 300px; }
+.ask input { background: transparent; border: 0; border-bottom: 1px solid var(--ink-dim); color: var(--ink); font: inherit; font-size: 15px; padding: 6px 4px; }
+.ask input::placeholder { color: rgba(var(--ink-rgb), .32); }
+.ask input:focus { outline: none; border-bottom-color: var(--ink); }
+.fan-ask { align-items: flex-start; max-width: none; }
+.oracle-wait { font-size: 14px; color: var(--ink-soft); }
+
+/* ───────── 手机：桌上的东西排得紧一些，竖着叠 ───────── */
 @media (max-width: 959px) {
-  .shell { --desk-h: min(280px, 36dvh); }
-  .desk { position: relative; left: auto; right: auto; bottom: auto; flex: none; height: 0; margin-top: 0; transition: height .75s var(--ease-out), margin-top .75s var(--ease-out); }
-  .shell.has-desk .desk { height: var(--desk-h); margin-top: -22px; }
-  .desk-items { gap: 14px; padding: 0 10px 8px; }
-  .top-nav { display: none; }
-  .oracle-toggle.is-bar .oracle-name, .oracle-toggle.is-bar .oracle-state, .oracle-toggle.is-bar .oracle-quota { display: none; }
-  .bot-links { display: flex; font-size: 12px; }
-  .shell.has-desk .bot-links { display: none; }
-  .bot-steps { flex-wrap: nowrap; font-size: 12px; }
-  .bot-steps li:not(.is-cur) .stp-name, .bot-steps li:not(.is-cur) .stp-dot { display: none; }
-  .stp-arrow { margin: 0 .45em; }
-  .desk .tube-wrap, .desk .shell-wrap { height: calc(100% - 8px); max-height: 330px; }
-  .desk .slip { width: 60px; height: min(188px, calc(var(--desk-h) - 46px)); }
-  .desk .card { --cw: calc((var(--desk-h) - 24px) / 1.4); }
+  .desk-items { flex-direction: column; justify-content: flex-start; gap: 12px; padding-top: 4px; overflow-y: auto; }
+  .idle-art { width: 170px; }
+  .desk .tube-wrap, .desk .shell-wrap { height: 230px; }
+  .desk .slips { gap: 16px; }
+  .desk .slip { width: 58px; height: 150px; }
+  .ask-sheet { width: min(340px, 100%); padding: 16px 18px 12px; }
+  .ask-paper, .ask-written { font-size: 22px; }
+  .sign-slip { width: 60px; height: 190px; padding: 12px 0; }
+  .sl-name { font-size: 26px; }
+  .jiao-legend { display: none; }
+  .desk .jiao { height: 100px; }
+  .jiao-tally { align-items: center; min-width: 0; }
+  .jiao-tally .cups { flex-direction: row; gap: 14px; }
+  .jiao-result { text-align: center; max-width: none; min-height: 2.4em; }
+  .cast-legend { display: none; }
+  .cast-hex { align-items: center; min-width: 0; }
+  .jie-figs { gap: 22px; }
+  .zhuo-side { max-width: none; align-items: center; }
+  .read, .read-name { align-items: center; }
+  .read-name b { font-size: 44px; }
+  .ke-note { max-width: none; text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .desk, .desk-items, .desk-plane { transition-duration: .01ms !important; }
+  .desk-items { transition-duration: .01ms !important; }
 }

@@ -1,40 +1,46 @@
 <script>
-  // 书：整个站点常驻的一册摊开的线装书（docs/DESIGN.md §19）。用 Astro ClientRouter 的 transition:persist 跨路由保留，
-  // 从目录进入某一卷、再回目录，都是在这本书里翻页，不整页刷新；字盘的 three.js 画布同样常驻。
-  //   天头栏   卷名、回目录、源流与关于、通灵开关、昼夜、声
-  //   书       左页是大师的页（这一步的名字），右页是玩家的页（写下的结果）；大师的话写在书页的空白处
-  //   案       仪式在书外：器物摆在书前的桌面上，可以遮住书的下沿一点，书不变形（屏用 <Spread desk> 交进来）
-  //   页脚     这一步的说明、本卷的步骤、按钮（主按钮朱印）、存疑印
-  // 页面（目录、关于、讲解、各卷）只交一个 <template id="stj-page">（PageData.astro），换页时读它。
+  // 书桌：整个站点常驻的一张桌子和桌上的书（docs/DESIGN.md §19）。用 Astro ClientRouter 的 transition:persist 跨路由保留，
+  // 从书桌点一件器物进卷、再回来，都不整页刷新；字盘的 three.js 画布同样常驻。
+  //   天头栏   卷名、回书桌、源流与关于、通灵开关、昼夜、声
+  //   书桌     首页：正中一本合上的书，四周摆各卷的器物；进卷：书退到桌子里侧，合着旁观，说话时封面掀起；
+  //            仪式用桌上的实物完成；仪式完，书滑到桌子中央、摊开，是替你写的命书（Reader.svelte，WebGL 翻页）
+  //   页脚     这一步的说明（读命书时是这一页的脚注）、本卷的步骤、按钮（主按钮朱印）、存疑印
+  // 页面（书桌、关于、讲解、各卷）只交一个 <template id="stj-page">（PageData.astro），换页时读它。
   import { onMount } from 'svelte';
   import { navigate } from 'astro:transitions/client';
   import { juans } from '../juan/index.js';
   import { modules } from '../juan/modules.js';
-  import './styles/gloss.css';
-  import './styles/end.css';
   import Ritual from './Ritual.svelte';
-  import ZhuPanel from './ZhuPanel.svelte';
   import Seal from './Seal.svelte';
   import OracleToggle from './OracleToggle.svelte';
+  import Book from './book/Book.svelte';
+  import Reader from './book/Reader.svelte';
+  import Instrument from './desk/Instrument.svelte';
+  import { footnotes } from './book/notes.js';
+  import { spread, stage } from './book/stage.svelte.js';
   import { mountTilt } from './tilt.js';
   import { mountToggle } from './theme.js';
   import { mountBoard } from './paper/board.js';
   import { setMuted, warmAudio } from './audio.js';
-  import { spread, flip, view, attachBook, turn, toLive, resetBook } from './book/book.svelte.js';
-  import { mountGesture } from './book/gesture.js';
-  import { shut } from './book/motion.js';
   import { session } from './session.svelte.js';
-  import { recall } from './zhu.svelte.js';
-  import { cn } from './book/folio.js';
+  import { cn } from './cn.js';
 
-  // 书桌场景的设计尺寸（px）：书 1060×630，案前留 170px 摆器物；样式见 book.css 的 .scene
+  // 书桌场景的设计尺寸（px）：样式见 styles/stage.css 的 .scene
   const SCENE_W = 1140;
   const SCENE_H = 800;
 
-  // 往后翻不动时，书说的话（初稿，待审读）
-  const RESIST = ['后面还没写，别急着翻。', '再往后，我还没落笔。', '这一页之后是白纸，等你走到那一步。', '后面的字，我还没写出来。'];
+  // 首页器物的位置（场景坐标，中心点）、大小，以及简介笺放在哪一侧
+  const SPOTS = {
+    xing: { x: 190, y: 212, w: 200, tip: 'r' },
+    qian: { x: 200, y: 500, w: 200, tip: 'r' },
+    niao: { x: 350, y: 688, w: 170, tip: 'r' },
+    bu: { x: 950, y: 212, w: 230, tip: 'l' },
+    gua: { x: 952, y: 490, w: 250, tip: 'l' },
+    zi: { x: 790, y: 690, w: 200, tip: 'l' },
+    li: { x: 570, y: 702, w: 150, tip: 'r' },
+  };
 
-  const blank = { path: '', kind: '', juan: '', title: '演算天机', back: null, tou: [], long: false, left: '', main: '', hint: '', foot: '' };
+  const blank = { path: '', kind: '', juan: '', title: '演算天机', back: null, left: '', main: '', hint: '', foot: '' };
 
   function readPage() {
     const t = document.getElementById('stj-page');
@@ -47,8 +53,6 @@
       juan: d.juan,
       title: d.title,
       back: d.backHref ? { href: d.backHref, label: d.backLabel, aria: d.backAria || d.backLabel } : null,
-      tou: Array.from(d.tou || '').slice(0, 3),
-      long: !!d.long,
       left: part('left'),
       main: part('main'),
       hint: part('hint'),
@@ -62,63 +66,48 @@
   let scene;
   let muted = $state(false);
   let narrow = $state(false);
-
-  let shell;
-  let huaxin;
-  let pgLeft;
-  let pgRight;
-  let stage;
-  let leftBody;
-  let revL;
-  let revR;
-  let snapL;
-  let snapR;
-  let canvas;
-  let voiceHost;
+  let voice = $state(null);
   let themeBtn;
-  let lastResist = 0;
+  let readerOn = $state(false);
+  let readIdx = $state(0);
 
   const juan = $derived(page.kind === 'juan' ? modules[page.juan] ?? null : null);
   const reg = $derived(juan ? juans.find((j) => j.id === juan.id) : null);
   const cur = $derived(juan ? spread.cur : null);
   const ctx = $derived(session.ctx);
   const game = $derived(session.game);
-  const hasDesk = $derived(!!cur?.desk);
-  const live = $derived(view.pos === view.live);
+  const bookPages = $derived(cur?.book ? cur.book() : null);
+  const phase = $derived(page.kind === 'home' ? 'home' : juan ? (bookPages ? 'reading' : 'ritual') : 'doc');
   const steps = $derived(juan?.steps ?? []);
   const stepIdx = $derived(ctx ? steps.findIndex((s) => s.k === ctx.screen) : -1);
   const atStart = $derived(!ctx || ctx.screen === juan?.start);
-  const spreadNo = $derived(view.pos + (live ? (cur?.pager?.i ?? 0) : 0));
-  const pager = $derived(live ? cur?.pager : null);
-  // 书页的厚度：越往后翻，左边的一叠越厚、右边的越薄（docs/DESIGN.md §19）。目录在最前，说明页居中
-  const progress = $derived(page.kind === 'juan' ? Math.min(1, spreadNo / 8) : page.kind === 'toc' ? 0.1 : 0.5);
-  const thickL = $derived(Math.round((3 + 17 * progress) * 10) / 10);
-  const thickR = $derived(Math.round((3 + 17 * (1 - progress)) * 10) / 10);
+  const lift = $derived(phase === 'reading' ? 'open' : stage.speaking ? 'speak' : 'shut');
+  // 读命书时，页脚放这一页（左右两页）的脚注
+  const notes = $derived(bookPages ? footnotes(juan?.zhu, [readIdx * 2 - 1, readIdx * 2].flatMap((i) => bookPages[i]?.zhu ?? [])).slice(0, 3) : []);
 
-  // 回看写下的页时，大师不开口
+  // 读命书：书先滑到桌子中央、封面翻开，再换成 WebGL 的书；离开立刻收起
   $effect(() => {
-    const on = view.pos === view.live;
-    session.ctx?.voice?.setLive(on);
+    if (phase !== 'reading') { readerOn = false; return; }
+    const t = setTimeout(() => { readerOn = true; }, session.ctx?.reduced ? 0 : 1500);
+    return () => clearTimeout(t);
+  });
+  // 读命书时，字盘暂停（翻页的纸要用满合成器；字盘慢慢漂移，这时不画也看不出来）
+  $effect(() => {
+    document.dispatchEvent(new CustomEvent('stj-flip', { detail: readerOn }));
+  });
+  // 读命书时，书不再说话
+  $effect(() => {
+    if (phase === 'reading') session.ctx?.clearGloss();
   });
 
-  function resist() {
-    const now = performance.now();
-    if (now - lastResist < 5000) return;
-    lastResist = now;
-    session.ctx?.gloss(RESIST[Math.floor(Math.random() * RESIST.length)], { key: 'resist' });
-  }
-
-  // 进入一页（首次、浏览器的前进后退、点链接）：同一页就只更新内容；换了页就在书里翻一页
-  async function onLoad() {
+  // 进入一页（首次、浏览器的前进后退、点链接）
+  function onLoad() {
     const next = readPage();
-    if (!next) return;
-    if (next.path === page.path && next.kind === page.kind && next.juan === page.juan) { page = next; return; }
-    const dir = next.kind === 'toc' ? -1 : 1;
-    await turn(() => { resetBook(); page = next; }, { dir, record: false });
+    if (next) page = next;
   }
 
   function home() {
-    if (!game || atStart) { navigate('/'); return; }
+    if (!game || atStart || phase === 'reading') { navigate('/'); return; }
     game.toStart();
   }
 
@@ -128,41 +117,15 @@
     e.currentTarget.blur();
   }
 
-  // 回看写下的页时，右页的显示由 review 换上封存的两页
-  let reviewing = false;
-  function review(entry) {
-    reviewing = !!entry;
-    revL.replaceChildren(...(entry ? [entry.L] : []));
-    revR.replaceChildren(...(entry ? [entry.R] : []));
-    pgLeft.classList.toggle('has-rev', reviewing);
-    pgRight.classList.toggle('has-rev', reviewing);
-  }
-
-  const voicePages = () => (narrow
-    ? [{ page: pgRight, body: reviewing ? revR : stage }]
-    : [{ page: pgRight, body: reviewing ? revR : stage }, { page: pgLeft, body: reviewing ? revL : leftBody }]);
-
   onMount(() => {
-    const first = readPage();
-    if (first) page = first;
+    onLoad();
     mounted = true;
-    // 卷首开卷：本次会话第一次进入目录页时，书像卷轴一样展开（书是常驻的岛，首帧之前页面上本来就没有书，不会先闪出整页）
-    if (first?.kind === 'toc') {
-      try {
-        if (!sessionStorage.getItem('stj-kaijuan') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          document.documentElement.classList.add('kaijuan');
-          setTimeout(() => document.documentElement.classList.remove('kaijuan'), 1500);
-        }
-        sessionStorage.setItem('stj-kaijuan', '1');
-      } catch { /* 不让存储的问题拦住页面 */ }
-    }
-
     const mq = matchMedia('(max-width: 959px)');
     narrow = mq.matches;
     const onMq = () => { narrow = mq.matches; };
     mq.addEventListener('change', onMq);
 
-    // 书和书桌是一块固定大小的场景（SCENE_W × SCENE_H），窗口不够大就整体等比缩小，绝不单独压书
+    // 书桌是一块固定大小的场景（SCENE_W × SCENE_H），窗口不够大就整体等比缩小
     const fit = () => {
       if (!table || !scene) return;
       const w = table.clientWidth;
@@ -177,28 +140,7 @@
 
     mountBoard(document.getElementById('an-board'));
     mountToggle(themeBtn);
-    const offTilt = mountTilt(huaxin);
-    const offBook = attachBook({
-      shell,
-      get left() { return reviewing ? revL.firstElementChild ?? leftBody : leftBody; },
-      get right() { return reviewing ? revR.firstElementChild ?? stage : stage; },
-      get reduced() { return matchMedia('(prefers-reduced-motion: reduce)').matches; },
-      mobile: () => mq.matches,
-      snaps(l, r) {
-        snapL.replaceChildren(...(l ? [l] : []));
-        snapR.replaceChildren(...(r ? [r] : []));
-      },
-      review,
-      ready: () => (page.kind === 'juan' ? session.ready : null),
-      shut: (commit) => shut(huaxin, commit),
-      resist,
-    });
-    // 点注：回看的页里的术语是快照，没有自己的点击处理，在这里统一接
-    const onTermClick = (e) => {
-      const t = e.target.closest?.('.is-snap .zhu-term');
-      if (t?.dataset.term) recall(t.dataset.term, t);
-    };
-    huaxin.addEventListener('click', onTermClick);
+    const offTilt = mountTilt(table);
 
     // 声音引擎在空闲时建好（见 audio.js 的 warmAudio）
     const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 4000 }) : (f) => setTimeout(f, 1500);
@@ -206,27 +148,17 @@
     document.addEventListener('astro:page-load', onLoad);
     return () => {
       document.removeEventListener('astro:page-load', onLoad);
-      huaxin.removeEventListener('click', onTermClick);
       mq.removeEventListener('change', onMq);
       ro.disconnect();
       offTilt();
-      offBook();
     };
   });
-
-  // 手势：点页、拖页角、方向键翻页（只在某一卷里；目录与讲解页没有写下的页）
-  $effect(() => {
-    if (!juan || !huaxin) return;
-    return mountGesture(huaxin, { left: pgLeft, right: pgRight, mobile: () => narrow, resist });
-  });
-
-  const el = () => ({ huaxin, stage, canvas, voice: voiceHost, pages: voicePages });
 </script>
 
-<div class="shell" data-kind={page.kind} class:has-desk={hasDesk} class:is-narrow={narrow}>
+<div class="shell" data-phase={phase} data-reader={readerOn ? 'on' : 'off'} class:is-narrow={narrow}>
   <header class="topbar">
     {#if juan}
-      <button class="tag-btn" id="btn-home" type="button" aria-label={atStart ? '回到目录' : '回到卷首'} onclick={home}>{atStart ? '目录' : '卷首'}</button>
+      <button class="tag-btn" id="btn-home" type="button" aria-label={atStart || phase === 'reading' ? '回到书桌' : '回到卷首'} onclick={home}>{atStart || phase === 'reading' ? '书桌' : '卷首'}</button>
     {:else if page.back}
       <a class="tag-btn" href={page.back.href} aria-label={page.back.aria}>{page.back.label}</a>
     {:else}
@@ -251,70 +183,48 @@
   </header>
 
   <div class="table" bind:this={table}>
-   <div class="scene" bind:this={scene}>
-    <div class="desk-plane" aria-hidden="true"></div>
-    <div class="book-wrap">
-      <div class="book" class:is-flipping={flip.on} bind:this={shell}>
-        <i class="bk-shadow" aria-hidden="true"></i>
-        <i class="cov cov-l" aria-hidden="true"></i><i class="cov cov-r" aria-hidden="true"></i>
-        <div class="bk bk-l" aria-hidden="true"><i class="es" style:width="{thickL * 0.55}px"></i><i class="eb" style:height="{thickL}px" style:left="{-thickL * 0.55}px"></i></div>
-        <div class="bk bk-r" aria-hidden="true"><i class="es" style:width="{thickR * 0.55}px"></i><i class="eb" style:height="{thickR}px" style:right="{-thickR * 0.55}px"></i></div>
-        <div class="huaxin" bind:this={huaxin}>
-          <section class="pg pg-left" aria-label="大师的页" bind:this={pgLeft}>
-            <div class="pg-body" bind:this={leftBody}>
-              {#if juan}
-                <div class="lp">
-                  {#if cur}
-                    <h2 class="lp-name">{cur.name}</h2>
-                    {#if cur.sub}<p class="lp-sub">{cur.sub}</p>{/if}
-                    {#if cur.left}<div class="lp-extra">{@render cur.left()}</div>{/if}
-                  {/if}
-                </div>
-              {:else}
-                <div class="lp lp-plain">{@html page.left}</div>
-              {/if}
-            </div>
-            <div class="rev rev-l" bind:this={revL}></div>
-            <div class="snap snap-l" bind:this={snapL}></div>
-            <i class="fish" aria-hidden="true"></i>
-            <i class="folio folio-l" aria-hidden="true">{cn(spreadNo * 2 + 1)}</i>
-          </section>
+    <div class="scene" bind:this={scene}>
+      <div class="desk-plane" aria-hidden="true"></div>
 
-          <section class="pg pg-right" aria-label="玩家的页" bind:this={pgRight}>
-            {#if page.tou.length > 0}
-              <div class="tou" aria-hidden="true">
-                {#each page.tou as c}<span class="tou-ch">{c}</span>{/each}
-              </div>
-            {/if}
-            <div class="stage" id="stage" class:is-long={page.long} bind:this={stage}>
-              {#if mounted}
-                {#if juan}
-                  {#key juan.id}<Ritual {juan} el={el()} />{/key}
-                {:else if page.kind}
-                  <div class="only-narrow static-head">{@html page.left}</div>
-                  {@html page.main}
-                {/if}
-              {/if}
+      <!-- 首页：四周摆各卷的器物。悬停浮起，旁边出现卷名与简介；点开了卷的器物进那一卷 -->
+      <nav class="pieces" aria-label="书桌上的器物，一件一卷" aria-hidden={phase !== 'home'}>
+        {#each juans as j}
+          {@const p = SPOTS[j.id]}
+          {#if j.open}
+            <a class="piece tip-{p.tip}" href={j.href} style="--x:{p.x}px;--y:{p.y}px;--w:{p.w}px" tabindex={phase === 'home' ? 0 : -1} aria-label={`${j.name}卷：${j.title}。${j.intro}`}>
+              <span class="piece-art"><Instrument id={j.id} /></span>
+              <span class="piece-tip"><span class="piece-name">{j.name}<small>{j.title}</small></span><span class="piece-intro">{j.intro}</span></span>
+            </a>
+          {:else}
+            <div class="piece is-closed tip-{p.tip}" style="--x:{p.x}px;--y:{p.y}px;--w:{p.w}px" aria-label={`${j.name}卷：${j.title}，未开卷`}>
+              <span class="piece-art"><Instrument id={j.id} /></span>
+              <span class="piece-tip"><span class="piece-name">{j.name}<small>{j.title}</small></span><span class="piece-intro">{j.intro}</span><span class="piece-tag">未开卷</span></span>
             </div>
-            <div class="rev rev-r" bind:this={revR}></div>
-            <div class="snap snap-r" bind:this={snapR}></div>
-            <i class="fish" aria-hidden="true"></i>
-            <i class="folio folio-r" aria-hidden="true">{cn(spreadNo * 2 + 2)}</i>
-          </section>
+          {/if}
+        {/each}
+      </nav>
 
-          <i class="spine" aria-hidden="true"></i>
-          <i class="probe probe-tl" aria-hidden="true"></i><i class="probe probe-tr" aria-hidden="true"></i><i class="probe probe-bl" aria-hidden="true"></i><i class="probe probe-br" aria-hidden="true"></i>
-          <canvas class="ink-fx" id="ink-fx" aria-hidden="true" bind:this={canvas}></canvas>
-          <div class="voice" id="voice" aria-live="polite" aria-label="大师的话" bind:this={voiceHost}></div>
-        </div>
-        <i class="zhou zhou-l" aria-hidden="true"></i><i class="zhou zhou-r" aria-hidden="true"></i>
+      <div class="book-anchor" aria-hidden={phase === 'doc'}>
+        <Book {lift} bind:voice />
+      </div>
+      {#if mounted && juan && voice}{#key juan.id}<Ritual {juan} {voice} />{/key}{/if}
+
+      <!-- 仪式：器物摆在桌面的中前部 -->
+      <div class="desk" aria-label="桌上" aria-hidden={phase !== 'ritual'}>
+        <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
       </div>
     </div>
 
-    <div class="desk" class:is-on={hasDesk} aria-label="案上" aria-hidden={!hasDesk}>
-      <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
-    </div>
-   </div>
+    {#if phase === 'doc' && mounted}
+      <article class="doc-sheet paper" aria-label={page.title}>
+        {@html page.left}
+        {@html page.main}
+      </article>
+    {/if}
+
+    {#if phase === 'reading' && bookPages}
+      <Reader pages={bookPages} {narrow} on={readerOn} reduced={ctx?.reduced ?? false} bind:spread={readIdx} />
+    {/if}
   </div>
 
   <footer class="botbar">
@@ -325,8 +235,14 @@
     </div>
     <div class="bot-mid">
       {#if juan}
-        <p class="bot-hint" id="bot-hint">{live ? (cur?.hint ?? '') : '你在翻看写下的页。点右页、拖右页的页角，或按方向键，往后翻回最新的一页。'}{#if live && pager && pager.n > 1}　<span class="pg-no">第 {pager.i + 1} / {pager.n} 页</span>{/if}</p>
-        {#if steps.length}
+        {#if phase === 'reading' && notes.length}
+          <ul class="bot-notes" id="bot-notes" aria-label="这一页的注">
+            {#each notes as n}<li><b>{n.term}</b>{n.body}<small>{n.kind}</small></li>{/each}
+          </ul>
+        {:else}
+          <p class="bot-hint" id="bot-hint">{cur?.hint ?? ''}</p>
+        {/if}
+        {#if steps.length && phase !== 'reading'}
           <ol class="bot-steps" aria-label="本卷的步骤">
             {#each steps as s, i}
               <li class:is-cur={i === stepIdx} class:is-past={stepIdx >= 0 && i < stepIdx} aria-current={i === stepIdx ? 'step' : undefined}>
@@ -347,7 +263,6 @@
     </div>
     <div class="bot-acts">
       {#if juan}
-        {#if !live}<button class="btn btn-ghost" id="btn-live" onclick={toLive}>回到最新一页</button>{/if}
         {#if cur?.foot}{@render cur.foot()}{/if}
       {:else}
         {@html page.foot}
@@ -355,5 +270,3 @@
     </div>
   </footer>
 </div>
-
-<ZhuPanel />

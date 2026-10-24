@@ -41,6 +41,14 @@ export const store = {
   },
 };
 
+// 残印：每一卷得过的印，盖在书的封面四角（docs/DESIGN.md §19）。键 stj-stamps，值 { 卷id: true }。
+// 现在只留数据的钩子：封面按它画出已得的角，还没有任何地方写入。
+export const stamps = {
+  all: () => raw.get('stj-stamps', {}),
+  has: (id) => !!raw.get('stj-stamps', {})[id],
+  set(id, got = true) { raw.set('stj-stamps', { ...raw.get('stj-stamps', {}), [id]: got }); },
+};
+
 /** 把上一局的日期换成"昨天""3 天前"这样的说法 */
 export function daysAgo(iso) {
   const day = (d) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);

@@ -1,14 +1,14 @@
 ---
 import BookFrame from '../core/BookFrame.astro';
 ---
-<BookFrame title="演算天机" pageTitle="关于 · 演算天机" description="演算天机的创作理念与人和 AI Agent 的协作方式。" back={{ href: '/', label: '目录', aria: '回到目录' }} long>
+<BookFrame title="演算天机" pageTitle="关于 · 演算天机" description="演算天机的创作理念与人和 AI Agent 的协作方式。" back={{ href: '/', label: '书桌', aria: '回到书桌' }}>
   <div slot="left" class="doc-head">
     <h1 id="a-h" class="lp-name">关于这件作品</h1>
     <p class="about-lead">你以为在求签，<br>其实一直有人在给你算命。</p>
     <p class="about-by">By kitty Hu</p>
   </div>
-  <span slot="hint">长文在右页里往下滚。读完，点“回到目录”。</span>
-  <a slot="foot" class="btn btn-primary" href="/">回到目录</a>
+  <span slot="hint">长文在纸上往下滚。读完，点“回书桌”。</span>
+  <a slot="foot" class="btn btn-primary" href="/">回书桌</a>
   <article class="screen screen-about is-active" aria-labelledby="a-h">
 
       <section>
@@ -21,8 +21,8 @@ import BookFrame from '../core/BookFrame.astro';
 
       <section>
         <h2>一部书，一卷一卷地开</h2>
-        <p>“演算天机”想做成一部收录多种民间算命法的书，第一卷是“签”。卷首目录里排着的其余几卷，现在还没有开卷。</p>
-        <p>每一卷里，术语出现时，我会在页边作注，讲这个词是什么、从哪里来；每一卷另有一篇“源流”，说明哪些出自古籍和民俗，哪些是本作的原创。</p>
+        <p>“演算天机”想做成一部收录多种民间算命法的书，现在开了签、卦、卜三卷。桌上还摆着星、鸟、字、历四件器物，暗着，那几卷还没有开。</p>
+        <p>每一卷的命书里，术语的“注”写在页脚，讲这个词是什么、从哪里来；每一卷另有一篇“源流”，说明哪些出自古籍和民俗，哪些是本作的原创。</p>
       </section>
 
       <section>
@@ -34,7 +34,7 @@ import BookFrame from '../core/BookFrame.astro';
 
       <section>
         <h2>画面与声音</h2>
-        <p>整个作品是一册摊开的线装书：宣纸为底，每走一步就翻一页；左页是大师的页，眉批用淡墨写在天头，术语的“注”写在页边，朱笔只用来圈点；右页是你的页。书放在一张案上，案上铺着一盘活字。深色主题是这本书的夜间版：磁青纸，纸白字。所有画面都由 SVG、CSS、Canvas 和 WebGL 绘制，没有使用任何图片素材；声音全部由浏览器实时合成。</p>
+        <p>整个作品是一张书桌：正中是一本线装书，四周摆着各卷的器物。你在桌上摇签、掷筊、起卦、灼龟，书合着在旁边看，开口时掀起封面，用行书写在扉页上，字全是墨。仪式完了，书滑到桌子中央、摊开，里面是它替你写的命书，你可以一页页翻着读。桌子底下是一盘活字。深色主题是这张桌子的夜间版。所有画面都由 SVG、CSS、Canvas 和 WebGL 绘制，没有使用任何图片素材；声音全部由浏览器实时合成。</p>
       </section>
 
       <section>
