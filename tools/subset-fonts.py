@@ -11,6 +11,9 @@
 - 霞鹜文楷 LXGW WenKai（--f-kai，OFL 1.1，v1.530）：眉批、注、账本旁注、通灵的"实话"。
   收界面与各卷 zhu.json 里的字；通灵由 AI 实时生成，用 GB2312 一级字库其余的字另拆一个文件，
   用 unicode-range 声明，页面真出现这些字时才下载。
+- 龙藏体 Long Cang（--f-voice，OFL 1.1）：书自己的字——书开口时写在扉页上的话、你写在纸笺上的问题、命书里问题的那一行。
+  开源行书，字形比志莽行书清楚、比马善政楷书有笔势、比柳建毛草好认（对照见 docs/DESIGN.md §4）。用字与霞鹜文楷相同（界面里的字加各卷注疏），缺的字回落到霞鹜文楷。
+  要换字体：改下面 SOURCES / SHA256 / VOICE 的一项，以及 src/core/styles/base.css 的 --f-voice、src/core/book/paint.js 的 F.voice。
 - 思源宋体 400（正文、按钮、表单、账本）拆成两个文件：站内用字，首屏加载；GB2312 一级字库其余的字（unicode-range）。
   两者都没有的生僻字，回落到系统字体。
 - 思源宋体 600（按钮、小标题、注的术语名）：界面里的字，加注疏与讲解页（.md、.json）里的字。
@@ -47,10 +50,14 @@ SOURCES = {
     'NotoSerifSC-Regular.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf',
     'NotoSerifSC-SemiBold.otf': 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Serif/SubsetOTF/SC/NotoSerifSC-SemiBold.otf',
     'LXGWWenKai-Regular.ttf': 'https://github.com/lxgw/LxgwWenKai/releases/download/v1.530/LXGWWenKai-Regular.ttf',
+    'LongCang-Regular.ttf': 'https://raw.githubusercontent.com/google/fonts/main/ofl/longcang/LongCang-Regular.ttf',
 }
 SHA256 = {
     'LXGWWenKai-Regular.ttf': '2d73eea94ad808999d90c0000c239a84a33b09d4bc6ab6c5b8bbf1eda8a7fc8b',
+    'LongCang-Regular.ttf': 'e5bf2c3f24ef2327c6f136d8f73e2f9dfdf44896fdbeb35a9515f44777bb91bc',
 }
+# 书的字体（--f-voice）：开源行书。换字体时，族名在 FACE 里、文件名在 main() 里改
+VOICE = {'family': 'Long Cang', 'source': 'LongCang-Regular.ttf', 'file': 'long-cang.woff2'}
 # 展示字体（--f-display）的来源：汇文明朝体的切片包。换成别的明朝体时，改这一项和 main() 里 display 的取法
 DISPLAY = {
     'family': 'Huiwen-mincho',
@@ -264,6 +271,14 @@ def main():
     kai2 = TTFont(kai_src)
     write(kai2, kai_extra, 'lxgw-wenkai-extra.woff2')
 
+    # 龙藏体（书的字）：站内用字；缺的字（如“筊”）回落到霞鹜文楷
+    voice = TTFont(fetch(VOICE['source']))
+    voice_have = {chr(c) for c in voice.getBestCmap()}
+    voice_missing = {c for c in kai_used if c not in voice_have and '一' <= c <= '鿿'}
+    if voice_missing:
+        print('龙藏体缺字（回落到霞鹜文楷）：' + ''.join(sorted(voice_missing)))
+    write(voice, kai_used, VOICE['file'])
+
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), used, 'noto-serif-sc-400.woff2')
     write(TTFont(fetch('NotoSerifSC-Regular.otf')), extra, 'noto-serif-sc-400-extra.woff2')
     write(TTFont(fetch('NotoSerifSC-SemiBold.otf')), ui_chars() | heading_chars() | BASICS, 'noto-serif-sc-600.woff2')
@@ -273,6 +288,7 @@ def main():
     css += FACE.format(family='LXGW WenKai', weight=400, file='lxgw-wenkai.woff2', range='')
     css += FACE.format(family='LXGW WenKai', weight=400, file='lxgw-wenkai-extra.woff2',
                        range=f'\n  unicode-range: {unicode_range(kai_extra)};')
+    css += FACE.format(family=VOICE['family'], weight=400, file=VOICE['file'], range='')
     css += FACE.format(family='Noto Serif SC', weight=400, file='noto-serif-sc-400.woff2', range='')
     css += FACE.format(family='Noto Serif SC', weight=400, file='noto-serif-sc-400-extra.woff2',
                        range=f'\n  unicode-range: {unicode_range(extra)};')
