@@ -148,9 +148,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 命辞 ───────── */
-  function enterDing(dir = 1) {
-    ctx.show('ding', { dir });
-    S.dingEnterAt = performance.now();
+  function enterDing({ onCommit, ...opts } = {}) {
+    ctx.show('ding', { ...opts, onCommit: () => { onCommit?.(); S.dingEnterAt = performance.now(); } });
     gloss('我替你备了一块龟腹甲');
     gloss('先把你要问的事，说成一句话');
   }
@@ -164,13 +163,16 @@ export function createGame(ctx) {
     if (changed) gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒。${d.persona}`, { key: 'pick' });
   }
 
-  function confirmDing(question) {
+  // 命辞写在书上：字被纸吸进去，书回一句，再翻到下一页
+  async function confirmDing(question) {
     const q = question.trim().slice(0, MAX_Q);
     S.questionIsDefault = !q;
     S.question = q || DOMAINS[S.domain].zheng;
     if (q) gloss(`你写了 ${[...q].length} 个字，我读出了${questionMood(q)}`);
     else gloss('你没写，我替你拟了命辞');
     sfx.bronze(330, 1.6, 0.12);
+    await ctx.sleep(2600);
+    if (ctx.screen !== 'ding') return; // 玩家已回卷首
     enterZhuo();
   }
 
@@ -327,20 +329,20 @@ export function createGame(ctx) {
     ctx.touch();
     const q = text.trim().slice(0, MAX_Q);
     S.qFan = q || fanOf(S.question, S.domain);
-    S.nextKind = 'fan';
     gloss('商人常常正问一次，再反问一次');
     gloss(`这一灼我替你问：不是“${[...S.question].slice(0, 8).join('')}”，而是“${[...S.qFan].slice(0, 8).join('')}”`);
-    goPick();
+    // 书合拢一下再打开：这一兆写在新的一页上，前面的兆还在书里
+    ctx.turn(() => { S.nextKind = 'fan'; goPick(); }, { shut: true });
   }
 
   function again() {
     ctx.touch();
     const n = zhengBurns().length;
-    S.nextKind = 'again';
     gloss(`你不满意，要灼第 ${cnNum(n + 1)} 次`, { alarm: true });
     if (n >= 2) gloss('我越来越懂你了……');
     ctx.revealDoubt();
-    goPick();
+    // 书合拢一下再打开：这一兆写在新的一页上，前面的兆还在书里
+    ctx.turn(() => { S.nextKind = 'again'; goPick(); }, { shut: true });
   }
 
   function accept() {
@@ -547,23 +549,20 @@ export function createGame(ctx) {
     stopTimer();
     ui.posterOpen = false;
     if (clear) { ctx.clearGloss(); ctx.fx.clear(); }
-    ctx.el.huaxin.classList.remove('is-broken');
     ctx.resetRound();
     fin = null;
     Object.assign(S, freshState());
   }
 
   function toStart() {
-    resetAll();
-    ctx.show('title', { dir: -1 });
+    ctx.show('title', { reset: true, onCommit: () => resetAll() });
     bootTitle();
   }
 
   function playAgain() {
     const visits = ctx.visits.bump();
-    resetAll({ clear: false });
     gloss(`你又来卜了，第 ${visits} 次`);
-    enterDing(-1);
+    enterDing({ reset: true, onCommit: () => resetAll({ clear: false }) });
   }
 
   bootTitle();

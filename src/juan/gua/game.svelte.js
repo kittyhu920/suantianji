@@ -94,9 +94,8 @@ export function createGame(ctx) {
   }
 
   /* ───────── 问事 ───────── */
-  function enterDing(dir = 1) {
-    ctx.show('ding', { dir });
-    S.dingEnterAt = performance.now();
+  function enterDing({ onCommit, ...opts } = {}) {
+    ctx.show('ding', { ...opts, onCommit: () => { onCommit?.(); S.dingEnterAt = performance.now(); } });
     gloss(G.dingEnter);
   }
 
@@ -109,22 +108,31 @@ export function createGame(ctx) {
     if (changed) gloss(G.pick(d.name, S.pickMs, d.persona), { key: 'pick' });
   }
 
-  function confirmDing(question) {
+  // 问题写在书上：字被纸吸进去，书回一句，再翻到下一页
+  async function confirmDing(question) {
     S.question = question.trim().slice(0, 40);
     if (S.question) gloss(G.question([...S.question].length, questionMood(S.question)));
+    else gloss('你什么也没写，我就凭这块木牌来猜');
     sfx.bronze(392, 1.6, 0.12);
+    await ctx.sleep(2600);
+    if (ctx.screen !== 'ding') return; // 玩家已回卷首
     enterCast();
   }
 
   /* ───────── 起卦：六次掷钱 ───────── */
-  function enterCast(dir = 1) {
-    ctx.show('cast', { dir });
-    S.cur = [];
-    S.result = null;
-    S.rolling = false;
-    S.fresh = -1;
-    S.tried = false;
-    S.readyAt = performance.now();
+  function enterCast({ onCommit, ...opts } = {}) {
+    ctx.show('cast', {
+      ...opts,
+      onCommit: () => {
+        onCommit?.();
+        S.cur = [];
+        S.result = null;
+        S.rolling = false;
+        S.fresh = -1;
+        S.tried = false;
+        S.readyAt = performance.now();
+      },
+    });
     gloss(S.casts.length ? G.castAgain(S.casts.length + 1) : G.castFirst);
   }
 
@@ -221,8 +229,8 @@ export function createGame(ctx) {
     else if (n === 2) { gloss(G.third, { alarm: true }); gloss(G.understand); }
     else gloss(G.more(n + 1), { alarm: true });
     ctx.revealDoubt();
-    S.throws.forEach((t) => { t.kept = false; });
-    enterCast(-1); // 不认这一卦，翻回去再起
+    // 不认这一卦：书合拢一下再打开，再起一卦（前面写下的页还在）
+    enterCast({ shut: true, onCommit: () => { S.throws.forEach((t) => { t.kept = false; }); } });
   }
 
   // 左边的按钮：受卦
@@ -368,7 +376,6 @@ export function createGame(ctx) {
     shake.holdEnd();
     ui.posterOpen = false;
     if (clear) { ctx.clearGloss(); ctx.fx.clear(); }
-    ctx.el.huaxin.classList.remove('is-broken');
     ctx.resetRound();
     fin = null;
     Object.assign(S, freshState());
@@ -376,16 +383,14 @@ export function createGame(ctx) {
 
   function toStart() {
     shell?.stop();
-    resetAll();
-    ctx.show('title', { dir: -1 });
+    ctx.show('title', { reset: true, onCommit: () => resetAll() });
     bootTitle();
   }
 
   function again() {
     const visits = ctx.visits.bump();
-    resetAll({ clear: false });
     gloss(G.visits(visits));
-    enterDing(-1);
+    enterDing({ reset: true, onCommit: () => resetAll({ clear: false }) });
   }
 
   bootTitle();

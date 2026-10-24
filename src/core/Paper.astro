@@ -1,20 +1,27 @@
 ---
-// 页面的外壳：整页是“案”，案上铺着字盘（core/paper/board.js），书放在案上。
-// 书（天头栏、两页、页脚）由仪式页的 Ritual.svelte 或静态页的 BookFrame.astro 画出，见 docs/DESIGN.md §19。
-//   kaijuan  卷首开卷：本次会话第一次进入时，书像卷轴一样展开。目录页用
+// 页面的外壳：整页是“案”，案上铺着字盘（core/paper/board.js），书放在案上（docs/DESIGN.md §19）。
+// 书（天头栏、两页、案上的器物、页脚）是一个常驻的岛 Codex.svelte，用 ClientRouter 的 transition:persist 跨路由保留：
+// 从目录进入某一卷，是在书里翻页，不整页刷新；字盘的 three.js 画布同样常驻。
+// 每个页面只在 <template id="stj-page"> 里交出自己的内容（见 PageData.astro），Codex 在每次进入页面时读它。
+import { ClientRouter } from 'astro:transitions';
+import Codex from './Codex.svelte';
 import './styles/fonts.css';
 import './styles/theme.css';
 import './styles/base.css';
 import './styles/book.css';
+import './styles/desk.css';
 import './styles/pages.css';
 import './paper/paper.css';
+import '../juan/qian/qian.css';
+import '../juan/qian/fit.css';
+import '../juan/gua/gua.css';
+import '../juan/bu/bu.css';
 
 interface Props {
   title?: string;
   description?: string;
-  kaijuan?: boolean;
 }
-const { title = '演算天机', description = '演算天机——一部收录多种民间算命法的书。第一卷是六十甲子签：一场被算法旁观的求签仪式。', kaijuan = false } = Astro.props;
+const { title = '演算天机', description = '演算天机——一部收录多种民间算命法的书。第一卷是六十甲子签：一场被算法旁观的求签仪式。' } = Astro.props;
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -32,20 +39,24 @@ const { title = '演算天机', description = '演算天机——一部收录多
   } catch (e) {
     try { if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark'; } catch (e2) {}
   }
+  // ClientRouter 换页时会把 <html> 的属性换成新页面的，data-theme 会丢：在换页之前补到新文档上；
+  // 动态加载进来的样式表（不在新文档里的）也一并带过去，免得换页时被清掉
+  document.addEventListener('astro:before-swap', function (e) {
+    var cur = document.documentElement.dataset.theme;
+    var nd = e.newDocument;
+    if (cur) nd.documentElement.dataset.theme = cur;
+    var meta = nd.querySelector('meta[name="theme-color"]');
+    if (meta && cur === 'dark') meta.setAttribute('content', '#0b0a08');
+    var key = function (n) { return n.href || n.getAttribute('data-vite-dev-id') || n.textContent; };
+    var have = new Set(Array.prototype.map.call(nd.head.querySelectorAll('link[rel="stylesheet"], style'), key));
+    Array.prototype.forEach.call(document.head.querySelectorAll('link[rel="stylesheet"], style'), function (n) {
+      if (!have.has(key(n))) nd.head.appendChild(n.cloneNode(true));
+    });
+  });
 </script>
 <title>{title}</title>
 <meta name="description" content={description}>
-{kaijuan && (
-  <script is:inline>
-    // 开卷只在本次会话第一次进入目录页时播放（在首帧之前决定，免得先闪出整页）
-    try {
-      if (!sessionStorage.getItem('stj-kaijuan') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        document.documentElement.classList.add('kaijuan');
-      }
-      sessionStorage.setItem('stj-kaijuan', '1');
-    } catch (e) {}
-  </script>
-)}
+<ClientRouter />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%239E2A2B'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23F2E6CC' font-family='serif'%3E%E9%97%AE%3C/text%3E%3C/svg%3E">
 </head>
 <body>
@@ -60,15 +71,9 @@ const { title = '演算天机', description = '演算天机——一部收录多
   </svg>
 
   <main class="an">
-    <div class="an-board" id="an-board" aria-hidden="true"></div>
-    <slot />
+    <div class="an-board" id="an-board" aria-hidden="true" transition:persist="board"></div>
+    <Codex client:only="svelte" transition:persist="codex" />
   </main>
-
-  <script>
-    import { mountBoard } from './paper/board.js';
-    import { mountToggle } from './theme.js';
-    mountToggle(document.getElementById('btn-theme'));
-    mountBoard(document.getElementById('an-board'));
-  </script>
+  <slot />
 </body>
 </html>

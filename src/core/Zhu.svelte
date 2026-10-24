@@ -1,21 +1,11 @@
 <script>
-  // 术语：下加点线。出现在眼前时，桌面注栏同步出注；点它回看（手机上弹出浮注）。
+  // 术语：下加点线。点它，在它旁边浮出一条注（像贴在书页上的小纸条）；点别处或按 Esc 收起。
   // 用法：<Zhu term="掷筊" />，或 <Zhu term="圣杯">一平一凸</Zhu>（显示的字与术语不同时）
-  import { onMount } from 'svelte';
-  import { reveal, recall } from './zhu.svelte.js';
+  import { recall } from './zhu.svelte.js';
 
   let { term, children } = $props();
   let el;
-
-  onMount(() => {
-    if (!('IntersectionObserver' in window)) { reveal(term); return; }
-    const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) { reveal(term); io.disconnect(); }
-    }, { threshold: 0.6 });
-    io.observe(el);
-    return () => io.disconnect();
-  });
 </script>
 
-<button type="button" class="zhu-term" bind:this={el} onclick={() => recall(term, el)}
-  aria-label={`${term}：查看注`}>{#if children}{@render children()}{:else}{term}{/if}</button>
+<button type="button" class="zhu-term" bind:this={el} data-term={term} onclick={() => recall(term, el)}
+  aria-haspopup="dialog" aria-label={`${term}：看注`}>{#if children}{@render children()}{:else}{term}{/if}</button>

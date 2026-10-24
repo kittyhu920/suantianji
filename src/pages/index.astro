@@ -3,7 +3,7 @@ import BookFrame from '../core/BookFrame.astro';
 import '../core/styles/toc.css';
 import { juans } from '../juan/index.js';
 ---
-<BookFrame title="演算天机" pageTitle="演算天机" description="演算天机——一部收录多种民间算命法的书。签、卦、卜、鸟、字、历，一卷一卷地开。" tou="示巫卜" kaijuan>
+<BookFrame kind="toc" title="演算天机" pageTitle="演算天机" description="演算天机——一部收录多种民间算命法的书。签、卦、卜、鸟、字、历，一卷一卷地开。" tou="示巫卜">
   <div slot="left" class="toc-head">
     <h1 id="toc-h" class="toc-title">演算天机</h1>
     <p class="toc-sub">你求签，我算你</p>
@@ -43,32 +43,3 @@ import { juans } from '../juan/index.js';
     <a class="about-link" href="/about/">关于这件作品</a>
   </p>
 </BookFrame>
-
-<script>
-  // 进入某一卷：从目录翻到那一卷的第一页，再跳转
-  import { playLeaf, snapshot } from '../core/book/flip.js';
-
-  const entries = document.querySelectorAll('a.toc-entry');
-  entries.forEach((a) => {
-    a.addEventListener('click', (e) => {
-      if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches || document.hidden) return;
-      const stage = document.getElementById('stage');
-      const right = stage?.closest('.pg-right');
-      const book = stage?.closest('.book');
-      if (!stage || !right || !book) return;
-      e.preventDefault();
-      const single = matchMedia('(max-width: 959px)').matches;
-      const r = right.getBoundingClientRect();
-      // 背面：这一卷的扉页
-      const back = document.createElement('div');
-      back.className = 'pg-body';
-      back.innerHTML = `<div class="lp lp-plain"><h2 class="lp-name">${a.dataset.name}</h2><p class="lp-sub">${a.dataset.title}</p></div>`;
-      const href = a.getAttribute('href');
-      const job = playLeaf(book, { front: snapshot(stage), back, page: { w: Math.round(r.width), h: Math.round(r.height) }, dir: 1, single, ms: single ? 800 : 1000, keep: true });
-      document.documentElement.classList.add('is-leaving');
-      job.done.then(() => { location.href = href; });
-      setTimeout(() => { location.href = href; }, 2500);
-    });
-  });
-</script>

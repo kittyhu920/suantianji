@@ -8,6 +8,7 @@
   const offsets = $derived(turn.map((_, i) => turn.slice(0, i).reduce((n, l) => n + [...l].length, 0)));
 </script>
 
+<span class="page-seal" aria-hidden="true"><span>{ending.name[0]}</span></span>
 <hr class="ink-rule" aria-hidden="true">
 <header class="ending-head">
   <span class="seal seal-md" aria-hidden="true" use:inview={{ ctx, kind: 'stamp' }}><span id="e-seal">{ending.name[0]}</span></span>

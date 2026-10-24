@@ -15,8 +15,8 @@ import { createInk } from '../ink.js';
 import { isDark, onTheme } from '../theme.js';
 import { want3D, reducedQuery, coarseQuery } from '../scene/gate.js';
 import { SHUOWEN_BUSHOU_SHOWN } from './shuowen-bushou.js';
+import { modules } from '../../juan/modules.js';
 
-const juanModules = import.meta.glob('../../juan/*/index.js');
 
 const FONT = '"Noto Serif SC", "Songti SC", "STSong", serif';
 const SPEED = 9; // 滚动速度，CSS 像素每秒
@@ -41,14 +41,14 @@ const isDrawable = (ch) => {
 };
 const clean = (s) => Array.from(String(s ?? '')).filter(isDrawable);
 
-// 这一页该用哪一卷的字：路径的第一段是卷 id（/qian/…），卷模块有 zipan 就用，否则用部首
+// 这一页该用哪一卷的字：路径的第一段是卷 id（/qian/…），卷模块有 zipan 就用，否则用部首。
+// 书是常驻的，字盘只在首次进入页面时取字（换卷时不重建 three.js 画布）
 async function pickChars() {
   const id = location.pathname.split('/').filter(Boolean)[0];
-  const load = id && juanModules[`../../juan/${id}/index.js`];
-  if (load) {
+  const mod = id && modules[id];
+  if (mod) {
     try {
-      const mod = (await load()).default;
-      const z = typeof mod?.zipan === 'function' ? await mod.zipan() : mod?.zipan;
+      const z = typeof mod.zipan === 'function' ? await mod.zipan() : mod.zipan;
       const chars = clean(z);
       if (chars.length >= 40) return chars;
     } catch { /* 取不到就用部首 */ }

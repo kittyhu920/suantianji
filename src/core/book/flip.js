@@ -81,20 +81,17 @@ function strips(n, w, h, frontNode, backNode, single) {
 }
 
 /**
- * 播一次翻页。
+ * 造一张翻动的纸，放进书里；返回手柄。
  * @param {HTMLElement} shell  书（有 perspective 的那个容器），翻动的纸与投影都放进它
  * @param {object} o
  *   front, back   两面的内容（已克隆好的 DOM 节点）
  *   page          { w, h } 一页的像素尺寸
- *   dir           1 向后翻 / -1 向前翻
+ *   dir           1 向后翻 / -1 向前翻（只决定纸从哪边起）
  *   single        手机单页
- *   ms            时长
- *   onFrame(t)    每帧回调（取帧率用）
- * @returns {{ done: Promise<void>, finish: () => void }}
+ * @returns {{ set(e), remove(), max }}  set(e)：e 为 0（平放在右边）到 1（翻到左边），拖页角时由手直接给；
  */
-export function playLeaf(shell, { front, back, page, dir = 1, single = false, ms = 1100, onFrame, keep = false }) {
+export function createLeaf(shell, { front, back, page, single = false }) {
   const { w, h } = page;
-  ms *= globalThis.__flipSlow || 1; // 调试：把翻页放慢，便于截取翻到一半的样子
   const maxRot = single ? 104 : 180;
   const K = single ? 4 : 6.5; // 每条相对上一条多弯的最大角度
   const box = document.createElement('div');
@@ -108,11 +105,6 @@ export function playLeaf(shell, { front, back, page, dir = 1, single = false, ms
   leaf.append(strips(single ? 3 : STRIPS, w, h, front, back, single));
   box.append(cast, leaf);
   shell.append(box);
-
-  let raf = 0;
-  let ended = false;
-  let resolve;
-  const done = new Promise((r) => { resolve = r; });
 
   const set = (e) => {
     const rot = -maxRot * e;
@@ -131,25 +123,44 @@ export function playLeaf(shell, { front, back, page, dir = 1, single = false, ms
     cast.style.opacity = (Math.sin(Math.PI * e) * 0.9).toFixed(3);
     cast.dataset.side = edge >= 0 ? 'r' : 'l';
   };
+  set(0);
+  return { set, remove: () => box.remove(), box, maxRot };
+}
 
+/** 从 from 到 to 慢慢翻（ease 过的）；返回 { done, finish }。finish() 立刻落到终点 */
+export function animateLeaf(leaf, from, to, ms, { onFrame, keep = false, easing = ease } = {}) {
+  let raf = 0;
+  let ended = false;
+  let resolve;
+  const done = new Promise((r) => { resolve = r; });
   const end = () => {
     if (ended) return;
     ended = true;
     cancelAnimationFrame(raf);
-    if (!keep) box.remove(); // keep：翻完不拆（跳转页面之前，纸留在原处）
+    leaf.set(to);
+    if (!keep) leaf.remove(); // keep：翻完不拆（跳转页面之前，纸留在原处）
     resolve();
   };
-
   const t0 = performance.now();
-  set(dir > 0 ? 0 : 1);
+  leaf.set(from);
   const step = (now) => {
-    const t = Math.min(1, (now - t0) / ms);
-    const e = ease(t);
-    set(dir > 0 ? e : 1 - e);
+    const t = Math.min(1, (now - t0) / Math.max(1, ms));
+    leaf.set(from + (to - from) * easing(t));
     onFrame?.(now);
     if (t >= 1) { end(); return; }
     raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
   return { done, finish: end };
+}
+
+/**
+ * 播一次翻页（整张纸一口气翻完）。dir 1 向后翻（0→1）/ -1 向前翻（1→0）。
+ *   ms 时长；onFrame(t) 每帧回调（取帧率用）；keep 翻完不拆
+ * @returns {{ done: Promise<void>, finish: () => void }}
+ */
+export function playLeaf(shell, { front, back, page, dir = 1, single = false, ms = 1100, onFrame, keep = false }) {
+  ms *= globalThis.__flipSlow || 1; // 调试：把翻页放慢，便于截取翻到一半的样子
+  const leaf = createLeaf(shell, { front, back, page, single });
+  return animateLeaf(leaf, dir > 0 ? 0 : 1, dir > 0 ? 1 : 0, ms, { onFrame, keep });
 }

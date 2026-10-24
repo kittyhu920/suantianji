@@ -1,6 +1,7 @@
 // 卷的注册表。《演算天机》是一部收录多种民间算命法的书，每一种算法是一卷。
 // 卷首目录（src/pages/index.astro）按这张表排版；新增一卷只需在这里加一行，再写自己的 src/juan/<id>/，
-// 并在 src/pages/<id>/index.astro 挂页面（照 src/pages/qian/index.astro，包装组件照 src/juan/qian/Qian.svelte）。
+// 在 src/juan/modules.js 里加一行（静态引入），并在 src/pages/<id>/index.astro 挂页面（照 src/pages/qian/index.astro：只写一个 <PageData kind="juan" juan="<id>" />）。
+// 卷的样式（.css）在 src/core/Paper.astro 里静态引入，不要在卷的模块里动态加载样式。
 //
 // ── 一个新卷最少要实现什么 ──
 // 卷模块（src/juan/<id>/index.js 的默认导出）：
@@ -8,9 +9,15 @@
 //   open, start          是否开卷；第一屏的名字
 //   steps                页脚的步骤进度 [{ k: 屏名, name: 两字步骤名 }]，按先后排；入口屏不在其中
 //   screens              { 屏名: Svelte 组件 }。每一屏收到 { ctx, game }，根元素写 class="screen is-active"（右页的内容）。
-//                        每一屏还要放一个 <Spread>（core/Spread.svelte）登记这一对页：左页的名字、页脚的说明与按钮。
-//                        换屏就是翻一页：ctx.show(name, { dir })。屏里需要的说明和按钮都放进 <Spread> 的 hint 与 foot，不要散在页面里
-//                        必须有 start 指向的屏和 'end'（结局屏：用 core/end/* 拼，再加本卷自己的解读）
+//                        **仪式在书外，结果写进书里**：右页只放写下的结果（签文、每一杯、每一爻、兆、解读）和玩家要写的字（问事、命辞）；
+//                        摇、掷、灼用的器物放进 <Spread> 的 desk（案上），说明和按钮放进 hint 与 foot（页脚），不要散在页面里。
+//                        每一屏还要放一个 <Spread>（core/Spread.svelte）登记这一对页：左页的名字、页脚的说明与按钮、案上的器物。
+//                        器物里要接指针或物理的元素，用 use: 动作去接（desk 由 Codex 渲染，不在屏的 onMount 里，别用 bind:this + onMount）。
+//                        等待中的空页（还没有结果可写）给 <Spread record={false}>，不进回看。
+//                        换屏就是翻一页：ctx.show(name, { dir, shut, reset, onCommit })：shut 不翻纸、书合拢再打开（重来：重求、重起、再灼），
+//                        reset 同时换一册新书（回卷首、再来一局）；onCommit 在换屏的那一刻同步执行（卷在这里重置自己的状态，免得书合拢时页面先变）。
+//                        屏内换一页（签落了、结局的分页）用 ctx.turn(commit, { dir, record, shut })。
+//                        必须有 start 指向的屏和 'end'（结局屏：用 core/end/* 拼，再加本卷自己的解读；EndPages 的几页可自由翻）
 //   zhu                  注疏 { 术语: { body, kind: '古籍'|'民俗'|'原创', cite } }，可以是 {}
 //   copy                 公共组件要显示的文案：oracleTitle / oracleAsk / oracleButton / oracleWait / oracleToggleDesc /
 //                        oracleLimited { ip, global } / oracleFail / posterTitle / posterAlt / posterWait
@@ -39,7 +46,7 @@
 // 结局收尾由公共层完成：在卷的 finish() 里调用 finishRound(ctx, game)（src/core/round.js）。
 // ctx 提供什么见 src/core/ctx.svelte.js 的文件头。
 //
-// 公共层（src/core）：纸面 Paper.astro、仪式外壳 Ritual.svelte、眉批 gloss.js、印章 Seal.svelte、
+// 公共层（src/core）：页面外壳 Paper.astro、常驻的书 Codex.svelte、一卷的运行 Ritual.svelte、书的话 gloss.js（ctx.gloss）、印章 Seal.svelte、
 // 墨与水 ink.js、声音 audio.js、摇动控制 shake.svelte.js、观人术（通用部分）profile.js、命盘框架 loom.js、
 // 分享图框架 poster.js、通灵 oracle.svelte.js、注疏 Zhu.svelte / ZhuPanel.svelte、结局 round.js 与 end/*。
 // 各卷特有的观人术、织法、分享图内容在各卷目录里（签卷：profile.js、loom-style.js、poster.js）。

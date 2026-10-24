@@ -74,7 +74,6 @@
 {#snippet l4()}
   <EndingsList endings={ENDINGS} got={e.got} current={e.endKey} />
   <p class="ledger-intro">这块甲上刻的是楷书。真正的<Zhu term="甲骨文的发现">甲骨文</Zhu>，要到 1899 年才被人认出来。</p>
-  <p class="title-links"><a class="about-link" href="/bu/yuanliu/">卜卷源流</a><a class="about-link" href="/about/">关于这件作品</a></p>
 {/snippet}
 
 {#snippet r4()}

@@ -1,8 +1,10 @@
 // 卷的运行环境 ctx：公共层交给每一卷的一套工具。
 //
-//   screen / show(name,{dir})  当前屏与换屏（换屏就是翻一页：dir 1 向后翻，-1 向前翻回去）
-//   turn(commit,{dir})       不换屏、只翻一页（例如结局的分页）：commit() 里改状态
-//   gloss(text, {alarm,key}) 写一条眉批；clearGloss() 清空
+//   screen / show(name,{dir,shut,reset})  当前屏与换屏（换屏就是翻一页：dir 1 向后翻）。
+//                            shut:true 不翻纸，书合拢一下再打开（重来）；reset:true 同时换一册新书（清掉写下的页）
+//   turn(commit,{dir,record,shut})  不换屏、只翻一页（例如签落了、结局的分页）：commit() 里改状态
+//   gloss(text, {alarm,key}) 书说一句话：写在当前书页的空白处，说完渗进纸里；clearGloss() 清空
+//   thud()                   印落在页上，书沉一下（结局）
 //   sfx                      声音（audio.js 的全部导出）
 //   fx / fxPoint(el,ax,ay)   墨与水的画布，与把某元素上的一点换算成画布坐标
 //   reduced / coarse         减少动效、触屏
@@ -17,18 +19,19 @@
 //   profile                  观人术（profile.js）
 //   ledger.seed(data)        行为账本 → 命盘种子
 //   birth                    生辰档案（之后接入，现为 null）
-//   zhu                      注疏（术语出现时注栏同步出注）
-//   el                       { huaxin, stage }：画心与可滚动的舞台
+//   zhu                      注疏（点术语，在旁边贴一条注）
+//   el                       { huaxin, stage }：书的两页与右页的舞台
 
 import { createInk } from './ink.js';
 import { createGloss } from './gloss.js';
-import { turn, onFlip } from './book/book.svelte.js';
+import { turn, onFlip, resetBook } from './book/book.svelte.js';
+import { tear, tremble, thud } from './book/motion.js';
 import { store, daysAgo } from './store.js';
 import { hashString } from './rng.js';
 import * as sfx from './audio.js';
 import * as profile from './profile.js';
 import * as zhu from './zhu.svelte.js';
-import { holdZhu, clearShown } from './zhu.svelte.js';
+import { closePop } from './zhu.svelte.js';
 
 export function createCtx(juan) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -70,6 +73,7 @@ export function createCtx(juan) {
     birth: null,
     ledger: { seed: (data) => hashString(JSON.stringify(data)) % 4294967296 },
     el: { huaxin: null, stage: null },
+    voice: null,
     fx: createInk({}, { reduced: true }), // attach 之前先用空实现，免得提前调用时出错
     lastTap: null,
     lastActive: performance.now(),
@@ -92,16 +96,27 @@ export function createCtx(juan) {
       return { x: r.left - c.left + r.width * ax, y: r.top - c.top + r.height * ay };
     },
 
-    show(name, { dir = 1 } = {}) {
+    // onCommit：换屏的那一刻（书合拢的一瞬）同步执行，卷用它重置自己的状态，免得书合拢的时候页面先变了
+    show(name, { dir = 1, shut = false, reset = false, onCommit } = {}) {
       ctx.prevScreen = ui.screen;
       ctx.touch();
-      return turn(() => { clearShown(); ui.screen = name; ui.n += 1; }, { dir });
+      if (shut && !reset) ctx.gloss('我合上这一页，再翻开一页新的', { key: 'shut' });
+      return turn(() => {
+        onCommit?.();
+        if (reset) resetBook();
+        closePop();
+        ui.screen = name;
+        ui.n += 1;
+      }, { dir, shut: shut || reset, record: !reset });
     },
 
     turn(commit, opts) {
       ctx.touch();
-      return turn(() => { clearShown(); commit(); }, opts);
+      if (opts?.shut) ctx.gloss('我合上这一页，再翻开一页新的', { key: 'shut' });
+      return turn(() => { closePop(); commit(); }, opts);
     },
+
+    thud() { thud(ctx.el.huaxin); },
 
     touch() {
       ctx.lastActive = performance.now();
@@ -129,12 +144,10 @@ export function createCtx(juan) {
     async pressDoubt(game) {
       if (round.finished) return;
       round.doubted = true;
-      ctx.el.huaxin.classList.add('is-broken');
       ctx.gloss('你打断了我', { alarm: true });
       ctx.gloss('你不想被我算');
       sfx.bronze(220, 2.6, 0.16);
-      await ctx.sleep(1600);
-      ctx.el.huaxin.classList.remove('is-broken');
+      await Promise.all([tear(ctx.el.huaxin, ctx.el.stage), ctx.sleep(600)]); // 书页被撕开一道
       game.finish();
     },
 
@@ -145,6 +158,7 @@ export function createCtx(juan) {
         if (performance.now() - ctx.lastActive > 8000) {
           ctx.idleFlagged = true;
           round.idle++;
+          tremble(ctx.el.huaxin); // 书页轻轻颤一下
           ctx.gloss('你停了八秒，我记为犹豫');
           ctx.revealDoubt();
         }
@@ -166,23 +180,23 @@ export function createCtx(juan) {
       if (stage) stage.scrollTop = 0;
     },
 
-    attach({ huaxin, stage, canvas, glossHost }) {
+    // 书的几个部件由 Codex 交进来：两页的容器、右页的舞台、墨画布、大师写字的图层，
+    // 以及“现在能写字的页”（gloss.js 在里面找空白）
+    attach({ huaxin, stage, canvas, voice, pages }) {
       ctx.el.huaxin = huaxin;
       ctx.el.stage = stage;
       ctx.fx = createInk(canvas, { reduced });
       if (debug) window.__fx = ctx.fx; // 调试：手动触发墨与水
-      glossEngine = createGloss(glossHost, { reduced });
+      glossEngine = createGloss(voice, { reduced, pages });
+      ctx.voice = glossEngine;
 
-      // 翻页时，眉批与注先不写，落定之后再写（正在写的那条接着在新的一页上重写）
+      // 翻页时，大师先不写，落定之后再写（正在写的那条接着在新的一页上重写）；浮注先收起
       let release = null;
       cleanups.push(onFlip((ev) => {
         if (ev === 'start') {
           glossEngine.hold(new Promise((r) => { release = r; }));
-          holdZhu(true);
-        } else {
-          release?.();
-          holdZhu(false);
-        }
+          closePop();
+        } else release?.();
       }));
 
       // 指尖落在纸上：一小团墨晕、两圈水纹

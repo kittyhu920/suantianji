@@ -1,0 +1,22 @@
+---
+// 页面交给书的内容。书（Codex.svelte）常驻，换页时只读这个 <template>：
+//   kind    toc 目录 | doc 讲解与关于 | juan 某一卷的仪式
+//   juan    kind 为 juan 时，卷 id
+//   插槽    left 左页（题名）、默认 右页、hint 页脚说明、foot 页脚右侧的链接或按钮
+// 用 <template> 装，内容不进文档树：不会有重复的 id，也不会被读屏软件读两遍。
+interface Props {
+  kind: 'toc' | 'doc' | 'juan';
+  juan?: string;
+  title?: string;
+  back?: { href: string; label: string; aria?: string };
+  tou?: string;
+  long?: boolean;
+}
+const { kind, juan = '', title = '演算天机', back, tou = '', long = false } = Astro.props;
+---
+<template id="stj-page" data-kind={kind} data-juan={juan} data-title={title} data-back-href={back?.href ?? ''} data-back-label={back?.label ?? ''} data-back-aria={back?.aria ?? ''} data-tou={tou} data-long={long ? '1' : ''}>
+  <div data-part="left"><slot name="left" /></div>
+  <div data-part="main"><slot /></div>
+  <div data-part="hint"><slot name="hint" /></div>
+  <div data-part="foot"><slot name="foot" /></div>
+</template>
