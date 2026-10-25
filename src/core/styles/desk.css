@@ -89,8 +89,8 @@
   resize: none;
   overflow: hidden;
 }
-.ask-paper::placeholder { color: rgba(var(--ink-rgb), .42); font-family: var(--f-kai); font-size: 17px; }
-.ask-paper:focus { outline: none; border-bottom-color: var(--ink); }
+.ask-paper::placeholder { color: rgba(var(--ink-rgb), .68); font-family: var(--f-kai); font-size: 17px; opacity: 1; } /* 占位符对纸 ≥ 4.5:1 */
+.ask-paper:focus { outline: 2px solid var(--ink); outline-offset: 3px; border-bottom-color: var(--ink); } /* 焦点：一圈清楚的外框，不是 1px 细线 */
 /* 写下之后：字被纸吸进去，墨色渐渐沉进纸里，只剩一行淡淡的字迹 */
 .ask-written { margin: 0; font-family: var(--f-voice); font-size: 26px; line-height: 1.5; letter-spacing: .05em; color: rgba(var(--ink-rgb), .82); overflow-wrap: anywhere; }
 .ask-written.is-soak { animation: ask-soak 1.5s var(--ease-out) both; }
@@ -139,7 +139,7 @@
 .desk .jiao-block { width: 120px; height: 60px; }
 .desk .jiao-labels span { width: 120px; color: var(--ink-soft); }
 .jiao-sign { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .1em; color: var(--ink); }
-.jiao-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-width: 12em; font-size: 13px; line-height: 1.6; color: var(--ink-soft); text-align: left; }
+.jiao-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-width: 12em; font-size: 14px; line-height: 1.65; color: var(--ink-soft); text-align: left; }
 .jiao-legend b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
 .jiao-tally { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 12em; }
 .jiao-tally .cups { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -152,7 +152,7 @@
 .jiao-result em { font-style: normal; color: var(--cinnabar-hi); }
 
 /* ───────── 起卦：爻的算法、卦画 ───────── */
-.cast-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-soft); text-align: left; }
+.cast-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-soft); text-align: left; }
 .cast-legend b { display: inline-block; min-width: 3em; font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
 .cast-hex { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 13em; max-width: 15em; }
 .cast-line, .cast-result { margin: 0; font-size: 14px; line-height: 1.7; color: var(--ink-soft); text-align: left; }
@@ -187,8 +187,8 @@
 .read-dui b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
 .ask { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 300px; }
 .ask input { background: transparent; border: 0; border-bottom: 1px solid var(--ink-dim); color: var(--ink); font: inherit; font-size: 15px; padding: 6px 4px; }
-.ask input::placeholder { color: rgba(var(--ink-rgb), .32); }
-.ask input:focus { outline: none; border-bottom-color: var(--ink); }
+.ask input::placeholder { color: rgba(var(--ink-rgb), .62); opacity: 1; }
+.ask input:focus { outline: 2px solid var(--ink); outline-offset: 3px; border-bottom-color: var(--ink); }
 .fan-ask { align-items: flex-start; max-width: none; }
 .oracle-wait { font-size: 14px; color: var(--ink-soft); }
 
@@ -203,12 +203,10 @@
   .ask-paper, .ask-written { font-size: 22px; }
   .sign-slip { width: 60px; height: 190px; padding: 12px 0; }
   .sl-name { font-size: 26px; }
-  .jiao-legend { display: none; }
   .desk .jiao { height: 100px; }
   .jiao-tally { align-items: center; min-width: 0; }
   .jiao-tally .cups { flex-direction: row; gap: 14px; }
   .jiao-result { text-align: center; max-width: none; min-height: 2.4em; }
-  .cast-legend { display: none; }
   .cast-hex { align-items: center; min-width: 0; }
   .jie-figs { gap: 22px; }
   .zhuo-side { max-width: none; align-items: center; }

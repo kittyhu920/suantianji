@@ -33,7 +33,7 @@
     if (still()) { onclick?.(e); return; }
     const src = el.cloneNode(true);
     const rect = el.getBoundingClientRect();
-    const host = el.closest('.botbar');
+    const host = el.closest('.bench-slot, .botbar');
     play(el);
     onclick?.(e);
     if (host) requestAnimationFrame(() => { if (!el.isConnected) ghost(src, rect, host); });

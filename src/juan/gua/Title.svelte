@@ -1,5 +1,5 @@
 <script>
-  // 卦卷入口：桌上摆着龟壳与三枚铜钱，书合着在里侧看着；点右下角朱红的“问”字印开始。
+  // 卦卷入口：桌上摆着龟壳与三枚铜钱，书合着在里侧看着；点桌面下方朱红的“问”字印开始。
   import Seal from '../../core/Seal.svelte';
   import Spread from '../../core/Spread.svelte';
   import Instrument from '../../core/desk/Instrument.svelte';
@@ -14,6 +14,6 @@
   </figure>
 {/snippet}
 
-<Spread hint="点右下角朱红的“问”字印开始。三枚铜钱，掷六回，约三分钟，建议打开声音。" {desk}>
-  {#snippet foot()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
+<Spread hint="点下面朱红的“问”字印开始。三枚铜钱，掷六回，约三分钟，建议打开声音。" {desk}>
+  {#snippet act()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
 </Spread>

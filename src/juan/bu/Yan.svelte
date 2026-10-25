@@ -21,9 +21,9 @@
 {/snippet}
 
 <Spread hint="上回卜的事，验了没有？照实选一个，我会记下。" {desk}>
-  {#snippet foot()}
+  {#snippet act()}
     {#each Object.entries(YAN) as [key, y]}
-      <button class="btn" class:btn-primary={key === 'yan'} id={`btn-yan-${key}`} onclick={() => game.answerYan(key)}>{y.label}</button>
+      <button class="btn btn-pair" id={`btn-yan-${key}`} onclick={() => game.answerYan(key)}>{y.label}</button>
     {/each}
   {/snippet}
 </Spread>

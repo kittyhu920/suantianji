@@ -2,6 +2,7 @@
   // 择域与问事。仪式在桌上：三支木牌摆在桌上，选一支定下方向；问题写在桌上的一张纸笺上（这是唯一需要动手输入的地方），
   // 写完点“定”，字被纸吸进去，书再开口回一句。
   import Seal from '../../core/Seal.svelte';
+  import Zhu from '../../core/Zhu.svelte';
   import Spread from '../../core/Spread.svelte';
 
   let { ctx, game } = $props();
@@ -33,7 +34,7 @@
     {/each}
   </div>
   <div class="ask-sheet paper">
-    <p class="shichen" id="shichen">现在的时辰是<b>{branch.zhi}时</b>（{from}–{(from + 2) % 24} 点），五行属{branch.el}</p>
+    <p class="shichen" id="shichen">现在的<Zhu term="时辰" />是<b>{branch.zhi}时</b>（{from}–{(from + 2) % 24} 点），<Zhu term="五行" />属{branch.el}</p>
     <p class="ask-domain" id="ask-domain">{#if dom}所问之事：<b>{dom.name}</b>{dom.desc.replaceAll(' · ', '　')}{:else}先取一块木牌，定下想问的方向。{/if}</p>
     {#if soak}
       <p class="ask-written is-soak" id="ask-written">{ask || '（没有写下具体的问题）'}</p>
@@ -47,6 +48,6 @@
   </div>
 {/snippet}
 
-<Spread hint={soak ? '字被纸吸进去了。' : S.domain ? '选好了，点右下角的“定”。具体的问题可以不写。' : '先在桌上选一块木牌，再点右下角的“定”。具体的问题写在纸笺上，可以不写。'} {desk}>
-  {#snippet foot()}<Seal size="md" id="btn-ding" disabled={!S.domain || soak} aria-label="确定" onclick={confirm}>定</Seal>{/snippet}
+<Spread hint={soak ? '字被纸吸进去了。' : S.domain ? '选好了，点下面的“定”。具体的问题可以不写。' : '先在桌上选一块木牌，再点下面的“定”。具体的问题写在纸笺上，可以不写。'} {desk}>
+  {#snippet act()}<Seal size="md" id="btn-ding" disabled={!S.domain || soak} aria-label="确定" onclick={confirm}>定</Seal>{/snippet}
 </Spread>
