@@ -3,6 +3,7 @@
   // 每一杯的结果记在桌上的三格里，过程记录写进命书。
   import { onMount } from 'svelte';
   import Spread from '../../core/Spread.svelte';
+  import Zhu from '../../core/Zhu.svelte';
   import { trueRandom } from '../../core/rng.js';
   import { CUP_NAMES, CUP_LABELS } from './jiao.js';
   import { signNo } from './game.svelte.js';
@@ -65,16 +66,20 @@
     if (J.mode === 'throw' && throwBtn) throwBtn.focus({ preventScroll: true });
   });
 
+  const narrowNow = typeof matchMedia === 'function' && matchMedia('(max-width: 959px)').matches;
   const slot = (i) => S.cups[i] || (i === S.cups.length ? S.pending : null);
 </script>
 
 {#snippet desk()}
-  <ul class="jiao-legend" aria-label="筊杯的规矩">
-    <li><b>圣杯</b>一平一凸：神明同意</li>
-    <li><b>笑杯</b>两面都平：没说清，再掷一次</li>
-    <li class="is-yin"><b>阴杯</b>两面都凸：神明不同意</li>
-    <li>连续三次圣杯，这支签才算数</li>
-  </ul>
+  <details class="legend-plaque paper" open={!narrowNow}>
+    <summary><span><Zhu term="掷筊" />的规矩</span></summary>
+    <ul class="jiao-legend" aria-label="筊杯的规矩">
+      <li><b><Zhu term="圣杯" /></b>一平一凸：神明同意</li>
+      <li><b><Zhu term="笑杯" /></b>两面都平：没说清，再掷一次</li>
+      <li class="is-yin"><b><Zhu term="阴杯" /></b>两面都凸：神明不同意</li>
+      <li><Zhu term="三杯定签">连续三次圣杯</Zhu>，这支签才算数</li>
+    </ul>
+  </details>
   <div class="jiao-pair">
     {#if S.sign}<p class="jiao-sign">{signNo(S.sign)}　{S.sign.name}</p>{/if}
     {#if deskState.on}
@@ -111,10 +116,10 @@
 {/snippet}
 
 <Spread hint={J.note} {desk}>
-  {#snippet foot()}
+  {#snippet act()}
     {#if J.mode === 'choose'}
-      <button class="btn btn-ghost" id="btn-reroll" disabled={J.busy} onclick={game.reroll}>{J.reroll}</button>
-      <button class="btn btn-primary" id="btn-accept" disabled={J.busy} onclick={game.accept}>{J.accept}</button>
+      <button class="btn btn-pair" id="btn-reroll" disabled={J.busy} onclick={game.reroll}>{J.reroll}</button>
+      <button class="btn btn-pair" id="btn-accept" disabled={J.busy} onclick={game.accept}>{J.accept}</button>
     {:else}
       <button class="btn btn-primary" id="btn-throw" bind:this={throwBtn} disabled={J.busy} onclick={game.playerThrow}>{J.again ? '再掷一次' : '掷筊'}</button>
     {/if}

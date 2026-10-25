@@ -1,6 +1,7 @@
 <script>
   // 起卦：龟壳里三枚铜钱摆在桌上，摇动控制（docs/DESIGN.md §6）。连掷六次，爻自下而上一根根画在龟壳旁的卦画上，写满成卦。
   import Spread from '../../core/Spread.svelte';
+  import Zhu from '../../core/Zhu.svelte';
   import Seal from '../../core/Seal.svelte';
   import Hexagram from './Hexagram.svelte';
   import { CN_YAO, YAO, faceText } from './yao.js';
@@ -19,23 +20,27 @@
     return { destroy() { unbind(); off(); if (piece) piece.proxy = null; } };
   }
 
+  const narrowNow = typeof matchMedia === 'function' && matchMedia('(max-width: 959px)').matches;
   const n = $derived(S.cur.length);
   const last = $derived(S.cur[n - 1]);
   const noteNow = $derived(!shake.hasMotion
-    ? '按住桌上的龟壳左右拖着摇；只按住不动，它也会自己轻轻摇。'
+    ? '按住桌上的龟壳左右拖着摇；只按住不动，它也会自己轻轻摇。不用鼠标：Tab 聚焦龟壳，按住空格（或回车）它就摇，松开铜钱就飞出来。'
     : shake.motion === 'denied'
-      ? '没有得到晃动手机的许可，就按住龟壳左右拖着摇吧。'
-      : '拿起手机晃一晃，铜钱会自己飞出来。也可以按住龟壳左右拖。');
-  const note = $derived(S.result ? '卦成了。点右下角的“解”，看这一卦怎么说。' : n === 0 ? noteNow : `第 ${n} 爻已画在卦画上。再摇，掷第 ${n + 1} 爻。`);
+      ? '没有得到晃动手机的许可，就按住龟壳左右拖着摇吧。不用触屏：Tab 聚焦龟壳，按住空格也行。'
+      : '拿起手机晃一晃，铜钱会自己飞出来。也可以按住龟壳左右拖，或 Tab 聚焦龟壳后按住空格。');
+  const note = $derived(S.result ? '卦成了。点下面的“解”，看这一卦怎么说。' : n === 0 ? noteNow : `第 ${n} 爻已画在卦画上。再摇，掷第 ${n + 1} 爻。`);
 </script>
 
 {#snippet desk()}
-  <ul class="cast-legend" aria-label="一爻的算法">
-    <li><b>老阳</b>三背 9：阳爻，要变</li>
-    <li><b>少阴</b>两背一字 8：阴爻</li>
-    <li><b>少阳</b>一背两字 7：阳爻</li>
-    <li><b>老阴</b>三字 6：阴爻，要变</li>
-  </ul>
+  <details class="legend-plaque paper" open={!narrowNow}>
+    <summary><span>一<Zhu term="爻" />怎么算</span></summary>
+    <ul class="cast-legend" aria-label="一爻的算法">
+      <li><b><Zhu term="老阳" /></b>三背 9：阳爻，要变</li>
+      <li><b><Zhu term="少阴" /></b>两背一字 8：阴爻</li>
+      <li><b><Zhu term="少阳" /></b>一背两字 7：阳爻</li>
+      <li><b><Zhu term="老阴" /></b>三字 6：阴爻，要变</li>
+    </ul>
+  </details>
   {#if deskState.on}
     <div class="piece-slot is-gua" id="shell-wrap" use:slot={{ id: 'gua', at: [0.5, 0.2] }}>
       <button class="tube kegui proxy" id="shell" use:rig aria-label="龟壳：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃"></button>
@@ -56,13 +61,13 @@
     {/if}
     {#if S.result}
       {@const r = S.result}
-      <p class="cast-result" id="cast-result">本卦：<b>{r.hex.name}</b>（{r.hex.lower}下{r.hex.upper}上）{#if r.changed}，变卦：<b>{r.changed.name}</b>{:else}，没有变爻{/if}</p>
+      <p class="cast-result" id="cast-result"><Zhu term="本卦" />：<b>{r.hex.name}</b>（{r.hex.lower}下{r.hex.upper}上）{#if r.changed}，<Zhu term="变卦" />：<b>{r.changed.name}</b>{:else}，没有<Zhu term="变爻" />{/if}</p>
     {/if}
   </div>
 {/snippet}
 
 <Spread hint={note} {desk}>
-  {#snippet foot()}
+  {#snippet act()}
     {#if S.result}<Seal size="md" id="btn-jie" aria-label="解卦" onclick={game.toJie}>解</Seal>{/if}
   {/snippet}
 </Spread>

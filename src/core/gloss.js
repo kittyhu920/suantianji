@@ -12,8 +12,9 @@ const LIFT_MS = 520; // 封面掀起要的时间
 
 /**
  * host：扉页上写字的容器（.voice）。onState(true|false)：书开始说话（封面掀起）/ 说完（封面落回）。
+ * onSay(text)：书每说一句，就把那一句的原文交出去（读屏的朗读区用它：扉页上的字是一个个洇开的，读屏读不到）。
  */
-export function createGloss(host, { reduced = false, onState } = {}) {
+export function createGloss(host, { reduced = false, onState, onSay } = {}) {
   const queue = [];
   let busy = false;
   let cur = null; // 正在写的那一条
@@ -74,6 +75,7 @@ export function createGloss(host, { reduced = false, onState } = {}) {
       const step = reduced ? 0 : backlog > 1 ? 14 : backlog ? 28 : 46;
       const { el, n } = build(item, step);
       host.replaceChildren(el); // 一次只写一句：扉页上只留这一句
+      onSay?.(item.text);
       item.el = el;
 
       await wait(item, n * step + (reduced ? 420 : 560)); // 写完

@@ -1,7 +1,9 @@
 <script>
   // 读命书（docs/DESIGN.md §19）：书在桌子中央摊开，只用来读。翻页用 WebGL（three-book.js）做真正的曲面卷页：点页、拖页角、方向键，
   // 带惯性和回弹。每一页是 Canvas 2D 画出来的纹理（pages.js 给描述，paint.js 的笔法），字体加载完再画，按 dpr 放大；翻页时不重画任何纹理。
-  // 退回方案：WebGL 不可用、减少动效、手机端，都退回 DOM 里的 2D 书页（桌面是左右两页，手机是单页），点边、滑动、方向键翻页，功能等价。
+  // 读屏：正文只画在 Canvas 上，读屏读不到，所以另有一份平行的、视觉上隐藏的文本（每页一个 <article>，带标题），
+// 每次翻页，把现在这个对页的标题与正文写进朗读区；页码从 1 开始数（docs/DESIGN.md §20）。
+// 退回方案：WebGL 不可用、减少动效、手机端，都退回 DOM 里的 2D 书页（桌面是左右两页，手机是单页），点边、滑动、方向键翻页，功能等价。
   //   pages    页描述数组（core/book/pages.js）
   //   narrow   手机宽度（< 960px）
   //   on       书已经摊开（封面翻开的动画放完）：这时才显示
@@ -221,11 +223,22 @@
     if ((mode === 'two' || mode === 'one') && slotR && loaded) untrack(show2d);
   });
 
-  const label = $derived(pages ? `命书，第 ${spread} 个对页` : '命书');
+  /* ───────── 读屏 ───────── */
+  const titleOf = (i) => pages[i]?.title ?? `第 ${i + 1} 页`;
+  // 正文以标题开头的（页的 text 是“标题+正文”拼起来的），去掉重复的标题
+  const bodyOf = (i) => { const p = pages[i]; if (!p) return ''; const t = titleOf(i); return p.text.startsWith(t) ? p.text.slice(t.length) : p.text; };
+  const countOf = () => (mode === 'one' ? pages.length : (pages.length >> 1) + 1);
+  // 现在看到的页：2D 单页是第 p1 页；其余是对页 spread（0 是扉页单独在右边）
+  const seen = $derived(mode === 'one' ? [p1] : spread === 0 ? [0] : [2 * spread - 1, 2 * spread].filter((i) => i < pages.length));
+  const where = $derived(mode === 'one' ? `第 ${p1 + 1} 页，共 ${countOf()} 页` : `第 ${spread + 1} 个对页，共 ${countOf()} 个`);
+  const label = $derived(pages ? `命书，${where}` : '命书');
+  // 朗读区的内容：翻到哪，读哪。书还没摊开的时候不读
+  const said = $derived(on ? `${where}。${seen.map((i) => `${titleOf(i)}。${bodyOf(i)}`).join('　')}` : '');
+  const turnBy = (dir) => { if (mode === 'gl') engine?.turn(dir); else go(dir); };
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="reader" class:is-2d={mode !== 'gl'} bind:this={host} aria-label={label}
+<div class="reader" class:is-2d={mode !== 'gl'} bind:this={host} role="region" aria-label={label} tabindex="-1" inert={!on}
   onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={onUp}>
   {#if mode === 'gl'}
     <canvas bind:this={glCanvas} aria-hidden="true"></canvas>
@@ -238,5 +251,22 @@
       {#if mode === 'one'}<p class="rd-page-no">{p1 + 1} / {real}</p>{/if}
     </div>
   {/if}
-  <p class="visually-hidden" aria-live="polite">{label}</p>
+  {#if mode === 'gl'}
+    <!-- 画布上没有按钮：给键盘与读屏另备两个（平时看不见，聚焦时显出来） -->
+    <div class="rd-sr-nav">
+      <button type="button" onclick={() => turnBy(-1)}>上一个对页</button>
+      <button type="button" onclick={() => turnBy(1)}>下一个对页</button>
+    </div>
+  {/if}
+  <!-- 朗读区：翻到哪一页，就把这个对页的标题与正文写在这里 -->
+  <p class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{said}</p>
+  <!-- 平行的文本：整本命书，每页一个 <article>，带标题（Canvas 上的字，读屏读不到） -->
+  <div class="visually-hidden" aria-label="命书全文">
+    {#each pages as p, i (p.id + i)}
+      <article aria-labelledby={`rd-h-${i}`}>
+        <h2 id={`rd-h-${i}`}>{titleOf(i)}</h2>
+        <p>{bodyOf(i)}</p>
+      </article>
+    {/each}
+  </div>
 </div>

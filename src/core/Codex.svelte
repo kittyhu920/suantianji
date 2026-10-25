@@ -4,18 +4,23 @@
   //   天头栏   卷名、回书桌、源流与关于、通灵开关、昼夜、声
   //   书桌     首页：正中一本合上的书，四周摆各卷的器物；进卷：书退到桌子里侧，合着旁观，说话时封面掀起；
   //            仪式用桌上的实物完成；仪式完，书滑到桌子中央、摊开，是替你写的命书（Reader.svelte，WebGL 翻页）
-  //   页脚     这一步的说明（读命书时是这一页的脚注）、本卷的步骤、按钮（主按钮朱印）、存疑印
+  //   按钮槽   这一步的主操作，在桌面下方中央、紧挨着器物（desk/BenchSlot.svelte，docs/DESIGN.md §20）
+//   页脚     两行：这一步的说明（读命书时是这一页的脚注）；本卷的步骤、存疑（读命书时是合上、再来、保存）
+//   注       术语加点线，点一下贴出一张纸条（ZhuPanel.svelte）
   // 页面（书桌、关于、讲解、各卷）只交一个 <template id="stj-page">（PageData.astro），换页时读它。
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { navigate } from 'astro:transitions/client';
   import { juans } from '../juan/index.js';
   import { modules } from '../juan/modules.js';
   import Ritual from './Ritual.svelte';
-  import Seal from './Seal.svelte';
   import OracleToggle from './OracleToggle.svelte';
   import Book from './book/Book.svelte';
   import Reader from './book/Reader.svelte';
   import Instrument from './desk/Instrument.svelte';
+  import BenchSlot from './desk/BenchSlot.svelte';
+  import ZhuPanel from './ZhuPanel.svelte';
+  import Zhu from './Zhu.svelte';
+  import { termSegments } from './zhu-text.js';
   import { footnotes } from './book/notes.js';
   import { spread, stage } from './book/stage.svelte.js';
   import { mountTilt } from './tilt.js';
@@ -140,6 +145,42 @@
     if (next) page = next;
   }
 
+  // ───────── 焦点（docs/DESIGN.md §20）─────────
+  // 进卷、换屏、进命书、回书桌之后，焦点要落在看得见、用得着的地方，不能留在已经隐藏的首页器物上
+  const FOCUSABLE = 'button:not([disabled]):not(.zhu-term), a[href], input:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
+  let lastJuan = '';
+  let prevPhase = '';
+  const lost = () => {
+    const a = document.activeElement;
+    return !a || a === document.body || !!a.closest?.('.pieces, .reader[aria-hidden="true"]') || !a.isConnected;
+  };
+  function settle() {
+    // 器物里第一个能操作的；没有（入口屏）就是按钮槽里的主按钮
+    const within = (root) => FOCUSABLE.split(', ').map((f) => `${root} ${f}`).join(', ');
+    const el = table?.querySelector(within('.desk-items')) ?? table?.querySelector(within('.bench-slot'));
+    el?.focus({ preventScroll: true });
+  }
+  // 换屏（含首次进卷）：桌上出现了新的东西
+  $effect(() => {
+    if (phase !== 'ritual' || !cur) return;
+    const t = setTimeout(async () => { await tick(); if (lost()) settle(); }, 80);
+    return () => clearTimeout(t);
+  });
+  // 命书翻开：焦点到命书上，读屏从这里读起；离开命书回书桌：焦点放回刚才那一卷的器物
+  $effect(() => {
+    const p = phase;
+    if (juan) lastJuan = juan.id;
+    if (p === prevPhase) return;
+    const from = prevPhase;
+    prevPhase = p;
+    if (p === 'home' && from && lastJuan) {
+      setTimeout(() => document.querySelector(`.piece[href*="/${lastJuan}/"]`)?.focus({ preventScroll: true }), 120);
+    }
+  });
+  $effect(() => {
+    if (readerOn) tick().then(() => document.querySelector('.reader')?.focus({ preventScroll: true }));
+  });
+
   function home() {
     if (!game || atStart || phase === 'reading') { navigate('/'); return; }
     game.toStart();
@@ -255,6 +296,7 @@
 </script>
 
 <div class="shell" data-phase={phase} data-reader={readerOn ? 'on' : 'off'} class:is-narrow={narrow} class:is-gl={gl}>
+  {#if page.kind === 'home' || juan}<h1 class="visually-hidden">{juan ? `演算天机　${juan.name}卷　${juan.title}` : '演算天机　书桌'}</h1>{/if}
   <header class="topbar">
     {#if juan}
       <button class="tag-btn" id="btn-home" type="button" aria-label={atStart || phase === 'reading' ? '回到书桌' : '回到卷首'} onclick={home}>{atStart || phase === 'reading' ? '书桌' : '卷首'}</button>
@@ -287,7 +329,7 @@
 
       <!-- 首页：四周摆各卷的器物。悬停浮起，旁边出现卷名与简介；点开了卷的器物进那一卷（2D 退回时；3D 的见下面的 pieces-gl） -->
       {#if !gl}
-      <nav class="pieces" aria-label="书桌上的器物，一件一卷" aria-hidden={phase !== 'home'}>
+      <nav class="pieces" aria-label="书桌上的器物，一件一卷" inert={phase !== 'home'}>
         {#each juans as j}
           {@const p = SPOTS[j.id]}
           {#if j.open}
@@ -307,22 +349,20 @@
       </nav>
       {/if}
 
-      {#if glState !== 'on'}
       <div class="book-anchor" aria-hidden={phase === 'doc'}>
         <Book {lift} bind:voice={voice2d} />
       </div>
-      {/if}
       {#if mounted && juan && voice}{#key `${juan.id}:${glState}`}<Ritual {juan} {voice} />{/key}{/if}
 
       <!-- 仪式：器物摆在桌面的中前部 -->
-      <div class="desk" aria-label="桌上" aria-hidden={phase !== 'ritual'}>
+      <div class="desk" aria-label="桌上" inert={phase !== 'ritual'}>
         <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
       </div>
     </div>
 
     {#if gl}
       <!-- 3D 书桌上的器物：键盘与读屏的入口（位置跟着器物投影到屏幕上的矩形），指针由画布拾取（pieces/index.js） -->
-      <nav class="pieces-gl" aria-label="书桌上的器物，一件一卷" aria-hidden={phase !== 'home'}>
+      <nav class="pieces-gl" aria-label="书桌上的器物，一件一卷" inert={phase !== 'home'}>
         {#each juans as j}
           {@const r = rects[j.id]}
           {#if r}
@@ -345,8 +385,12 @@
       {/if}
       <!-- 书的话：写在扉页上（字是 DOM，用透视变换贴在 3D 的扉页上，见 placeVoice） -->
       <div class="voice-plane" bind:this={vplane}>
-        <div class="voice" aria-live="polite" aria-label="书的话" bind:this={voiceGl}></div>
+        <div class="voice" bind:this={voiceGl}></div>
       </div>
+    {/if}
+
+    {#if phase === 'ritual' && cur?.act}
+      <BenchSlot>{@render cur.act()}</BenchSlot>
     {/if}
 
     {#if phase === 'doc' && mounted}
@@ -362,45 +406,39 @@
   </div>
 
   <footer class="botbar">
-    <div class="bot-doubt">
+    {#if juan}
+      {#if phase === 'reading' && notes.length}
+        <ul class="bot-notes" id="bot-notes" aria-label="这一页的注">
+          {#each notes as n}<li><b>{n.term}</b>{n.body}<small>{n.kind}</small></li>{/each}
+        </ul>
+      {:else}
+        <p class="bot-hint" id="bot-hint">{#each termSegments(cur?.hint ?? '', juan.zhu) as sg}{#if sg.term}<Zhu term={sg.term}>{sg.t}</Zhu>{:else}{sg.t}{/if}{/each}</p>
+      {/if}
+    {:else}
+      <p class="bot-hint" id="bot-hint">{@html page.hint}</p>
+    {/if}
+    <div class="bot-row">
       {#if game && ctx.doubtVisible(game)}
-        <Seal size="sm" class="seal-doubt" id="btn-doubt" aria-label="存疑：不再相信这场推演" onclick={() => ctx.pressDoubt(game)}>存疑</Seal>
+        <button class="doubt-btn" id="btn-doubt" type="button" aria-label="存疑：不再相信这场推演" onclick={() => ctx.pressDoubt(game)}>存疑</button>
       {/if}
-    </div>
-    <div class="bot-mid">
-      {#if juan}
-        {#if phase === 'reading' && notes.length}
-          <ul class="bot-notes" id="bot-notes" aria-label="这一页的注">
-            {#each notes as n}<li><b>{n.term}</b>{n.body}<small>{n.kind}</small></li>{/each}
-          </ul>
+      {#if juan && steps.length && phase !== 'reading'}
+        <ol class="bot-steps" aria-label="本卷的步骤">
+          {#each steps as s, i}
+            <li class:is-cur={i === stepIdx} class:is-past={stepIdx >= 0 && i < stepIdx} aria-current={i === stepIdx ? 'step' : undefined}>
+              {#if i}<i class="stp-arrow" aria-hidden="true">→</i>{/if}<b>{cn(i + 1)}</b><span class="stp-dot" aria-hidden="true">·</span><span class="stp-name">{s.name}</span>
+            </li>
+          {/each}
+        </ol>
+      {/if}
+      <div class="bot-acts">
+        {#if juan}
+          {#if cur?.foot}{@render cur.foot()}{/if}
         {:else}
-          <p class="bot-hint" id="bot-hint">{cur?.hint ?? ''}</p>
+          {@html page.foot}
         {/if}
-        {#if steps.length && phase !== 'reading'}
-          <ol class="bot-steps" aria-label="本卷的步骤">
-            {#each steps as s, i}
-              <li class:is-cur={i === stepIdx} class:is-past={stepIdx >= 0 && i < stepIdx} aria-current={i === stepIdx ? 'step' : undefined}>
-                {#if i}<i class="stp-arrow" aria-hidden="true">→</i>{/if}<b>{cn(i + 1)}</b><span class="stp-dot" aria-hidden="true">·</span><span class="stp-name">{s.name}</span>
-              </li>
-            {/each}
-          </ol>
-        {/if}
-        {#if reg}
-          <p class="bot-links">
-            {#if reg.source}<a class="about-link" href={reg.source}>{reg.name}卷源流</a>{/if}
-            <a class="about-link" href="/about/">关于这件作品</a>
-          </p>
-        {/if}
-      {:else}
-        <p class="bot-hint" id="bot-hint">{@html page.hint}</p>
-      {/if}
-    </div>
-    <div class="bot-acts">
-      {#if juan}
-        {#if cur?.foot}{@render cur.foot()}{/if}
-      {:else}
-        {@html page.foot}
-      {/if}
+      </div>
     </div>
   </footer>
 </div>
+
+<ZhuPanel />

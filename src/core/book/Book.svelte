@@ -7,7 +7,7 @@
   import { onMount } from 'svelte';
   import { juans } from '../../juan/index.js';
   import { stamps } from '../store.js';
-  import { bookEl } from './stage.svelte.js';
+  import { bookEl, stage } from './stage.svelte.js';
 
   let { lift = 'shut', voice = $bindable(null) } = $props();
   let el;
@@ -23,13 +23,15 @@
 </script>
 
 <div class="book" data-lift={lift} bind:this={el}>
+  <!-- 朗读区：书说的每一句也写在这里，读屏软件会读（扉页上的字逐字洇开、放在 aria-hidden 里，读不到）。放在 aria-hidden 之外，视觉上隐藏 -->
+  <p class="visually-hidden" id="book-said" role="status" aria-live="polite" aria-atomic="true">{#key stage.saidN}{#if stage.said}<span>书说：{stage.said}</span>{/if}{/key}</p>
   <i class="bk-shadow" aria-hidden="true"></i>
   <div class="bk-body" aria-hidden="true">
     <i class="bk-back"></i>
     <i class="bk-edge bk-edge-r"></i>
     <i class="bk-edge bk-edge-b"></i>
     <div class="bk-sheet">
-      <div class="bk-slip"><div class="voice" aria-live="polite" aria-label="书的话" bind:this={voice}></div></div>
+      <div class="bk-slip"><div class="voice" bind:this={voice}></div></div>
     </div>
     <div class="bk-cover">
       <div class="cv-front">

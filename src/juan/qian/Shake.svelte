@@ -27,14 +27,14 @@
   }
 
   const noteNow = $derived(!shake.hasMotion
-    ? '按住桌上的签筒左右拖着摇；只按住不动，它也会自己轻轻摇。'
+    ? '按住桌上的签筒左右拖着摇；只按住不动，它也会自己轻轻摇。不用鼠标：Tab 聚焦签筒，按住空格（或回车）它就摇，松开签就落。'
     : shake.motion === 'denied'
-      ? '没有得到晃动手机的许可，就按住签筒左右拖着摇吧。'
-      : '拿起手机晃一晃，签会自己跳出来。也可以按住签筒左右拖。');
+      ? '没有得到晃动手机的许可，就按住签筒左右拖着摇吧。不用触屏：Tab 聚焦签筒，按住空格也行。'
+      : '拿起手机晃一晃，签会自己跳出来。也可以按住签筒左右拖，或 Tab 聚焦签筒后按住空格。');
   // 签一出筒，提示就不再变了；签落下来后换成下一步的提示
   let frozen = $state('');
   $effect(() => { if (!S.sign) frozen = noteNow; });
-  const note = $derived(S.signShown ? '签落下来了。点右下角的“掷筊请示”，问问神明这支签算不算数。签上的诗与解，我写进命书里。' : (S.sign ? frozen : noteNow));
+  const note = $derived(S.signShown ? '签落下来了。点下面的“掷筊请示”，问问神明这支签算不算数。签上的诗与解，我写进命书里。' : (S.sign ? frozen : noteNow));
 </script>
 
 {#snippet desk()}
@@ -60,7 +60,7 @@
 {/snippet}
 
 <Spread hint={note} {desk}>
-  {#snippet foot()}
+  {#snippet act()}
     {#if S.signShown && S.sign}<button class="btn btn-primary" id="btn-to-jiao" onclick={game.enterJiao}>掷筊请示</button>{/if}
   {/snippet}
 </Spread>

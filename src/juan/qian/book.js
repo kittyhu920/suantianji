@@ -12,6 +12,7 @@ export function signPages({ sign, label, domain, advice, state }) {
   if (!sign) {
     return [{
       id: 'sign',
+      title: '没有签',
       text: '还没有抽签签筒里的签一支也没有出来',
       sig: 'sign',
       zhu: [],
@@ -23,6 +24,7 @@ export function signPages({ sign, label, domain, advice, state }) {
   }
   const first = {
     id: 'sign',
+    title: `签文：${label}${sign.name}`,
     text: `${label}${sign.name}${sign.level}${sign.poem.join('')}`,
     sig: 'sign',
     zhu: ['六十甲子', '纳音', '签头'],
@@ -48,6 +50,7 @@ export function signPages({ sign, label, domain, advice, state }) {
   };
   const second = {
     id: 'jie',
+    title: '解签',
     text: `解签${sign.jie}${sign.bai}${advice ?? ''}${state.text}`,
     sig: 'jie',
     zhu: [],
@@ -70,6 +73,7 @@ export function cupPages({ throws, state, sign }) {
     .filter((a) => a.length);
   return [{
     id: 'cups',
+    title: '掷筊请示',
     text: `掷筊请示${sign?.name ?? ''}${throws.map((t) => CUP_NAMES[t.kind]).join('')}第杯支${state.text}圣杯一平一凸神明同意笑杯两面都平再掷一次阴杯两面都凸神明不同意连续三次圣杯这支签才算数`,
     sig: 'cups',
     zhu: ['筊杯', '圣杯', '笑杯', '阴杯', '三杯定签'],

@@ -6,7 +6,9 @@
 .table.is-gl .scene, .shell[data-phase="ritual"] .table.is-gl .desk { pointer-events: none; }
 .table.is-gl .desk-plane { display: none; }
 /* 桌上要点的东西（木牌、纸笺、按钮、输入）仍可点；版面里的落脚处与器物的替身不接指针 */
-.table.is-gl .desk-items :where(button, a, input, textarea, select, label, .ask-sheet) { pointer-events: auto; }
+.table.is-gl .desk-items :where(button, a, input, textarea, select, label, summary, details, .ask-sheet) { pointer-events: auto; }
+/* 2D 的书不画（3D 里有书），但朗读区留着，读屏仍然读得到书说的话 */
+.table.is-gl .book-anchor .book > :not(#book-said) { display: none; }
 .table.is-gl .piece-slot, .table.is-gl .piece-slot * { pointer-events: none; }
 
 /* 落脚处：版面里留给 3D 器物的一块地方（器物走到它在桌面上的位置，不画任何东西） */

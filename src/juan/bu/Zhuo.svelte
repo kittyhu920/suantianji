@@ -3,6 +3,7 @@
   // 读兆时，兆图换到桌上，旁边是我的读法；解兆的白话与建议写进命书。
   // 读完兆可以：王占曰（受兆 / 兆凶则改判）、再灼一处、或对贞——把同一件事反过来问一次。
   import Spread from '../../core/Spread.svelte';
+  import Zhu from '../../core/Zhu.svelte';
   import Plastron from './Plastron.svelte';
   import OmenFigure from './OmenFigure.svelte';
   import OmenGL from './OmenGL.svelte';
@@ -33,9 +34,9 @@
   });
 
   const pickNote = $derived(
-    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住桌上与第一灼左右对称的那一处。'
-      : S.nextKind === 'again' ? '另选一处钻凿，再灼。火红了就别松手。'
-        : '按住桌上龟甲的一处钻凿，别松手；火红了，“卜”的一声就来。'
+    S.nextKind === 'fan' ? '这一灼是“对贞”：把同一件事反过来问。按住桌上与第一灼左右对称的那一处；不用鼠标就 Tab 聚焦它，按住空格。'
+      : S.nextKind === 'again' ? '另选一处钻凿，再灼。火红了就别松手。不用鼠标：Tab 聚焦钻凿，按住空格。'
+        : '按住桌上龟甲的一处钻凿，别松手；火红了，“卜”的一声就来。不用鼠标：Tab 聚焦钻凿，按住空格。'
   );
 
   const hint = $derived(!reading ? pickNote
@@ -63,11 +64,11 @@
   {#if reading && S.grown && cur}
     {@const o = OMENS[cur.omen]}
     <div class="read" id="read">
-      <p class="read-name" data-tone={o.tone}><small>兆曰</small><b>{o.name}</b></p>
+      <p class="read-name" data-tone={o.tone}><small><Zhu term="兆" />曰</small><b>{o.name}</b></p>
       <p class="read-line">{o.line}</p>
-      <p class="read-how">我是这样读的：{explain(crack.metrics)}。兆干兆枝的形状决定兆象，这套读法是我定的规矩。</p>
+      <p class="read-how">我是这样读的：{explain(crack.metrics)}。<Zhu term="兆干兆枝" />的形状决定<Zhu term="兆象" />，这套读法是我定的规矩。</p>
       {#if cur.kind === 'fan' && zhengB}
-        <p class="read-dui">正反对贞：正问是<b>{OMENS[zhengB.omen].name}</b>，反问是<b>{o.name}</b>。{isXiong(zhengB.omen) === isXiong(cur.omen) ? '两边一个调子，哪边都说得通。' : '一正一反，两兆相应。'}</p>
+        <p class="read-dui"><Zhu term="正反对贞" />：正问是<b>{OMENS[zhengB.omen].name}</b>，反问是<b>{o.name}</b>。{isXiong(zhengB.omen) === isXiong(cur.omen) ? '两边一个调子，哪边都说得通。' : '一正一反，两兆相应。'}</p>
       {/if}
       {#if showFan}
         <label class="ask fan-ask">
@@ -105,20 +106,22 @@
 {/snippet}
 
 <Spread {hint} {desk}>
-  {#snippet foot()}
+  {#snippet act()}
     {#if reading && S.grown && cur}
       {#if showFan}
-        <button class="btn btn-ghost" onclick={() => { showFan = false; }}>算了</button>
-        <button class="btn btn-primary" id="btn-fan-go" onclick={startFan}>去灼</button>
+        <button class="btn btn-pair" onclick={() => { showFan = false; }}>算了</button>
+        <button class="btn btn-pair" id="btn-fan-go" onclick={startFan}>去灼</button>
       {:else}
         {#if game.spotsLeft() > 0}
           <button class="btn btn-ghost" id="btn-again" onclick={game.again}>不满意，再灼一处</button>
           {#if !fanB}<button class="btn btn-ghost" id="btn-dui" onclick={openFan}>对贞：反过来问</button>{/if}
         {/if}
         {#if zhengB && isXiong(zhengB.omen)}
-          <button class="btn" id="btn-overrule" onclick={game.overrule}>王占曰：吉</button>
+          <button class="btn btn-pair" id="btn-overrule" onclick={game.overrule}>王占曰：吉</button>
+          <button class="btn btn-pair" id="btn-accept" onclick={game.accept}>王占曰：从兆</button>
+        {:else}
+          <button class="btn btn-primary" id="btn-accept" onclick={game.accept}>王占曰：受兆</button>
         {/if}
-        <button class="btn btn-primary" id="btn-accept" onclick={game.accept}>王占曰：{zhengB && isXiong(zhengB.omen) ? '从兆' : '受兆'}</button>
       {/if}
     {/if}
   {/snippet}
