@@ -136,8 +136,9 @@ export function createGame(ctx) {
   }
 
   // 起卦屏挂上时创建龟壳；离开时停掉
-  function attachShell(svg) {
+  function attachShell(svg, view) {
     shell = createShell(svg, {
+      view,
       sfx,
       reduced: ctx.reduced,
       onRelease: rollCoins,

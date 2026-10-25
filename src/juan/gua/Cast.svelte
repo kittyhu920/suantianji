@@ -4,16 +4,19 @@
   import Seal from '../../core/Seal.svelte';
   import Hexagram from './Hexagram.svelte';
   import { CN_YAO, YAO, faceText } from './yao.js';
+  import { deskState, deskRef, slot } from '../../core/scene/desk.svelte.js';
 
   let { ctx, game } = $props();
   const { S, shake } = game;
 
   // 龟壳在桌上，由 Codex 渲染：用动作把龟壳与摇动控制接上
   function rig(button) {
-    const svg = button.querySelector('svg');
-    const off = game.attachShell(svg);
+    const piece = deskState.on ? deskRef.pieces?.list.gua : null;
+    const svg = button.querySelector('svg') ?? document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const off = game.attachShell(svg, piece?.view);
     const unbind = shake.bind(button);
-    return { destroy() { unbind(); off(); } };
+    if (piece) piece.proxy = () => button;
+    return { destroy() { unbind(); off(); if (piece) piece.proxy = null; } };
   }
 
   const n = $derived(S.cur.length);
@@ -33,11 +36,17 @@
     <li><b>少阳</b>一背两字 7：阳爻</li>
     <li><b>老阴</b>三字 6：阴爻，要变</li>
   </ul>
-  <div class="shell-wrap" id="shell-wrap">
-    <button class="tube kegui" id="shell" use:rig aria-label="龟壳：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃">
-      <svg id="shell-svg" aria-hidden="true"></svg>
-    </button>
-  </div>
+  {#if deskState.on}
+    <div class="piece-slot is-gua" id="shell-wrap" use:slot={{ id: 'gua', at: [0.5, 0.2] }}>
+      <button class="tube kegui proxy" id="shell" use:rig aria-label="龟壳：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃"></button>
+    </div>
+  {:else}
+    <div class="shell-wrap" id="shell-wrap">
+      <button class="tube kegui" id="shell" use:rig aria-label="龟壳：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃">
+        <svg id="shell-svg" aria-hidden="true"></svg>
+      </button>
+    </div>
+  {/if}
   <div class="cast-hex">
     <Hexagram lines={S.cur.map((l) => l.v)} fresh={S.fresh} size={158} seed={S.casts.length + 1} label="这一卦" />
     {#if last}

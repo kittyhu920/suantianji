@@ -11,6 +11,8 @@ const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function pulse(cls, ms) {
+  const gl = bookEl.gl;
+  if (gl) { if (!reduced()) gl.fx[cls.replace('is-', '')]?.(); return; }
   const el = bookEl.el;
   if (!el || reduced()) return;
   el.classList.remove(cls);
@@ -38,6 +40,7 @@ function tearLine(w, h) {
 
 /** 封面被撕开一道：两半向两边错开。返回的 Promise 在撕完（两半落定）之后结束 */
 export async function tear() {
+  if (bookEl.gl) { await bookEl.gl.fx.tear(); return; }
   const book = bookEl.el;
   const face = book?.querySelector('.cv-front');
   if (!face || reduced()) { await sleep(500); return; }

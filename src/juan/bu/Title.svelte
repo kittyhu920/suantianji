@@ -3,13 +3,14 @@
   import Seal from '../../core/Seal.svelte';
   import Spread from '../../core/Spread.svelte';
   import Instrument from '../../core/desk/Instrument.svelte';
+  import { deskState, deskRef, slot } from '../../core/scene/desk.svelte.js';
 
   let { ctx, game } = $props();
 </script>
 
 {#snippet desk()}
   <figure class="idle-piece">
-    <div class="idle-art"><Instrument id="bu" /></div>
+    {#if deskState.on}<div class="piece-slot is-bu" use:slot={{ id: 'bu', at: [0.5, 0.4] }}></div>{:else}<div class="idle-art"><Instrument id="bu" /></div>{/if}
     <figcaption>你灼龟，我读兆</figcaption>
   </figure>
 {/snippet}

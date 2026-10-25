@@ -1,0 +1,64 @@
+/* 灯下的 3D 书桌（docs/DESIGN.md §5、§19）
+   桌子、书、器物都在一块 WebGL 画布里（core/scene/desk3d.js）；DOM 只负责：版面（桌上的纸笺、木牌、按钮）、键盘与读屏的入口、
+   悬停的简介笺，以及书的话（字是 DOM，贴在 3D 的扉页上）。2D 退回时（手机宽度、减少动效、WebGL 不可用）这一整段不起作用。 */
+
+.desk-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.table.is-gl .scene, .shell[data-phase="ritual"] .table.is-gl .desk { pointer-events: none; }
+.table.is-gl .desk-plane { display: none; }
+/* 桌上要点的东西（木牌、纸笺、按钮、输入）仍可点；版面里的落脚处与器物的替身不接指针 */
+.table.is-gl .desk-items :where(button, a, input, textarea, select, label, .ask-sheet) { pointer-events: auto; }
+.table.is-gl .piece-slot, .table.is-gl .piece-slot * { pointer-events: none; }
+
+/* 落脚处：版面里留给 3D 器物的一块地方（器物走到它在桌面上的位置，不画任何东西） */
+.piece-slot { flex: none; width: 250px; height: 300px; position: relative; }
+.piece-slot.is-qian { width: 230px; height: 330px; }
+.piece-slot.is-gua { width: 300px; height: 330px; }
+.piece-slot.is-bu { width: 310px; height: 380px; }
+.piece-slot.is-jiao { width: 300px; height: 150px; }
+/* 器物的替身按钮：留给键盘与读屏，看不见；3D 里的器物自己会亮起来 */
+.proxy {
+  position: absolute; left: 0; top: 0; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); border: 0; white-space: nowrap; background: none; pointer-events: none;
+}
+
+.pieces-gl { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.shell:not([data-phase="home"]) .pieces-gl { visibility: hidden; }
+.piece-hit { position: absolute; display: block; border-radius: 10px; pointer-events: none; }
+.piece-hit:focus-visible { outline: 2px solid #f4ecd6; outline-offset: 5px; }
+
+/* 悬停的简介：一张小纸笺，浮在器物上方（不挡书，书在中间） */
+.piece-card {
+  position: absolute; z-index: 5; width: 210px; padding: 10px 14px 12px;
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  transform: translateY(-100%);
+  background: var(--slip); color: var(--slip-ink);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .5), inset 0 0 0 1px var(--card-edge);
+  pointer-events: none;
+  animation: card-in .25s var(--ease-out) both;
+}
+@keyframes card-in { from { opacity: 0; margin-top: 6px; } }
+.piece-card.is-closed { opacity: .92; }
+
+/* 书的话：写在扉页上的字，透视贴在 3D 的扉页上（尺寸与变换由 Codex.svelte 的 placeVoice 写） */
+.voice-plane { position: absolute; left: 0; top: 0; z-index: 4; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; padding: 4px 8px; --bs: 1; }
+.voice-plane .voice { position: relative; min-height: 1px; }
+.voice-plane .gloss { font-size: 23px; line-height: 1.4; color: #1b1712; }
+
+/* 3D 的桌面是亮的木面：直接写在木头上的字看不清，所以桌上的说明与记录都写在摊在桌上的纸笺上（墨色、宣纸底） */
+.table.is-gl .desk-items :where(.jiao-legend, .jiao-tally, .cast-legend, .cast-hex, .zhuo-side:has(> *), .jiao-sign, .ming-line, .idle-piece figcaption, .jie-earlier) {
+  --ink: #1b1712; --ink-rgb: 27, 23, 18;
+  --ink-soft: rgba(27, 23, 18, .84); --ink-dim: rgba(27, 23, 18, .7); --ink-faint: rgba(27, 23, 18, .18);
+  --cinnabar-hi: #b3261f;
+  color: var(--ink);
+  padding: 12px 16px 14px;
+  background-color: var(--paper);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75 .025' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  clip-path: polygon(0 1.5%, 3% 0, 97% .6%, 100% 2%, 99.4% 98%, 96% 100%, 4% 99.4%, 0 97%);
+  transform: rotate(-.5deg);
+}
+.table.is-gl .desk-items :where(.jiao-tally, .cast-hex, .zhuo-side:has(> *)) { transform: rotate(.6deg); }
+.table.is-gl .desk-items :where(.jiao-sign, .ming-line, .idle-piece figcaption) { padding: 6px 16px 8px; }
+.table.is-gl .desk-items .jiao-labels span { color: var(--ink); }
+.table.is-gl .desk-items :where(.jiao-legend, .cast-legend) b { color: var(--ink); }
+
+@media (max-width: 959px) { .desk-gl, .pieces-gl, .piece-card, .voice-plane { display: none; } }
