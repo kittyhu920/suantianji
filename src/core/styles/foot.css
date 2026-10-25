@@ -1,0 +1,188 @@
+/* 页脚、按钮槽、按钮层级、触控目标（docs/DESIGN.md §20）
+   在 stage.css 之后加载，覆盖其中页脚与按钮的旧规则：
+   · 页脚只有两行：说明一行；步骤与（存疑 | 读命书时的按钮）一行。源流、关于只在天头栏。
+   · 仪式的主操作不在页脚，在桌面下方中央的按钮槽里（.bench-slot），紧挨着器物。
+   · 按钮分量：朱印 / 主按钮（朱）只给“往前走”的那一个；“二选一”用 .btn-pair，两个同样大小同样样式，都不朱；
+     存疑是小小的墨框，悬停或聚焦才点朱。
+   · 手机（375 宽）上，所有能点的东西至少 44×44：视觉尺寸不变的，用透明的点击区撑大。 */
+
+/* ───────── 页脚：两行 ───────── */
+.botbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 0;
+  padding: 8px 18px 6px;
+}
+.bot-hint { min-height: 0; text-wrap: balance; }
+.bot-row { display: flex; align-items: center; gap: 16px; min-height: 40px; }
+.bot-steps { flex: 1 1 auto; min-width: 0; }
+.bot-acts { margin-left: auto; flex: none; }
+.bot-acts:empty { display: none; }
+.bot-notes { margin-bottom: 2px; }
+/* 页脚步骤里的点与箭头是信息（走到第几步了）：不再用 .22 的淡墨 */
+.stp-arrow, .stp-dot { color: rgba(236, 228, 208, .66); }
+
+/* 存疑：小小的墨框，悬停或聚焦才点朱。不抢主按钮的戏 */
+.doubt-btn {
+  position: relative;
+  flex: none;
+  min-height: 30px;
+  padding: 2px 10px;
+  border: 1px solid rgba(236, 228, 208, .5);
+  border-radius: 2px;
+  background: transparent;
+  color: rgba(236, 228, 208, .8);
+  font-family: var(--f-display);
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: .2em;
+  cursor: pointer;
+  animation: doubt-in .8s var(--ease-out) both;
+  transition: color .2s, border-color .2s;
+}
+.doubt-btn::before { content: ""; position: absolute; inset: -9px -6px; } /* 点击区撑到 44 */
+.doubt-btn:hover, .doubt-btn:focus-visible { color: var(--cinnabar-hi); border-color: var(--cinnabar-hi); }
+@keyframes doubt-in { from { opacity: 0; } }
+
+/* ───────── 按钮槽：桌面下方的中央 ───────── */
+.bench-slot {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 7;
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 0;
+  --ink: #ece4d0;
+  --ink-rgb: 236, 228, 208;
+  --ink-soft: rgba(236, 228, 208, .86);
+  --ink-dim: rgba(236, 228, 208, .72);
+  --ink-faint: rgba(236, 228, 208, .26);
+  --cinnabar-hi: #ef6b5d;
+  color: var(--ink);
+}
+.bench-slot:empty { display: none; }
+.bench-slot .btn { min-height: 46px; padding: 8px 26px; color: var(--ink); border-color: rgba(236, 228, 208, .5); background: rgba(14, 11, 8, .5); }
+.bench-slot .btn:hover:not(:disabled) { border-color: var(--ink); }
+.bench-slot .btn-primary { color: var(--on-zhu); border-color: var(--cinnabar); background: var(--cinnabar); }
+.bench-slot .btn-primary:hover { background: var(--cinnabar-press); }
+.bench-slot .btn-ghost { border-color: transparent; background: transparent; color: var(--ink-soft); }
+/* 桌上的东西为按钮槽留出位置，别压在它下面 */
+.desk-items { padding-bottom: 78px; }
+
+/* 桌面是深色的：桌上的朱字（阴杯等）用亮一点的朱，对深木 ≥ 4.5:1 */
+.desk-items { --cinnabar-hi: #ef6b5d; }
+.jiao-tally .cup-name, .jiao-tally .cup-kind { white-space: nowrap; }
+
+/* 二选一：两个按钮同样大小、同样样式，都不朱。哪一个都不比另一个更“该按” */
+.btn.btn-pair {
+  min-width: 12em;
+  min-height: 48px;
+  padding: 8px 20px;
+  border: 1.5px solid rgba(236, 228, 208, .8);
+  border-radius: 2px;
+  background: rgba(14, 11, 8, .62);
+  color: #ece4d0;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: .12em;
+  text-decoration: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .4);
+}
+.btn.btn-pair:hover:not(:disabled) { border-color: #ece4d0; background: rgba(236, 228, 208, .14); }
+.btn.btn-pair:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+
+/* ───────── 图例：收进一张纸笺（掷筊的规矩、一爻怎么算） ───────── */
+.legend-plaque {
+  --ink: #1b1712;
+  --ink-rgb: 27, 23, 18;
+  --ink-soft: rgba(27, 23, 18, .86);
+  --ink-dim: rgba(27, 23, 18, .72);
+  --ink-faint: rgba(27, 23, 18, .22);
+  position: relative;
+  flex: none;
+  width: 15.5em;
+  padding: 10px 16px 14px;
+  text-align: left;
+  color: var(--ink);
+  transform: rotate(.7deg);
+  clip-path: polygon(0 1%, 4% 0, 96% .6%, 100% 2%, 99.4% 98%, 95% 100%, 3% 99.4%, 0 97%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .5);
+}
+.legend-plaque summary {
+  min-height: 34px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-family: var(--f-display);
+  font-size: 21px;
+  letter-spacing: .14em;
+  list-style: none;
+  cursor: pointer;
+}
+.legend-plaque summary::-webkit-details-marker { display: none; }
+.legend-plaque summary::after { content: "－"; font-size: 14px; color: var(--ink-dim); }
+.legend-plaque:not([open]) summary::after { content: "＋"; }
+.legend-plaque summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.legend-plaque ul { margin-top: 6px; }
+/* 图例的字：桌面场景整体缩到 0.8 倍上下，所以写 17px，实际落在 13–14px */
+.legend-plaque .jiao-legend, .legend-plaque .cast-legend { max-width: none; font-size: 17px; line-height: 1.6; gap: 9px; color: var(--ink-soft); }
+.legend-plaque .jiao-legend b { font-size: 20px; margin-bottom: 1px; }
+.legend-plaque .cast-legend li { display: grid; grid-template-columns: 3.6em 1fr; align-items: baseline; gap: 0 .4em; }
+.legend-plaque .cast-legend b { font-size: 20px; min-width: 0; }
+.legend-plaque .jiao-legend li:last-child { padding-top: 6px; border-top: 1px solid var(--ink-faint); }
+
+/* ───────── 命书：键盘与读屏 ───────── */
+.reader:focus, .reader:focus-visible { outline: none; } /* 容器本身只是读屏的落脚点，不是可操作的控件 */
+.rd-sr-nav { position: absolute; left: 0; right: 0; bottom: 8px; z-index: 3; display: flex; justify-content: center; gap: 12px; pointer-events: none; }
+.rd-sr-nav button { pointer-events: none; opacity: 0; min-height: 44px; padding: 6px 18px; border: 1.5px solid #ece4d0; border-radius: 2px; background: rgba(14, 11, 8, .85); color: #ece4d0; font-size: 15px; letter-spacing: .1em; }
+.rd-sr-nav button:focus-visible { opacity: 1; outline: 2px solid #ece4d0; outline-offset: 3px; }
+
+/* ───────── 手机（375 宽）：版式与触控目标 ───────── */
+@media (max-width: 959px) {
+  .botbar { padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); text-align: center; gap: 2px; }
+  .bot-hint { font-size: 14px; }
+  .bot-row { justify-content: center; gap: 10px; min-height: 44px; }
+  .bot-steps { flex: 0 1 auto; justify-content: center; }
+  .doubt-btn { position: relative; }
+  .bot-acts { margin-left: 0; flex-wrap: wrap; justify-content: center; }
+  .bot-acts .btn { min-height: 44px; }
+  .botbar .about-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
+  .bot-links { gap: 0 8px; }
+
+  .bench-slot { bottom: 8px; gap: 8px 12px; width: calc(100% - 16px); }
+  .bench-slot .btn { min-height: 46px; padding: 8px 18px; }
+  .btn.btn-pair { min-width: 0; flex: 1 1 9.5em; max-width: 14em; padding: 8px 12px; }
+  .desk-items { padding-bottom: 72px; }
+
+  /* 天头栏：视觉大小不变，点击区撑到 44×44 */
+  .topbar .corner-theme, .tag-btn, .oracle-toggle.is-bar { position: relative; }
+  .topbar .corner-theme::before, .tag-btn::before, .oracle-toggle.is-bar::before { content: ""; position: absolute; inset: -9px -4px; }
+  .topbar .corner-theme::before { inset: -9px; }
+  .oracle-toggle.is-bar { min-width: 44px; min-height: 44px; justify-content: center; }
+  .oracle-toggle.is-bar::before { display: none; }
+  .tag-btn::before { inset: -9px -4px; }
+  .top-tools { gap: 14px; }
+  .zhu-term::after { content: ""; position: absolute; inset: -11px -8px; }
+  .zhu-term { position: relative; }
+
+  /* 图例收成一块可展开的纸笺，默认合着 */
+  .legend-plaque { width: min(15.5em, 100%); transform: none; padding: 4px 14px 8px; }
+  .legend-plaque summary { min-height: 44px; font-size: 18px; }
+  .legend-plaque .jiao-legend, .legend-plaque .cast-legend { font-size: 14px; }
+  .legend-plaque .jiao-legend b, .legend-plaque .cast-legend b { font-size: 17px; }
+  .legend-plaque:not([open]) ul { display: none; }
+
+  /* “未开卷”：原来深色字压在深色桌面上（1.0–1.4:1）。提到纸白，AA */
+  .piece.is-closed .piece-tag { color: #ece4d0; opacity: 1; }
+  .piece.is-closed .piece-tip { opacity: 1; }
+  .piece.is-closed .piece-name, .piece.is-closed .piece-intro { color: rgba(236, 228, 208, .86); }
+}
+@media (min-width: 960px) and (max-height: 820px) {
+  .botbar { min-height: 0; padding: 6px 16px 4px; }
+}

@@ -1,0 +1,61 @@
+/* 注：术语加点线，点一下贴出一张纸条（Zhu.svelte、ZhuPanel.svelte；docs/DESIGN.md §20）
+   纸条比书页略亮，微微歪着，顶上一小条胶带；用的是书的纸色，不用朱。桌面和手机是同一种方式。 */
+
+.zhu-term {
+  padding: 0; margin: 0; border: 0; background: none;
+  font: inherit; letter-spacing: inherit; color: inherit;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--ink-dim);
+  text-decoration-thickness: 2px;
+  text-underline-offset: .28em;
+}
+.zhu-term:hover, .zhu-term[aria-expanded="true"] { text-decoration-color: var(--ink); }
+.zhu-term:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 2px; }
+
+.zhu-pop {
+  position: fixed;
+  z-index: 30;
+  padding: 16px 16px 13px;
+  background: linear-gradient(172deg, var(--slip-hi), var(--slip));
+  color: var(--slip-ink);
+  border-radius: 2px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .12), 0 10px 22px -6px rgba(0, 0, 0, .5), 0 2px 5px rgba(0, 0, 0, .25);
+  font-family: var(--f-kai);
+  font-size: 15.5px;
+  line-height: 1.75;
+  transform: rotate(-.7deg);
+  animation: zhu-in .32s var(--ease-out) both;
+  --ink: var(--slip-ink);
+  --ink-dim: rgba(40, 30, 18, .78);
+  --ink-faint: rgba(40, 30, 18, .3);
+}
+.zhu-pop::after { /* 纸条的小尖：指向术语 */
+  content: "";
+  position: absolute;
+  left: calc(var(--tip, 30px) - 7px);
+  bottom: -7px;
+  width: 14px; height: 14px;
+  background: var(--slip);
+  transform: rotate(45deg);
+  box-shadow: 3px 3px 4px -1px rgba(0, 0, 0, .25);
+  z-index: -1;
+}
+.zhu-pop[data-up=""]::after { bottom: auto; top: -7px; background: var(--slip-hi); box-shadow: -2px -2px 3px -1px rgba(0, 0, 0, .15); }
+.zhu-tape {
+  position: absolute;
+  top: -9px; left: 50%;
+  width: 64px; height: 18px;
+  margin-left: -32px;
+  background: rgba(214, 196, 150, .62);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+  transform: rotate(1.6deg);
+  clip-path: polygon(0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%, 0 100%, 3% 75%, 0 50%, 3% 25%);
+}
+@keyframes zhu-in { from { opacity: 0; transform: translateY(-4px) rotate(-.7deg) scale(.97); } }
+.zhu-pop h3 { margin: 0 0 2px; display: flex; align-items: baseline; gap: 8px; font-size: 16.5px; font-weight: 400; color: var(--slip-ink); }
+.zhu-pop p { margin: 0; }
+.zhu-name { letter-spacing: .08em; }
+.zhu-kind { font-size: 11px; font-weight: 400; line-height: 1.6; padding: 0 5px; letter-spacing: .04em; color: var(--ink-dim); border: 1px solid var(--ink-faint); }
+.zhu-cite { margin-top: 3px !important; font-size: 13px; line-height: 1.65; color: var(--ink-dim); }
+@media (prefers-reduced-motion: reduce) { .zhu-pop { animation: none; } }

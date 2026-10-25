@@ -7,6 +7,7 @@
   import { createCtx } from './ctx.svelte.js';
   import { refreshQuota } from './oracle.svelte.js';
   import { session } from './session.svelte.js';
+  import { setNotes, resetZhu } from './zhu.svelte.js';
   import PosterDialog from './end/PosterDialog.svelte';
 
   // voice：合着的书上写字的地方（Codex 交进来）
@@ -20,6 +21,7 @@
 
   onMount(() => {
     ctx.attach({ voice });
+    setNotes(juan.zhu ?? {});
     if (location.search.includes('debug')) window.__ctx = ctx; // 调试：手动让书说话
     let alive = true;
     session.juan = juan;
@@ -35,6 +37,7 @@
     })();
     return () => {
       alive = false;
+      resetZhu();
       game?.destroy?.();
       ctx.destroy();
       session.juan = session.ctx = session.game = null;
