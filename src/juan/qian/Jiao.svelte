@@ -7,6 +7,7 @@
   import { trueRandom } from '../../core/rng.js';
   import { CUP_NAMES, CUP_LABELS } from './jiao.js';
   import { signNo } from './game.svelte.js';
+  import { deskState, deskRef, slot as deskSlot } from '../../core/scene/desk.svelte.js';
 
   let { ctx, game } = $props();
   const { S } = game;
@@ -25,6 +26,14 @@
 
   // 两块筊在空中各自翻转、落地
   async function toss(res, dur = 1250) {
+    const cups = deskState.on ? deskRef.pieces?.list.qian?.cups : null;
+    if (cups) { // 3D：一对红漆的筊杯在桌上翻几圈、落下
+      [0, 1].forEach((i) => setTimeout(() => ctx.sfx.clack(0.9), ctx.reduced ? 0 : dur * 0.62 + i * 70));
+      await cups.toss(res, dur);
+      await ctx.sleep(120);
+      ctx.sfx.thud();
+      return;
+    }
     blocks.forEach((c, i) => {
       const body = bodies[i];
       if (!c || !body) return;
@@ -43,7 +52,13 @@
     ctx.sfx.thud();
   }
 
-  onMount(() => game.registerToss(toss));
+  onMount(() => {
+    // 3D：签筒让到旁边，筊杯摆到桌面中央
+    const piece = deskState.on ? deskRef.pieces?.list.qian : null;
+    if (piece) { piece.cups.group.visible = true; piece.cups.rest(); deskRef.pieces.park('qian'); deskRef.desk.invalidate(); }
+    const off = game.registerToss(toss);
+    return () => { off?.(); if (piece) { piece.cups.group.visible = false; deskRef.desk?.invalidate(); } };
+  });
 
   // 每次轮到玩家掷，焦点落在“掷筊”上
   $effect(() => {
@@ -67,6 +82,9 @@
   </details>
   <div class="jiao-pair">
     {#if S.sign}<p class="jiao-sign">{signNo(S.sign)}　{S.sign.name}</p>{/if}
+    {#if deskState.on}
+      <div class="piece-slot is-jiao" id="jiao" use:deskSlot={{ id: 'jiao', at: [0.5, 0.5] }}></div>
+    {:else}
     <div class="jiao" id="jiao" aria-hidden="true">
       {#each [0, 1] as i}
         <div class={`jiao-block${i ? ' is-right' : ''}`} use:cup={i}>
@@ -77,6 +95,7 @@
         </div>
       {/each}
     </div>
+    {/if}
     <div class="jiao-labels" id="jiao-labels" aria-hidden="true"><span>{J.labels[0]}</span><span>{J.labels[1]}</span></div>
   </div>
   <div class="jiao-tally">

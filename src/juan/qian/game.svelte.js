@@ -137,8 +137,9 @@ export function createGame(ctx) {
   }
 
   // 摇签屏挂上时创建签筒；离开时停掉
-  function attachTube(svg) {
+  function attachTube(svg, view) {
     tube = createQian(svg, {
+      view,
       sfx,
       reduced: ctx.reduced,
       onRelease: () => {

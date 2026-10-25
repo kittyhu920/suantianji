@@ -84,7 +84,9 @@ function stickShape(parent) {
   return g;
 }
 
-export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
+// view：3D 书桌里的签筒（core/scene/pieces/qian.js）。有它时，下面的 SVG 只是一棵不挂在页面上的树（物理照常算），画面由 view 负责；
+// 没有它（手机宽度、减少动效、WebGL 不可用）就是这张水墨的 SVG。同一套物理，两种画法。
+export function createQian(svg, { sfx, reduced = false, onRelease, onLanded, view }) {
   svg.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
   svg.replaceChildren();
   defs(svg);
@@ -175,6 +177,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     flyShadow.setAttribute('opacity', '0');
     labelEl.setAttribute('opacity', '0');
     dustG.replaceChildren();
+    view?.reset(sticks);
     draw();
   }
 
@@ -188,6 +191,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
 
   /* ───── 输入 ───── */
   const toView = (clientX) => {
+    if (view) return view.toX(clientX);
     const r = svg.getBoundingClientRect();
     return ((clientX - r.left) / r.width) * VW;
   };
@@ -307,6 +311,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     st.fly = { x: w.x, y: w.y, rot: w.rot, vx, vy, w: st.a * 3 + Math.sign(vx || 1) * 160, hits: 0, settleT: 0 };
     st.phase = 'fly';
     flyG.setAttribute('opacity', '1');
+    view?.launch(st);
     const label = onRelease?.();
     labelEl.textContent = label || '';
     rig.setAttribute('opacity', '.9');
@@ -385,11 +390,13 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     rig.style.transition = 'opacity .5s';
     rig.setAttribute('opacity', '.28');
     tubeShadow.setAttribute('opacity', '.2');
+    view?.done(st);
     draw();
     setTimeout(() => onLanded?.({ activeMs: st.activeMs }), reduced ? 300 : 700);
   }
 
   function burst(x, y, power) {
+    view?.burst(x, y, power);
     for (let i = 0; i < 14; i++) {
       const c = el('circle', { fill: 'var(--obj-ink)' }, dustG);
       const ang = rand(-Math.PI * 0.95, -Math.PI * 0.05);
@@ -399,6 +406,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
     }
   }
   function dustStep(dt) {
+    view?.tick(dt);
     st.dust = st.dust.filter((p) => {
       p.age += dt;
       if (!p.landed) {
@@ -439,6 +447,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded }) {
       p.c.setAttribute('r', (p.r0 * (1 + 0.9 * p.spread)).toFixed(2));
       p.c.setAttribute('opacity', p.landed ? (0.85 - 0.25 * p.spread).toFixed(2) : (1 - (p.age / p.life) * 0.3).toFixed(2)); // 墨点落纸即留下
     }
+    view?.draw(st, sticks);
   }
 
   /* ───── 循环 ───── */

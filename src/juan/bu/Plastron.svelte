@@ -3,6 +3,7 @@
   // 水墨写意的画法，动起来是真实的物理：烟有浮力、受风、越升越散；炭火的红是低饱和的赭红，不是朱。
   import { onMount } from 'svelte';
   import { SPOTS, cnNum } from './data.js';
+  import { deskState, deskRef, slot } from '../../core/scene/desk.svelte.js';
 
   let { ctx, game } = $props();
   const { S } = game;
@@ -16,6 +17,10 @@
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const HEATC = '168,84,52';
+  // 3D 书桌里：龟甲是桌上的 3D 物件；这里只留版面里的落脚处与六个替身按钮（键盘与读屏），指针由画布拾取后转给它们（core/scene/pieces/index.js）
+  const gl = deskState.on;
+  const piece = gl ? deskRef.pieces?.list.bu : null;
+  const spotBtns = $state([]);
   const px = () => canvas.clientWidth / 300;
 
   function spawn(x, y, n, power) {
@@ -25,6 +30,7 @@
   }
 
   function frame(now) {
+    if (gl) return;
     const dt = Math.min(0.05, (now - (last || now)) / 1000);
     last = now;
     raf = requestAnimationFrame(frame);
@@ -67,7 +73,7 @@
   }
 
   function ensureLoop() {
-    if (raf || ctx.reduced) return;
+    if (gl || raf || ctx.reduced) return;
     last = 0;
     raf = requestAnimationFrame((n) => { frame(n); });
   }
@@ -83,19 +89,28 @@
 
   onMount(() => {
     const off = game.registerPlastron({
-      puff() { const s = SPOTS[S.active] ?? SPOTS[0]; spawn(s.x * px(), s.y * px(), 16, 1.6); ensureLoop(); },
+      puff() {
+        if (piece) { piece.puff(); return; }
+        const s = SPOTS[S.active] ?? SPOTS[0]; spawn(s.x * px(), s.y * px(), 16, 1.6); ensureLoop();
+      },
     });
-    if (location.search.includes('debug')) window.__buSmoke = { step, get n() { return parts.length; } };
+    if (piece) piece.proxy = (hit) => spotBtns[hit.userData.spot] ?? null;
+    if (location.search.includes('debug') && !gl) window.__buSmoke = { step, get n() { return parts.length; } };
     spit();
     // 一直在跑会白耗电：没有烟、没有火时停掉
-    const watch = setInterval(() => {
+    const watch = gl ? 0 : setInterval(() => {
       if (S.active >= 0 || parts.length) ensureLoop();
       else if (raf) { cancelAnimationFrame(raf); raf = 0; canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }
     }, 120);
-    return () => { off(); clearTimeout(crackTimer); clearInterval(watch); cancelAnimationFrame(raf); raf = 0; };
+    return () => { off(); if (piece) { piece.proxy = null; piece.highlight(-1); piece.reset(); } clearTimeout(crackTimer); clearInterval(watch); cancelAnimationFrame(raf); raf = 0; };
   });
 
+  // 把热度、烧着哪一处、哪几处已灼过，同步给 3D 的龟甲
+  $effect(() => { if (piece) piece.sync(S); });
+
   $effect(() => { if (S.active >= 0) ensureLoop(); });
+  // 回到卷首、再来一局：龟甲上的灼痕清掉
+  $effect(() => { if (piece && S.burns.length === 0) piece.reset(); });
 
   /* 输入：指针按住、键盘按住空格或回车 */
   function down(e, i) {
@@ -119,6 +134,29 @@
   const heat = $derived(S.heat);
 </script>
 
+{#if gl}
+<div class="piece-slot is-bu" use:slot={{ id: 'bu', at: [0.5, 0.4] }}>
+  {#each SPOTS as s, i}
+    <button
+      class="spot proxy"
+      bind:this={spotBtns[i]}
+      class:is-used={S.used[i]}
+      class:is-active={S.active === i}
+      disabled={S.used[i] || (S.phase !== 'pick') || off(i)}
+      aria-label={`第${cnNum(i + 1)}处钻凿，按住来灼${S.used[i] ? '（已灼）' : ''}`}
+      onpointerdown={(e) => down(e, i)}
+      onpointermove={move}
+      onpointerup={up}
+      onpointercancel={up}
+      oncontextmenu={(e) => e.preventDefault()}
+      onkeydown={(e) => kd(e, i)}
+      onkeyup={ku}
+      onfocus={() => piece?.highlight(i)}
+      onblur={() => piece?.highlight(-1)}
+    ></button>
+  {/each}
+</div>
+{:else}
 <div class="plastron" bind:this={box}>
   <svg viewBox="0 0 300 420" class="plastron-svg" aria-hidden="true">
     <defs>
@@ -203,3 +241,4 @@
     ></button>
   {/each}
 </div>
+{/if}

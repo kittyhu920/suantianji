@@ -6,6 +6,8 @@
   import Zhu from '../../core/Zhu.svelte';
   import Plastron from './Plastron.svelte';
   import OmenFigure from './OmenFigure.svelte';
+  import OmenGL from './OmenGL.svelte';
+  import { deskState, deskRef, slot } from '../../core/scene/desk.svelte.js';
   import { explain, isXiong, OMENS } from './omen.js';
   import { fanOf, cnNum } from './data.js';
 
@@ -81,7 +83,14 @@
 {#snippet desk()}
   <div class="zhuo-main">
     <p class="ming-line" id="ming-line">贞：{ming}</p>
-    {#if reading && away && crack}
+    {#if deskState.on}
+      <Plastron {ctx} {game} />
+      {#if reading && crack}
+        {#key S.cur}
+          <OmenGL {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} delay={300} onDone={game.onGrown} />
+        {/key}
+      {/if}
+    {:else if reading && away && crack}
       {#key S.cur}
         <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={300} onDone={game.onGrown} />
       {/key}

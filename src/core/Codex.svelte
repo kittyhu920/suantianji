@@ -26,9 +26,13 @@
   import { mountTilt } from './tilt.js';
   import { mountToggle } from './theme.js';
   import { mountBoard } from './paper/board.js';
+  import { deskState, deskRef, startDesk, stopDesk, wantDeskGL, pieceRect } from './scene/desk.svelte.js';
+  import { reducedQuery } from './scene/gate.js';
   import { setMuted, warmAudio } from './audio.js';
   import { session } from './session.svelte.js';
   import { cn } from './cn.js';
+  import { bookEl } from './book/stage.svelte.js';
+  import { quadMatrix } from './scene/quad.js';
 
   // 书桌场景的设计尺寸（px）：样式见 styles/stage.css 的 .scene
   const SCENE_W = 1140;
@@ -71,7 +75,15 @@
   let scene;
   let muted = $state(false);
   let narrow = $state(false);
-  let voice = $state(null);
+  // 灯下的 3D 书桌：'pending' 还没定，'on' 用 three.js 的桌子、书与器物，'off' 退回 2D（CSS 的桌面与 SVG 的器物）
+  let glState = $state('pending');
+  let voice2d = $state(null);
+  let voiceGl = $state(null);
+  let vplane = $state(null);
+  let tip = $state(null); // 悬停的器物：{ id, x, y, w }（画布上的位置）
+  let rects = $state({});
+  const gl = $derived(glState === 'on');
+  const voice = $derived(glState === 'on' ? voiceGl : glState === 'off' ? voice2d : null);
   let themeBtn;
   let readerOn = $state(false);
   let readIdx = $state(0);
@@ -99,6 +111,28 @@
   // 读命书时，字盘暂停（翻页的纸要用满合成器；字盘慢慢漂移，这时不画也看不出来）
   $effect(() => {
     document.dispatchEvent(new CustomEvent('stj-flip', { detail: readerOn }));
+  });
+  // 3D 书桌随阶段走：书的位姿与封面、器物的位姿
+  $effect(() => {
+    if (!gl) return;
+    const { book, pieces } = deskRef;
+    if (!book || !pieces) return;
+    const instant = !mounted;
+    if (phase === 'home') { book.setMode('home', instant); pieces.toHome(instant); }
+    else if (phase === 'ritual') { book.setMode('ritual', instant); pieces.toRitual(juan.id, instant); }
+    else if (phase === 'reading') { book.setMode('reading', instant); pieces.toAway(instant); }
+    else if (phase === 'doc') { book.setMode('doc', instant); pieces.toAway(instant); }
+    if (phase !== 'home') tip = null;
+  });
+  $effect(() => {
+    if (!gl) return;
+    deskRef.book?.setLift(lift);
+  });
+  // 读命书：书摊开之后换成 WebGL 的翻页（Reader），这时桌上的书淡出
+  $effect(() => {
+    if (!gl) return;
+    const b = deskRef.book;
+    if (b) b.visible = !readerOn;
   });
   // 读命书时，书不再说话
   $effect(() => {
@@ -158,6 +192,18 @@
     e.currentTarget.blur();
   }
 
+  // 书的话：写在扉页上。字是 DOM，按扉页（封面掀起后露出的那一块）的四个角投影到屏幕，用一个透视变换贴上去
+  function placeVoice() {
+    if (!vplane || !deskRef.book) return;
+    const q = deskRef.book.pageQuad();
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const w = Math.max(80, (dist(q[0], q[1]) + dist(q[3], q[2])) / 2);
+    const h = w * q.ratio;
+    vplane.style.width = `${w.toFixed(1)}px`;
+    vplane.style.height = `${h.toFixed(1)}px`;
+    vplane.style.transform = quadMatrix(q, w, h);
+  }
+
   onMount(() => {
     onLoad();
     mounted = true;
@@ -183,6 +229,58 @@
     mountToggle(themeBtn);
     const offTilt = mountTilt(table);
 
+    // ───── 灯下的 3D 书桌 ─────
+    let lastRects = '';
+    const refreshRects = () => {
+      if (!deskRef.desk || phase !== 'home') return;
+      const next = {};
+      for (const j of juans) { const r = pieceRect(j.id); if (r) next[j.id] = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) }; }
+      const sig = JSON.stringify(next);
+      if (sig !== lastRects) { lastRects = sig; rects = next; }
+    };
+    let lastView = -1;
+    let lastBook = -1;
+    const onFrame = () => {
+      const d = deskRef.desk;
+      const b = deskRef.book;
+      if (!d || !b) return;
+      if (d.view.version !== lastView || b.version !== lastBook) {
+        lastView = d.view.version;
+        lastBook = b.version;
+        placeVoice();
+      }
+      refreshRects();
+    };
+    const hover = (id) => {
+      if (!id || phase !== 'home') { tip = null; return; }
+      const r = pieceRect(id);
+      tip = r ? { id, ...r } : null;
+    };
+    const lose = () => { glState = 'off'; };
+    const bootGL = async () => {
+      if (!wantDeskGL()) { glState = 'off'; return; }
+      const ok = await startDesk(table, { juans, onOpen: (j) => navigate(j.href), onHover: hover, onLost: lose });
+      if (!ok) { glState = 'off'; return; }
+      deskRef.desk.listeners.add(onFrame);
+      bookEl.gl = deskRef.book;
+      glState = 'on';
+      deskRef.desk.fit();
+      refreshRects();
+    };
+    bootGL();
+    const dropGL = () => {
+      deskRef.desk?.listeners.delete(onFrame);
+      bookEl.gl = null;
+      stopDesk();
+      glState = 'off';
+    };
+    const onWide = () => {
+      if (narrow && glState === 'on') dropGL();
+      else if (!narrow && glState === 'off' && wantDeskGL()) { glState = 'pending'; bootGL(); }
+    };
+    mq.addEventListener('change', onWide);
+    reducedQuery.addEventListener?.('change', () => { if (reducedQuery.matches && glState === 'on') dropGL(); else if (!reducedQuery.matches && glState === 'off' && wantDeskGL()) { glState = 'pending'; bootGL(); } });
+
     // 声音引擎在空闲时建好（见 audio.js 的 warmAudio）
     const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 4000 }) : (f) => setTimeout(f, 1500);
     idle(() => { try { warmAudio(); } catch { /* 没有声音就没有 */ } });
@@ -190,13 +288,14 @@
     return () => {
       document.removeEventListener('astro:page-load', onLoad);
       mq.removeEventListener('change', onMq);
+      mq.removeEventListener('change', onWide);
       ro.disconnect();
       offTilt();
     };
   });
 </script>
 
-<div class="shell" data-phase={phase} data-reader={readerOn ? 'on' : 'off'} class:is-narrow={narrow}>
+<div class="shell" data-phase={phase} data-reader={readerOn ? 'on' : 'off'} class:is-narrow={narrow} class:is-gl={gl}>
   {#if page.kind === 'home' || juan}<h1 class="visually-hidden">{juan ? `演算天机　${juan.name}卷　${juan.title}` : '演算天机　书桌'}</h1>{/if}
   <header class="topbar">
     {#if juan}
@@ -224,38 +323,71 @@
     </div>
   </header>
 
-  <div class="table" bind:this={table}>
+  <div class="table" class:is-gl={gl} bind:this={table}>
     <div class="scene" bind:this={scene}>
       <div class="desk-plane" aria-hidden="true"></div>
 
-      <!-- 首页：四周摆各卷的器物。悬停浮起，旁边出现卷名与简介；点开了卷的器物进那一卷 -->
+      <!-- 首页：四周摆各卷的器物。悬停浮起，旁边出现卷名与简介；点开了卷的器物进那一卷（2D 退回时；3D 的见下面的 pieces-gl） -->
+      {#if !gl}
       <nav class="pieces" aria-label="书桌上的器物，一件一卷" inert={phase !== 'home'}>
         {#each juans as j}
           {@const p = SPOTS[j.id]}
           {#if j.open}
             <a class="piece tip-{p.tip}" href={j.href} style="--x:{p.x}px;--y:{p.y}px;--w:{p.w}px" tabindex={phase === 'home' ? 0 : -1} aria-label={`${j.name}卷：${j.title}。${j.intro}`}>
               <span class="piece-art"><Instrument id={j.id} /></span>
+              <span class="piece-label" aria-hidden="true"><b>{j.name}</b>{j.title}</span>
               <span class="piece-tip"><span class="piece-name">{j.name}<small>{j.title}</small></span><span class="piece-intro">{j.intro}</span></span>
             </a>
           {:else}
             <div class="piece is-closed tip-{p.tip}" style="--x:{p.x}px;--y:{p.y}px;--w:{p.w}px" aria-label={`${j.name}卷：${j.title}，未开卷`}>
               <span class="piece-art"><Instrument id={j.id} /></span>
+              <span class="piece-label" aria-hidden="true"><b>{j.name}</b>未开卷</span>
               <span class="piece-tip"><span class="piece-name">{j.name}<small>{j.title}</small></span><span class="piece-intro">{j.intro}</span><span class="piece-tag">未开卷</span></span>
             </div>
           {/if}
         {/each}
       </nav>
+      {/if}
 
       <div class="book-anchor" aria-hidden={phase === 'doc'}>
-        <Book {lift} bind:voice />
+        <Book {lift} bind:voice={voice2d} />
       </div>
-      {#if mounted && juan && voice}{#key juan.id}<Ritual {juan} {voice} />{/key}{/if}
+      {#if mounted && juan && voice}{#key `${juan.id}:${glState}`}<Ritual {juan} {voice} />{/key}{/if}
 
       <!-- 仪式：器物摆在桌面的中前部 -->
       <div class="desk" aria-label="桌上" inert={phase !== 'ritual'}>
         <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
       </div>
     </div>
+
+    {#if gl}
+      <!-- 3D 书桌上的器物：键盘与读屏的入口（位置跟着器物投影到屏幕上的矩形），指针由画布拾取（pieces/index.js） -->
+      <nav class="pieces-gl" aria-label="书桌上的器物，一件一卷" inert={phase !== 'home'}>
+        {#each juans as j}
+          {@const r = rects[j.id]}
+          {#if r}
+            {#if j.open}
+              <a class="piece-hit" href={j.href} style="left:{r.x}px;top:{r.y}px;width:{r.w}px;height:{r.h}px" tabindex={phase === 'home' ? 0 : -1}
+                aria-label={`${j.name}卷：${j.title}。${j.intro}`} onfocus={() => deskRef.pieces?.focus(j.id)} onblur={() => deskRef.pieces?.focus(null)}></a>
+            {:else}
+              <div class="piece-hit is-closed" style="left:{r.x}px;top:{r.y}px;width:{r.w}px;height:{r.h}px" role="img" aria-label={`${j.name}卷：${j.title}，未开卷`}></div>
+            {/if}
+          {/if}
+        {/each}
+      </nav>
+      {#if tip && phase === 'home'}
+        {@const j = juans.find((x) => x.id === tip.id)}
+        <div class="piece-card" class:is-closed={!j.open} style="left:{Math.max(8, Math.min(tip.x + tip.w / 2 - 105, (table?.clientWidth ?? 1200) - 218))}px;top:{Math.max(8, tip.y - 10)}px">
+          <span class="piece-name">{j.name}<small>{j.title}</small></span>
+          <span class="piece-intro">{j.intro}</span>
+          {#if !j.open}<span class="piece-tag">未开卷</span>{/if}
+        </div>
+      {/if}
+      <!-- 书的话：写在扉页上（字是 DOM，用透视变换贴在 3D 的扉页上，见 placeVoice） -->
+      <div class="voice-plane" bind:this={vplane}>
+        <div class="voice" bind:this={voiceGl}></div>
+      </div>
+    {/if}
 
     {#if phase === 'ritual' && cur?.act}
       <BenchSlot>{@render cur.act()}</BenchSlot>

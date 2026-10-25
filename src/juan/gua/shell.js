@@ -113,7 +113,8 @@ function setCoin(c, x, y, z, th) {
   c.edge.setAttribute('opacity', clamp(1 - Math.abs(cos) * 4, 0, 1).toFixed(2));
 }
 
-export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) {
+// view：3D 书桌里的龟壳与铜钱（core/scene/pieces/gua.js），用法同 src/juan/qian/tube.js 的 createQian。
+export function createShell(svg, { sfx, reduced = false, onRelease, onLanded, view }) {
   svg.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
   svg.replaceChildren();
   defs(svg);
@@ -217,6 +218,7 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
     shadows.forEach((s) => s.setAttribute('opacity', '0'));
     innerG.setAttribute('opacity', '1');
     dustG.replaceChildren();
+    view?.reset();
     draw();
   }
 
@@ -230,6 +232,7 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
 
   /* ───── 输入 ───── */
   const toView = (clientX) => {
+    if (view) return view.toX(clientX);
     const r = svg.getBoundingClientRect();
     return ((clientX - r.left) / r.width) * VW;
   };
@@ -358,11 +361,12 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
       return {
         f, x: w.x, y: w.y, vx: (tx - w.x) / T1, vy: vy0, th: th0, w: (half * Math.PI - th0) / T1,
         end: half * Math.PI, z: inside[i].z + rand(-30, 30), zw: rand(-90, 90),
-        hits: 0, tw: 0, wobA: 0, wobW: rand(17, 22), done: false,
+        hits: 0, tw: 0, wobA: 0, wobW: rand(17, 22), done: false, T1,
       };
     });
     flyG.setAttribute('opacity', '1');
     innerG.setAttribute('opacity', '0');
+    view?.launch(st);
     rig.setAttribute('opacity', '.9');
     st.phase = 'fly';
     st.pourDir = Math.abs(st.a) > 3 ? Math.sign(st.a) : (Math.random() < 0.5 ? -1 : 1);
@@ -433,12 +437,14 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
     rig.style.transition = 'opacity .5s';
     rig.setAttribute('opacity', '.28');
     shellShadow.setAttribute('opacity', '.2');
+    view?.done(st);
     draw();
     const coins = st.coins.map((c, i) => ({ x: c.x, y: c.y, face: st.faces[i] }));
     setTimeout(() => onLanded?.({ activeMs: st.activeMs, coins }), reduced ? 300 : 500);
   }
 
   function burst(x, y, power) {
+    view?.burst(x, y, power);
     for (let i = 0; i < 7; i++) {
       const c = el('circle', { fill: 'var(--obj-ink)' }, dustG);
       const ang = rand(-Math.PI * 0.95, -Math.PI * 0.05);
@@ -447,6 +453,7 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
     }
   }
   function dustStep(dt) {
+    view?.tick(dt);
     st.dust = st.dust.filter((p) => {
       p.age += dt;
       if (!p.landed) {
@@ -488,6 +495,7 @@ export function createShell(svg, { sfx, reduced = false, onRelease, onLanded }) 
       p.c.setAttribute('r', (p.r0 * (1 + 0.9 * p.spread)).toFixed(2));
       p.c.setAttribute('opacity', p.landed ? (0.8 - 0.25 * p.spread).toFixed(2) : '0.9');
     }
+    view?.draw(st, inside);
   }
 
   /* ───── 循环 ───── */

@@ -3,16 +3,27 @@
   // 签诗与解签不在这里念，写进命书里。
   import Spread from '../../core/Spread.svelte';
   import { signNo } from './game.svelte.js';
+  import { deskState, deskRef, slot } from '../../core/scene/desk.svelte.js';
 
   let { ctx, game } = $props();
   const { S, db, shake } = game;
 
   // 器物在桌上，由 Codex 渲染：用动作把签筒与摇动控制接上
+  // 3D 书桌：签筒是桌上的 3D 物件，按钮只是它的替身（键盘与读屏），指针由画布拾取后转给它；物理照旧，画面由 3D 负责
   function rig(button) {
-    const svg = button.querySelector('svg');
-    const off = game.attachTube(svg);
+    const piece = deskState.on ? deskRef.pieces?.list.qian : null;
+    const svg = button.querySelector('svg') ?? document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const off = game.attachTube(svg, piece?.view);
     const unbind = shake.bind(button);
-    return { destroy() { unbind(); off(); } };
+    const onFocus = () => piece?.glow?.(1);
+    const onBlur = () => piece?.glow?.(0);
+    if (piece) { piece.proxy = () => button; button.addEventListener('focus', onFocus); button.addEventListener('blur', onBlur); }
+    return {
+      destroy() {
+        unbind(); off();
+        if (piece) { piece.proxy = null; button.removeEventListener('focus', onFocus); button.removeEventListener('blur', onBlur); }
+      },
+    };
   }
 
   const noteNow = $derived(!shake.hasMotion
@@ -27,11 +38,17 @@
 </script>
 
 {#snippet desk()}
-  <div class="tube-wrap" id="tube-wrap">
-    <button class="tube" id="tube" use:rig aria-label="签筒：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃">
-      <svg id="qian-svg" aria-hidden="true"></svg>
-    </button>
-  </div>
+  {#if deskState.on}
+    <div class="piece-slot is-qian" id="tube-wrap" use:slot={{ id: 'qian', at: [0.5, 0.5] }}>
+      <button class="tube proxy" id="tube" use:rig aria-label="签筒：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃"></button>
+    </div>
+  {:else}
+    <div class="tube-wrap" id="tube-wrap">
+      <button class="tube" id="tube" use:rig aria-label="签筒：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃">
+        <svg id="qian-svg" aria-hidden="true"></svg>
+      </button>
+    </div>
+  {/if}
   {#if S.signShown && S.sign}
     {@const sign = S.sign}
     <div class="sign-slip" id="sign" aria-label={`得签：${signNo(sign)}，${sign.name}，${sign.level}`}>
