@@ -229,7 +229,7 @@
       <div class="desk-plane" aria-hidden="true"></div>
 
       <!-- 首页：四周摆各卷的器物。悬停浮起，旁边出现卷名与简介；点开了卷的器物进那一卷 -->
-      <nav class="pieces" aria-label="书桌上的器物，一件一卷" aria-hidden={phase !== 'home'}>
+      <nav class="pieces" aria-label="书桌上的器物，一件一卷" inert={phase !== 'home'}>
         {#each juans as j}
           {@const p = SPOTS[j.id]}
           {#if j.open}
@@ -252,7 +252,7 @@
       {#if mounted && juan && voice}{#key juan.id}<Ritual {juan} {voice} />{/key}{/if}
 
       <!-- 仪式：器物摆在桌面的中前部 -->
-      <div class="desk" aria-label="桌上" aria-hidden={phase !== 'ritual'}>
+      <div class="desk" aria-label="桌上" inert={phase !== 'ritual'}>
         <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
       </div>
     </div>
