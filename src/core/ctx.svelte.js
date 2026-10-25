@@ -119,7 +119,7 @@ export function createCtx(juan) {
     revealDoubt() {
       if (round.doubtShown) return;
       round.doubtShown = true;
-      ctx.gloss('不信我，就按左下角那枚印');
+      ctx.gloss('不信我，就按左下角那个“存疑”');
     },
 
     doubtVisible(game) {
@@ -162,7 +162,7 @@ export function createCtx(juan) {
 
     // 书说话的地方（扉页上的 .voice）由 Codex 交进来；书说话时封面掀起（stage.speaking）
     attach({ voice }) {
-      glossEngine = createGloss(voice, { reduced, onState: (on) => { stage.speaking = on; } });
+      glossEngine = createGloss(voice, { reduced, onState: (on) => { stage.speaking = on; }, onSay: (t) => { stage.said = t; stage.saidN++; } });
       ctx.voice = glossEngine;
 
       const touchEv = ['pointerdown', 'keydown', 'input'];

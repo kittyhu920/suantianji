@@ -12,6 +12,7 @@ const CN = '零一二三四五六七八九十';
 export function hexPages({ hex, changed, vs, domain, advice, bits, value, seed }) {
   const hexPage = {
     id: 'hex',
+    title: `本卦：${hex.name}`,
     text: `${hex.upper}上${hex.lower}下本卦无变爻${hex.name}${changed?.name ?? ''}之变卦${hex.ci}`,
     sig: 'hex',
     zhu: ['本卦', '变卦', '卦辞', '上卦下卦', '金钱卦'],
@@ -45,6 +46,7 @@ export function hexPages({ hex, changed, vs, domain, advice, bits, value, seed }
   };
   const jie = {
     id: 'jiegua',
+    title: '解卦',
     text: `解卦${hex.bai}${advice ?? ''}${changed ? `${changed.name}${changed.ci}${changed.bai}` : '没有变爻六爻都不动只看这一卦没有后来的样子'}`,
     sig: 'jiegua',
     zhu: [],
@@ -66,6 +68,7 @@ export function hexPages({ hex, changed, vs, domain, advice, bits, value, seed }
   ], { first: 330 });
   const bin = rest.map((ops, n) => ({
     id: `binary${n}`,
+    title: n ? `${BINARY.title}（续）` : BINARY.title,
     text: `${BINARY.title}${BINARY.lead}${ops.map((o) => o.text).join('')}${CN_YAO_SHORT.join('')}`,
     sig: `binary${n}`,
     zhu: ['先天八卦', '莱布尼茨', '二进制'],
@@ -101,6 +104,7 @@ export function hexPages({ hex, changed, vs, domain, advice, bits, value, seed }
 export function castPages({ casts, final }) {
   return [{
     id: 'casts',
+    title: '起卦',
     text: `起卦${casts.map((c) => c.hex.name + c.lines.map((l) => `${CN_YAO[0]}${faceText(l.faces[0])}${YAO[l.v].name}${l.v}`).join('')).join('')}弃第卦背字`,
     sig: 'casts',
     zhu: ['爻', '老阳', '少阴', '少阳', '老阴', '阴阳爻', '龟壳'],
@@ -138,6 +142,7 @@ export function castPages({ casts, final }) {
 export function noHexPages() {
   return [{
     id: 'hex',
+    title: '没有卦',
     text: '没有卦钱还没有掷出去空白也是一种回答',
     sig: 'none',
     zhu: [],

@@ -11,6 +11,7 @@ export function omenPages({ fig, omenKey, zhan, state, domain, domainKey }) {
   if (!fig.main) {
     return [{
       id: 'omen',
+      title: '没有兆',
       text: '龟甲还没有裂',
       sig: 'omen',
       zhu: [],
@@ -23,6 +24,7 @@ export function omenPages({ fig, omenKey, zhan, state, domain, domainKey }) {
   const o = OMENS[omenKey];
   const first = {
     id: 'omen',
+    title: `兆：${o.name}`,
     text: `${fig.question}${fig.fanQuestion}${fig.qianci}${fig.zhan}兆曰${o.name}${fig.main.xu}${fig.fan?.xu ?? ''}${fig.fan?.name ?? ''}`,
     sig: 'omen',
     zhu: ['兆干兆枝', '兆象', '兆序', '钻凿', '前辞命辞占辞验辞'],
@@ -40,6 +42,7 @@ export function omenPages({ fig, omenKey, zhan, state, domain, domainKey }) {
   };
   const second = {
     id: 'jiezhao',
+    title: '解兆',
     text: `解兆${state.text}${o.name}${zhan}${BAI[omenKey]}${domain ? ADVICE[omenKey][domainKey] : ''}这些白话与建议是本作自己写的不是卜辞里的话`,
     sig: 'jiezhao',
     zhu: ['卜辞', '亡尤', '有祟', '王占曰'],
@@ -70,6 +73,7 @@ export function burnPages({ burns, cur, override, sec }) {
   const kindName = { zheng: '正问', again: '再灼', fan: '对贞' };
   return [{
     id: 'burns',
+    title: '灼卜',
     text: `灼卜${burns.map((b, i) => `${cnNum(i + 1)}${kindName[b.kind]}${OMENS[b.omen].name}${explain(b.metrics)}`).join('')}第处按秒抖像素改判`,
     sig: 'burns',
     zhu: ['灼', '正反对贞', '命辞', '钻凿'],

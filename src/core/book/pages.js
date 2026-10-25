@@ -1,6 +1,7 @@
 // 命书的页（docs/DESIGN.md §19）：仪式完了，书摊开，里面是它替你写的命书，只用来读。
 // 每一页是一个描述 { id, text, sig, zhu, paint(g) }：
 //   id     页的名字（Reader 用它认页）
+//   title  页标题：读屏软件按它认页、翻页时读出来（Reader 里隐藏的 <article> 的标题）；没有就读“第 N 页”
 //   text   这一页上会出现的字（画之前先等字体加载）
 //   sig    内容的签名：变了（通灵回话、同类人的数字到了）Reader 就重画这一页，不变就不重画
 //   zhu    这一页用到的术语，页脚显示它们的注（core/book/notes.js）
@@ -22,6 +23,7 @@ export function frontispiece({ juan, domain, question, date, seed }) {
   const q = question || '（没有写下具体的问题）';
   return {
     id: 'front',
+    title: '扉页',
     text: `演算天机${juan.name}${juan.title}所问${domain?.name ?? ''}${domain?.desc ?? ''}${q}${date}`,
     sig: 'front',
     zhu: [],
@@ -61,6 +63,7 @@ export function frontispiece({ juan, domain, question, date, seed }) {
 export function verdict({ ending, lead, turn, seed }) {
   return {
     id: 'verdict',
+    title: '判词',
     text: `判词${ending.name}${ending.sub}${lead}${ending.verse.join('')}${turn.join('')}`,
     sig: 'verdict',
     zhu: [],
@@ -97,6 +100,7 @@ export function confessPages({ items, peer, critique }) {
   const pages = flow(blocks);
   return pages.map((ops, i) => ({
     id: `confess${i}`,
+    title: i ? '实话（续）' : '跟你说几句实话',
     text: ops.map((o) => o.text).join(''),
     sig: `confess${i}:${ops.map((o) => o.text).join('|')}`,
     zhu: [],
@@ -112,6 +116,7 @@ export function oraclePages({ title, text }) {
   const pages = flow([{ k: 'p', text, size: 23, font: F.kai, gap: 14 }]);
   return pages.map((ops, i) => ({
     id: `oracle${i}`,
+    title: i ? `${title}（续）` : title,
     text: `${title}${ops.map((o) => o.text).join('')}`,
     sig: `oracle${i}:${text.length}`,
     zhu: [],
@@ -133,6 +138,7 @@ export function ledgerPages({ rows, privacy }) {
   const pages = flow(blocks);
   return pages.map((ops, i) => ({
     id: `ledger${i}`,
+    title: i ? '行为账本（续）' : '行为账本',
     text: ops.map((o) => o.text).join(''),
     sig: `ledger${i}`,
     zhu: [],
@@ -147,6 +153,7 @@ export function ledgerPages({ rows, privacy }) {
 export function loomPage({ seed, throws, style, text, legend }) {
   return {
     id: 'loom',
+    title: '命盘',
     text: `命盘${text}${legend}`,
     sig: 'loom',
     zhu: [],
@@ -172,6 +179,7 @@ export function endingsPage({ endings, got, current, note }) {
   const count = all.filter(([k]) => got.includes(k)).length;
   return {
     id: 'endings',
+    title: `结局，已得 ${count} 个，共 ${all.length} 个`,
     text: `四种结局已得${count}${all.map(([k, e]) => (got.includes(k) ? `${e.name}${e.sub}` : '')).join('')}未得还没有人告诉你这一次得到过${note ?? ''}`,
     sig: 'endings',
     zhu: [],
