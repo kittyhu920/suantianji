@@ -64,3 +64,25 @@
 .table.is-gl .desk-items :where(.jiao-legend, .cast-legend) b { color: var(--ink); }
 
 @media (max-width: 959px) { .desk-gl, .pieces-gl, .piece-card, .voice-plane { display: none; } }
+
+/* ───────── 2D 退回（手机宽度、减少动效、WebGL 不可用）─────────
+   器物前面桌上一块小木签，常显卷名；未开卷的暗下去、签是灰的。手机上是俯视的书桌角：书在上，器物在下排成一行，可横向滑动。 */
+.piece-label {
+  position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%) rotate(-1deg);
+  display: flex; align-items: baseline; gap: .5em; white-space: nowrap;
+  padding: 3px 10px 4px; border-radius: 2px;
+  font-size: 12px; letter-spacing: .1em; color: #2a2118;
+  background: linear-gradient(90deg, #d8c497, #e4d2a6 50%, #cdb988);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(70, 48, 22, .3);
+}
+.piece-label b { font-family: var(--f-display); font-weight: 400; font-size: 20px; line-height: 1; }
+.piece.is-closed .piece-label { color: rgba(235, 228, 210, .85); background: linear-gradient(90deg, #6d6657, #7a7363 50%, #656050); }
+@media (max-width: 959px) {
+  .pieces { top: 214px; bottom: 6px; left: 0; right: 0; display: flex; flex-direction: row; gap: 18px; align-items: flex-start; padding: 8px 16px 18px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .pieces::-webkit-scrollbar { display: none; }
+  .piece { flex: none; scroll-snap-align: center; width: 112px; padding-bottom: 26px; }
+  .piece-art { width: 100px; margin: 0 auto; }
+  .piece-label { bottom: 0; }
+  .piece-tip { display: none; }
+  .piece.is-closed .piece-art { filter: brightness(.5) saturate(.4) drop-shadow(0 8px 6px rgba(0, 0, 0, .5)); }
+}

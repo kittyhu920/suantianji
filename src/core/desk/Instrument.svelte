@@ -2,24 +2,21 @@
   // 书桌上的器物（写意的静态画，SVG）：签筒（签）、龟壳与三枚铜钱（卦）、龟甲（卜）、星盘（星）、鸟笼（鸟）、砚与笺（字）、历书（历）。
   // 首页的书桌与各卷入口屏的桌面都用它；真正的摇、掷、灼用各卷自己的器物（签筒 tube.js、龟壳 shell.js、龟甲 Plastron.svelte）。
   // 颜色取自桌上的夜里配色（--obj-*）与木色，不论昼夜都一样。
+  import { createQian } from '../../juan/qian/tube.js';
   let { id } = $props();
+  function inkTube(node) {
+    const svg = node.ownerSVGElement;
+    const holder = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    createQian(holder, {});
+    svg.setAttribute('viewBox', '0 0 320 440');
+    node.append(...holder.childNodes);
+  }
 </script>
 
 <svg class="inst inst-{id}" viewBox="0 0 200 200" aria-hidden="true">
   {#if id === 'qian'}
-    <defs>
-      <linearGradient id="in-qb" x1="0" x2="1"><stop offset="0" stop-color="#4b361d"/><stop offset=".35" stop-color="#9a7843"/><stop offset=".7" stop-color="#7a5b30"/><stop offset="1" stop-color="#3b2a16"/></linearGradient>
-    </defs>
-    <g stroke="#c9b078" stroke-width="3.2" stroke-linecap="round">
-      <path d="M78 74 L70 20"/><path d="M92 74 L90 12"/><path d="M104 74 L110 18"/><path d="M116 74 L128 28"/><path d="M86 74 L58 34"/>
-    </g>
-    <g fill="#8e2a22"><rect x="67" y="14" width="7" height="12" rx="1" transform="rotate(8 70 20)"/><rect x="106" y="12" width="7" height="12" rx="1" transform="rotate(-4 110 18)"/></g>
-    <path d="M58 76 L142 76 L148 178 Q100 194 52 178 Z" fill="url(#in-qb)"/>
-    <ellipse cx="100" cy="76" rx="42" ry="9" fill="#1c140b"/>
-    <g fill="none" stroke="#2a1d0e" stroke-width="2.4" opacity=".7"><path d="M55 108 Q100 120 145 108"/><path d="M53 150 Q100 162 147 150"/></g>
-    <rect x="88" y="116" width="24" height="26" rx="2" fill="#e6dcc0" opacity=".9"/>
-    <text x="100" y="136" text-anchor="middle" font-size="18" font-family="var(--f-display)" fill="#1b1712">签</text>
-    <ellipse cx="100" cy="186" rx="52" ry="7" fill="#000" opacity=".35"/>
+    <!-- 签筒只有一种画法：与摇签时的水墨签筒是同一张（tube.js 画一帧，不起物理） -->
+    <g use:inkTube></g>
   {:else if id === 'gua'}
     <defs>
       <radialGradient id="in-gs" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#8c6a3c"/><stop offset=".7" stop-color="#4c3a20"/><stop offset="1" stop-color="#2b2010"/></radialGradient>
