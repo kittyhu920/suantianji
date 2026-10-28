@@ -135,17 +135,14 @@ export function paintWood({ w = 1024, h = 704, seed = 11, planks = 4, light = 0x
   return { color, bump, rough };
 }
 
-/** 书的封面（俯视画面：横的，书脊在上沿）：深靛布面、织纹、四眼订线、题签、四角的残印位。返回 { color, bump }。
-    画布的方向已按"书脊朝里的横放"转好：参数 w、h 是屏幕上看到的宽与高（px）。 */
-export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2f3b50', cb = 0x232c40 } = {}) {
+/** 书的封面（俯视画面：竖的，书脊在右，传统右装）：旧靛青的布面、织纹、四眼订线、竖贴的题签、竖列的残印位。返回 { color, bump }。
+    画布就是屏幕上看到的样子（左上是画布原点）；书在 3D 里是镜像摆的（book3d.js 的 inner.scale.x = -1），贴图要把 u 翻回来（repeat.x = -1）。
+    参数 w、h 是封面的宽与高（px），宽高比与页一致。 */
+export function paintCover({ w = 1040, h = 1440, seed = 3, cloth = '#4b4b52', cb = 0x232c40 } = {}) {
   const R = mulberry32(seed);
-  const color = canvas(h, w); // 实际画布是竖的（u 沿书的宽，v 沿书的高），按旋转后的坐标画
-  const bump = canvas(h, w);
-  const make = (cv, fn) => {
-    const g = cv.getContext('2d');
-    g.setTransform(0, -1, 1, 0, 0, w); // 屏幕坐标 (sx, sy) → 画布 (sy, w - sx)
-    fn(g);
-  };
+  const color = canvas(w, h);
+  const bump = canvas(w, h);
+  const make = (cv, fn) => { fn(cv.getContext('2d')); };
   make(color, (g) => {
     g.fillStyle = cloth;
     g.fillRect(0, 0, w, h);
@@ -180,42 +177,45 @@ export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2f3b50', cb
       g.fillStyle = `rgba(206,208,214,${(0.04 + R() * 0.09).toFixed(3)})`;
       g.fillRect(x, y, 2 + R() * 7, 1 + R() * 3);
     }
-    for (const [cx, cy] of [[0, h], [w, h], [w, 0]]) { // 四角：手摸得最多
+    for (const [cx, cy] of [[0, 0], [0, h], [w, h], [w, 0]]) { // 四角：手摸得最多
       const rg = g.createRadialGradient(cx, cy, 0, cx, cy, 120);
       rg.addColorStop(0, 'rgba(210,212,218,.2)'); rg.addColorStop(1, 'rgba(210,212,218,0)');
       g.fillStyle = rg;
       g.fillRect(cx - 120, cy - 120, 240, 240);
     }
-    const eg = g.createLinearGradient(0, 0, 0, h);
+    // 旧布褪色：整体蒙一层灰白，边与中间不匀
+    g.fillStyle = 'rgba(176,180,188,.12)';
+    g.fillRect(0, 0, w, h);
+    const eg = g.createLinearGradient(w, 0, 0, 0);
     eg.addColorStop(0, 'rgba(0,0,0,.45)'); eg.addColorStop(0.07, 'rgba(0,0,0,.08)'); eg.addColorStop(1, 'rgba(0,0,0,.22)');
     g.fillStyle = eg;
-    g.fillRect(0, 0, w, h); // 书脊处向里凹下去、下沿略暗
-    // 四眼订线：书脊（上沿）下约 0.9cm 一排四孔，丝线沿书脊一圈圈压过
-    const px = w / 36;
-    const holeY = 3.1 * px;
-    const xs = [4.2, 12.4, 20.6, 29.3].map((c) => c * px);
+    g.fillRect(0, 0, w, h); // 书脊（右）处向里凹下去、书口略暗
+    // 四眼订线：书脊下约 0.9cm 一列四孔，丝线沿书脊一圈圈压过
+    const px = w / 26;
+    const holeX = w - 3.1 * px;
+    const ys = [4.8, 13.1, 21.4, 30.1].map((c) => c * px);
     g.strokeStyle = 'rgba(8,6,3,.5)';
     g.lineWidth = 7;
     g.lineCap = 'round';
-    g.beginPath(); g.moveTo(xs[0], holeY); g.lineTo(xs[3], holeY); g.stroke();
+    g.beginPath(); g.moveTo(holeX, ys[0]); g.lineTo(holeX, ys[3]); g.stroke();
     g.strokeStyle = '#e9e0c8';
     g.lineWidth = 6;
-    g.beginPath(); g.moveTo(xs[0], holeY); g.lineTo(xs[3], holeY); g.stroke();
-    for (const x of xs) {
+    g.beginPath(); g.moveTo(holeX, ys[0]); g.lineTo(holeX, ys[3]); g.stroke();
+    for (const y of ys) {
       g.strokeStyle = 'rgba(8,6,3,.5)'; g.lineWidth = 7;
-      g.beginPath(); g.moveTo(x + 2, 0); g.lineTo(x + 2, holeY + 2); g.stroke();
+      g.beginPath(); g.moveTo(w, y + 2); g.lineTo(holeX + 2, y + 2); g.stroke();
       g.strokeStyle = '#e9e0c8'; g.lineWidth = 6;
-      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, holeY); g.stroke();
+      g.beginPath(); g.moveTo(w, y); g.lineTo(holeX, y); g.stroke();
       g.fillStyle = '#0e0a05';
-      g.beginPath(); g.arc(x, holeY, 7, 0, TAU); g.fill();
+      g.beginPath(); g.arc(holeX, y, 7, 0, TAU); g.fill();
       g.strokeStyle = 'rgba(233,224,200,.9)'; g.lineWidth = 3;
-      g.beginPath(); g.arc(x, holeY, 9, 0, TAU); g.stroke();
+      g.beginPath(); g.arc(holeX, y, 9, 0, TAU); g.stroke();
     }
-    // 题签：书名，横写在书脊下的一张窄纸上（横排，自左向右）
-    const lw = 11.5 * px, lh = 3.5 * px, lx = (36 - 11.5) / 2 * px + 0.6 * px, ly = 7.2 * px;
+    // 题签：书名，竖写在封面左上的一张窄纸上（古书惯例；竖排，自上而下）
+    const lw = 4.4 * px, lh = 14.6 * px, lx = 3.0 * px, ly = 2.8 * px;
     g.save();
     g.translate(lx, ly);
-    g.rotate(-0.006);
+    g.rotate(0.006);
     g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 8; g.shadowOffsetY = 3;
     const lg = g.createLinearGradient(0, 0, lw, 0);
     lg.addColorStop(0, '#e0d2ae'); lg.addColorStop(0.5, '#eee3c6'); lg.addColorStop(1, '#dfd0ab');
@@ -225,18 +225,18 @@ export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2f3b50', cb
     g.strokeStyle = 'rgba(60,40,14,.4)'; g.lineWidth = 3;
     g.strokeRect(10, 10, lw - 20, lh - 20);
     g.fillStyle = '#1b1712';
-    g.font = `${Math.round(lh * 0.56)}px "Huiwen-mincho","Noto Serif SC",serif`;
+    g.font = `${Math.round(lw * 0.66)}px "Huiwen-mincho","Noto Serif SC",serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     const t = '演算天机';
-    const step = lw / (t.length + 0.6);
-    [...t].forEach((c, i) => g.fillText(c, step * (i + 0.8), lh * 0.54));
+    const step = (lh - 20) / (t.length + 0.4);
+    [...t].forEach((c, i) => g.fillText(c, lw / 2, 10 + step * (i + 0.7)));
     g.restore();
-    // 四角的残印位：极淡的印痕
+    // 残印位：题签下面一列四个，极淡的印痕（签、卦、卜、星）
     g.strokeStyle = 'rgba(236,228,208,.16)';
     g.lineWidth = 3;
     g.setLineDash([22, 7, 12, 9, 17, 7]);
-    [[2.4, 11.5], [32.4, 11.5], [2.4, 22], [32.4, 22]].forEach(([cx, cy]) => g.strokeRect(cx * px, cy * px, 2.6 * px, 2.6 * px));
+    [0, 1, 2, 3].forEach((k) => g.strokeRect(4.0 * px, (19.6 + k * 3.5) * px, 2.6 * px, 2.6 * px));
     g.setLineDash([]);
   });
   make(bump, (g) => {

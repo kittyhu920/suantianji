@@ -3,7 +3,8 @@
 // 它不再有自己的画布与相机：纸挂在 book3d.js 的书里（parent），渲染循环是桌子的（desk.addTicker / invalidate），
 // 所以读命书时是同一本书原地摊开，不是另一本书叠上来。
 // 只在需要时才渲染：静止时一帧不画；翻页时每帧只重算正在翻的那一张纸的顶点与法线，不重画任何纹理。
-// 坐标：纸的局部坐标里 x 自书脊向右（右页 0..W），y 向书头，z 向上；一个单位 = SC 厘米（见 book3d.js 里的挂法）。
+// 坐标：纸的局部坐标里 x 自书脊向书口（“右页”0..W，也就是还没读的那一叠），y 向书头，z 向上；一个单位 = SC 厘米（见 book3d.js 里的挂法）。
+// 右装：整本书在世界里是镜像摆的，书脊在右，所以“右页”（未读的一叠）在屏幕的左边，翻过去的纸落在屏幕右边；下面的“左、右”都指纸自己的坐标。
 
 import { sheetGrid, bend, spring } from './curl.js';
 
@@ -75,7 +76,7 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
   };
 
   // 纸：每张一份网格（正反面共用顶点）
-  const grid = sheetGrid(W, H, COLS, ROWS);
+  const grid = sheetGrid(W, H, COLS, ROWS, true); // 书是右装、镜像摆的（book3d.js）：uv 的 u 翻过来，字才是正的
 
   function makeTexture(cv) {
     const tex = new THREE.CanvasTexture(cv);
