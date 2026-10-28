@@ -14,6 +14,7 @@ const T = 0.8; // 甲的厚度
 const CX = 150;
 const CY = 211;
 const HEAT = new THREE.Color(0xd2703c);
+const AFTER = 1800; // 出兆的暖光峰值（candela）
 
 /** 把 'M x y C … Z'（只含 M、C、Z 的绝对坐标）的路径读成 Shape */
 function shapeFromPath(d) {
@@ -126,7 +127,7 @@ export function buildBu(desk) {
   // 出兆的余光：裂纹长出来时甲面泛暖，裂完之后慢慢收住
   const afterLight = new THREE.PointLight(0xd2703c, 0, 22, 2);
   afterLight.position.set(0, 6, 0);
-  lifter.add(afterLight);
+  group.add(afterLight); // 挂在器物上、不挂在会翻转的甲上：以前挂在甲上，翻过来之后灯跑到了甲的下面（桌面里），光几乎照不到甲面
   let afterStop = null;
   const fadeAfter = (ms = 1000) => {
     afterStop?.();
@@ -279,7 +280,7 @@ export function buildBu(desk) {
         stopGrow = desk.addTicker((dt) => {
           t = Math.min(1, t + (dt * 1000) / 2100);
           draw(t, t < 1);
-          afterLight.intensity = 1100 * t * t; // 物理单位：6 厘米外约 30 勒克斯，与灯下的桌面相当，不刺眼
+          afterLight.intensity = AFTER * t * t; // 物理单位：6 厘米外约 50 勒克斯（比灯下的桌面亮一倍多，只照甲面一圈，范围 22 厘米；灯挂在器物上，3600 在昼里已经烧白），静帧看得出甲面泛暖，动起来明显，不刺眼
           if (t >= 1) { draw(1, false); stopGrow = null; fadeAfter(1100); opt.onDone?.(); return false; }
           return true;
         });

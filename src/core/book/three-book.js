@@ -128,8 +128,8 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     }
     const fm = paperMaterial(ft, bt, THREE.FrontSide, veil);
     const bm = paperMaterial(bt, ft, THREE.BackSide, null);
-    fm.color.setScalar(tintK);
-    bm.color.setScalar(tintK);
+    fm.color.setRGB(tintC[0], tintC[1], tintC[2]);
+    bm.color.setRGB(tintC[0], tintC[1], tintC[2]);
     mats.push(fm, bm);
     const fMesh = new THREE.Mesh(geo, fm);
     const bMesh = new THREE.Mesh(geo, bm);
@@ -168,14 +168,17 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     sh.fMesh.renderOrder = sh.bMesh.renderOrder = turning ? 3 : 2;
   }
 
-  // 夜里灯正照在书上，纸被照得过亮、字发褐发橙：纸的亮度压到 0.72，字才沉得下去（昼里不动）
-  let tintK = 1;
+  // 夜里灯是暖色、又正照在书上：深色的字乘上很亮的暖光，发橙发褐（纸烧成一片淡黄，细笔画读不清）。
+  // 所以夜里给纸一个偏冷的底色（红绿略压、蓝抬高），把暖光抵成接近中性的白，纸是素白、字是黑的，像在白炽灯下读书；
+  // 整体压到约 0.45（纸的亮度落在 0.8 上下，与昼里一样，不再烧成一片）：灯下的纸太亮时，深色的字也跟着被照得发亮，压下来字才黑、对比才高（实测见 docs/DESIGN.md §19“夜里读命书”）。昼里不动。
+  const tintC = [1, 1, 1];
   const tint = () => {
-    const k = 1 - 0.28 * desk.themeT;
-    if (Math.abs(k - tintK) < 1e-3) return;
-    tintK = k;
-    for (const m of mats) m.color.setScalar(k);
-    for (const s of sheets) { s.fm.color.setScalar(k); s.bm.color.setScalar(k); }
+    const t = desk.themeT;
+    const c = [1 - 0.18 * t, 1 - 0.04 * t, 1 + 0.5 * t].map((v) => v * (1 - 0.55 * t));
+    if (c.every((v, i) => Math.abs(v - tintC[i]) < 1e-3)) return;
+    c.forEach((v, i) => { tintC[i] = v; });
+    for (const m of mats) m.color.setRGB(c[0], c[1], c[2]);
+    for (const s of sheets) { s.fm.color.setRGB(c[0], c[1], c[2]); s.bm.color.setRGB(c[0], c[1], c[2]); }
   };
   desk.listeners.add(tint);
 

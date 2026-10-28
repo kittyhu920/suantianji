@@ -356,7 +356,7 @@ export function createBook(desk) {
 
   const api = {
     root, inner, pose, version: 0, fx,
-    parts: { cover: coverMesh, board, block, spine }, // 穿模检查（overlaps.js）用
+    parts: { cover: coverMesh, board, block, spine, sheetsRoot }, // 穿模检查（overlaps.js）与调试用
     setMode, setLift, pageQuad, reading, beginReading, skipIntro,
     get mode() { return mode; },
     get lift() { return lift; },

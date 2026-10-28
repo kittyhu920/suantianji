@@ -44,10 +44,8 @@
 /* 书的话：写在扉页上的字，透视贴在 3D 的扉页上（尺寸与变换由 Codex.svelte 的 placeVoice 写） */
 .voice-plane { position: absolute; left: 0; top: 0; z-index: 4; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; padding: 4px 8px; --bs: 1; }
 .voice-plane .voice { position: relative; min-height: 1px; }
-.voice-plane .gloss { font-size: 24px; line-height: 1.45; color: #1b1712; }
-/* 字和纸一起受光：灯在左前方，字迹在受光的一侧最浓，背光的一侧与夜里略淡（夜里灯暗一档，字迹也略淡） */
-:root[data-theme="dark"] .voice-plane { --vlit: .8; }
-.voice-plane { --vlit: .92; -webkit-mask-image: linear-gradient(100deg, #000 0%, rgba(0, 0, 0, var(--vlit)) 55%, rgba(0, 0, 0, calc(var(--vlit) - .22)) 100%); mask-image: linear-gradient(100deg, #000 0%, rgba(0, 0, 0, var(--vlit)) 55%, rgba(0, 0, 0, calc(var(--vlit) - .22)) 100%); }
+.voice-plane .gloss { font-size: 25px; line-height: 1.45; color: #1b1712; -webkit-text-stroke: .4px #1b1712; paint-order: stroke fill; }
+/* 字不再随灯光方向加明暗遮罩（以前背光一侧、夜里字被削到 58%，行书的细笔画更读不清）：字是墨，multiply 叠在受光的纸上，纸暗字也跟着暗，本身已经“和纸一起受光” */
 
 /* 3D 的桌面是亮的木面：直接写在木头上的字看不清，所以桌上的说明与记录都写在摊在桌上的纸笺上（墨色、宣纸底） */
 .table.is-gl .desk-items :where(.jiao-legend, .jiao-tally, .cast-legend, .cast-hex, .zhuo-side:has(> *), .jiao-sign, .ming-line, .idle-piece figcaption, .jie-earlier) {

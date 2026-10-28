@@ -12,7 +12,7 @@
   //   onopen   3D：摊开的演出放完（或被点掉）时回调
   //   spread   现在看到第几个对页：0 是扉页单独在书口一侧；3D 的右装书里，第 k 个对页是 第 2k-1 页在右、第 2k 页在左（先读右边、再读左边）；2D 退回是左装，第 2k-1 页在左、第 2k 页在右。绑定给页脚，用来显示这一页的脚注
   import { onMount, tick, untrack } from 'svelte';
-  import { PW, PH, ground, folio, loadFonts } from './paint.js';
+  import { PW, PH, ground, folio, loadFonts, embolden } from './paint.js';
   import { deskRef } from '../scene/desk.svelte.js';
 
   let { pages, narrow = false, on = false, reduced = false, glBook = null, onopen = () => {}, spread = $bindable(0) } = $props();
@@ -79,6 +79,7 @@
       const g = cv.getContext('2d');
       g.setTransform(sc, 0, 0, sc, 0, 0);
       ground(g, 1000 + k * 37, sideOf(k));
+      embolden(g);
       if (d) {
         await d.paint(g);
         if (k > 0) folio(g, k, sideOf(k));
