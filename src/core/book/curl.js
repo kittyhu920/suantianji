@@ -55,6 +55,7 @@ export function bend(out, base, W, H, p, { dy = 0, zR = 0, zL = 0, dip = 3.5, gu
   const cone = 0.9 * s;
   const ca = Math.cos(a);
   const sa = Math.sin(a);
+  const zBase = zR + (zL - zR) * smooth(0.82, 1, p); // 订口一侧卷起的那一小段，随翻过去的进度从右边那一叠的高度落到左边那一叠
   const zFlip = zR + 2 * R + (zL - zR - 2 * R) * smooth(0.82, 1, p); // 翻过去的那一部分：先高出右边的书页，快到底时落到左边那一叠上
   for (let k = 0; k < base.length; k += 3) {
     const x = base[k];
@@ -74,7 +75,7 @@ export function bend(out, base, W, H, p, { dy = 0, zR = 0, zL = 0, dip = 3.5, gu
     let z;
     if (th <= Math.PI) {
       along = r * Math.sin(th);
-      z = zR + r * (1 - Math.cos(th));
+      z = zBase + r * (1 - Math.cos(th));
     } else {
       along = -(u - Math.PI * r);
       z = zFlip + (r - R) * 0.5;

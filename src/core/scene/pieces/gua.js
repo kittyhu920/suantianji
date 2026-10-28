@@ -72,6 +72,7 @@ export function buildGua(desk) {
     lathe([[RM - 0.55, HSH + 0.1], [RM - 0.7, HSH - 0.2], [RM - 1.2, 1.6], [3.0, 0.9], [0.001, 0.8]], 40, HSH),
     new THREE.MeshStandardMaterial({ map: shellMap, color: 0x7a5a3a, roughness: 0.6, side: THREE.DoubleSide }),
   );
+  body.scale.z = bowl.scale.z = 1.26; // 背甲是椭圆的（前后比左右长），不是一只圆碗
   rig.add(body, bowl);
 
   // ───── 钱 ─────
@@ -132,6 +133,27 @@ export function buildGua(desk) {
       coins.forEach((c) => { c.zLand = 7 + trueRandom() * 4; c.shd.visible = true; });
     },
     done() { lastSig = ''; },
+    /** 卦成：最后一爻落定时，三枚铜钱轻轻一颤（各自微微跳起、转一点点，很快停稳），约 0.6 秒 */
+    shiver() {
+      const base = coins.map((c) => ({ y: c.holder.position.y, ry: c.holder.rotation.y, rx: c.flip.rotation.x }));
+      let t = 0;
+      desk.addTicker((dt) => {
+        t += dt;
+        const u = clamp(t / 0.62, 0, 1);
+        const decay = (1 - u) ** 2;
+        coins.forEach((c, i) => {
+          const ph = t * 46 + i * 1.7;
+          c.holder.position.y = base[i].y + 0.16 * decay * Math.abs(Math.sin(ph));
+          c.holder.rotation.y = base[i].ry + 0.05 * decay * Math.sin(ph * 0.9);
+          c.flip.rotation.x = base[i].rx + 0.04 * decay * Math.sin(ph * 1.1 + 1);
+        });
+        if (u >= 1) {
+          coins.forEach((c, i) => { c.holder.position.y = base[i].y; c.holder.rotation.y = base[i].ry; c.flip.rotation.x = base[i].rx; });
+          return false;
+        }
+        return true;
+      });
+    },
     burst(x, y, power) {
       const i = Math.max(0, Math.min(2, Math.round((x - 68) / 92)));
       void i;
@@ -186,5 +208,37 @@ export function buildGua(desk) {
     c.flip.rotation.x = [0.5, 0.15, 0.8][i];
   });
 
-  return { id: 'gua', group, hit: [hitMesh], radius: 9, view, reset() { view.reset(); } };
+  // 摆放：首页里壳口朝下扣在桌上，露出整个背甲（盾片纹与拱起的弧度，从俯视的机位才看得出是龟壳，不是碗）；
+  // 进卷后翻过来，壳口朝上、略朝玩家，里面是三枚钱
+  let tiltA = Math.PI;
+  let tiltStop = null;
+  const UP = 0.22;
+  const applyTilt = (a) => {
+    tiltA = a;
+    tiltG.rotation.x = a;
+    tiltG.position.y = (HSH + 0.25) * clamp((a - UP) / (Math.PI - UP), 0, 1);
+    tiltG.position.z = -0.6 * Math.sin(a);
+  };
+  function rest(down, instant = false) {
+    const goal = down ? Math.PI : UP;
+    tiltStop?.();
+    tiltStop = null;
+    if (instant) { applyTilt(goal); desk.invalidate(); return; }
+    if (Math.abs(goal - tiltA) < 1e-3) return;
+    const from = tiltA;
+    let t = 0;
+    tiltStop = desk.addTicker((dt) => {
+      t += dt;
+      const u = clamp(t / 0.8, 0, 1);
+      const e = u * u * (3 - 2 * u);
+      applyTilt(from + (goal - from) * e);
+      // 翻起来时壳略抬一点，免得壳沿陷进桌面
+      group.position.y = Math.sin(e * Math.PI) * 2.2;
+      if (u >= 1) { group.position.y = 0; tiltStop = null; return false; }
+      return true;
+    });
+  }
+  applyTilt(Math.PI);
+
+  return { id: 'gua', group, hit: [hitMesh], radius: 9, view, rest, reset() { view.reset(); } };
 }

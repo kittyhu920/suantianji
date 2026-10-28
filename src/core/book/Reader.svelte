@@ -1,25 +1,27 @@
 <script>
-  // 读命书（docs/DESIGN.md §19）：书在桌子中央摊开，只用来读。翻页用 WebGL（three-book.js）做真正的曲面卷页：点页、拖页角、方向键，
-  // 带惯性和回弹。每一页是 Canvas 2D 画出来的纹理（pages.js 给描述，paint.js 的笔法），字体加载完再画，按 dpr 放大；翻页时不重画任何纹理。
+  // 读命书（docs/DESIGN.md §19）：书在桌子中央摊开，只用来读。3D 书桌下，这就是桌上那一本书：封面翻开，纸（three-book.js）挂在书里，
+  // 做真正的曲面卷页：点页、拖页角、方向键，带惯性和回弹；这个组件不再有自己的画布，只负责画页的纹理、接手势、给读屏朗读。
+  // 每一页是 Canvas 2D 画出来的纹理（pages.js 给描述，paint.js 的笔法），字体加载完再画，按 dpr 放大；翻页时不重画任何纹理。
   // 读屏：正文只画在 Canvas 上，读屏读不到，所以另有一份平行的、视觉上隐藏的文本（每页一个 <article>，带标题），
 // 每次翻页，把现在这个对页的标题与正文写进朗读区；页码从 1 开始数（docs/DESIGN.md §20）。
 // 退回方案：WebGL 不可用、减少动效、手机端，都退回 DOM 里的 2D 书页（桌面是左右两页，手机是单页），点边、滑动、方向键翻页，功能等价。
   //   pages    页描述数组（core/book/pages.js）
   //   narrow   手机宽度（< 960px）
-  //   on       书已经摊开（封面翻开的动画放完）：这时才显示
+  //   on       书已经摊开（封面翻开的演出放完）：这时才接手势、才朗读
+  //   glBook   3D 书桌里的书（scene/book3d.js），有它就在桌上的书里翻页；没有（2D 退回）就用 DOM 的书页
+  //   onopen   3D：摊开的演出放完（或被点掉）时回调
   //   spread   现在看到第几个对页：0 是扉页单独在右边，k 是 第 2k-1 页在左、第 2k 页在右；绑定给页脚，用来显示这一页的脚注
   import { onMount, tick, untrack } from 'svelte';
   import { PW, PH, ground, folio, loadFonts } from './paint.js';
+  import { deskRef } from '../scene/desk.svelte.js';
 
-  let { pages, narrow = false, on = false, reduced = false, spread = $bindable(0) } = $props();
+  let { pages, narrow = false, on = false, reduced = false, glBook = null, onopen = () => {}, spread = $bindable(0) } = $props();
 
   let host;
-  let glCanvas = $state(null);
   let slotL = $state(null);
   let slotR = $state(null);
   let mode = $state('pending'); // 'gl' | 'two' | 'one'
   let engine = null;
-  let ro = null;
   let dead = false;
   const cvs = []; // 每一页的画布
   const sigs = [];
@@ -33,11 +35,24 @@
   const scale = () => Math.min(1.5, Math.max(1.25, window.devicePixelRatio || 1));
   const frame = () => new Promise((r) => requestAnimationFrame(r));
 
-  function webglOk() {
-    try {
-      const c = document.createElement('canvas');
-      return !!(c.getContext('webgl2') || c.getContext('webgl'));
-    } catch { return false; }
+  let veil = null; // 扉页的“只有纸”的底：书刚摊开时字还没浮现（three-book.js 的 veil）
+  let begun = false; // 摊开的演出已经放过
+  function pushSheets(all) {
+    if (!engine || !total) return;
+    if (!veil) {
+      veil = document.createElement('canvas');
+      veil.width = Math.round(PW * scale());
+      veil.height = Math.round(PH * scale());
+      const g = veil.getContext('2d');
+      g.setTransform(scale(), 0, 0, scale(), 0, 0);
+      ground(g, 1000, 'R');
+    }
+    engine.setSheets(Array.from({ length: total / 2 }, (_, i) => ({ front: cvs[2 * i], back: cvs[2 * i + 1], veil: i === 0 ? veil : null })), real >> 1);
+    if (spread) engine.setSpread(spread);
+    if (!begun) {
+      begun = true;
+      glBook.beginReading({ onDone: () => { spread = engine?.spread ?? spread; onopen(); } });
+    }
   }
 
   /* ───────── 画页 ───────── */
@@ -76,7 +91,7 @@
     cvs.length = total = t;
     sigs.length = t;
     if (mode === 'gl' && engine) {
-      if (sheetsChanged || !engine.sheets) engine.setSheets(Array.from({ length: t / 2 }, (_, i) => ({ front: cvs[2 * i], back: cvs[2 * i + 1] })), n >> 1);
+      if (sheetsChanged || !engine.sheets || !begun) pushSheets();
       else new Set(changed.map((k) => k >> 1)).forEach((i) => engine.touch(i));
     }
     if (mode !== 'gl') show2d();
@@ -158,31 +173,17 @@
 
   /* ───────── 模式 ───────── */
   async function start() {
-    const wantGl = !narrow && !reduced && webglOk();
+    const wantGl = !!glBook && !narrow && !reduced;
     mode = wantGl ? 'gl' : narrow ? 'one' : 'two';
     await tick();
     if (dead) return;
     if (mode === 'gl') {
-      try {
-        const { createBookGL } = await import('./three-book.js');
-        if (dead) return;
-        engine = await createBookGL(glCanvas, { onSpread: (n) => { spread = n; } });
-        if (dead) { engine.dispose(); engine = null; return; }
-        const size = () => { const r = host.getBoundingClientRect(); if (r.width) engine?.resize(r.width, r.height); };
-        ro = new ResizeObserver(size);
-        ro.observe(host);
-        size();
-        if (location.search.includes('debug')) window.__reader = { engine, get mode() { return mode; } };
-        // 引擎起来之前画好的页，现在交给它
-        if (total) engine.setSheets(Array.from({ length: total / 2 }, (_, i) => ({ front: cvs[2 * i], back: cvs[2 * i + 1] })), real >> 1);
-        if (spread) engine.setSpread(spread);
-        return;
-      } catch {
-        engine?.dispose?.();
-        engine = null;
-        mode = narrow ? 'one' : 'two'; // WebGL 起不来：退回 2D
-        await tick();
-      }
+      engine = glBook.reading;
+      engine.onSpread = (n) => { spread = n; };
+      begun = false;
+      if (location.search.includes('debug')) window.__reader = { engine, book: glBook, get mode() { return mode; } };
+      pushSheets(); // 引擎起来之前画好的页，现在交给它
+      return;
     }
     if (total) show2d();
   }
@@ -194,8 +195,7 @@
       dead = true;
       token++;
       window.removeEventListener('keydown', onKey);
-      ro?.disconnect();
-      engine?.dispose();
+      if (engine) engine.onSpread = null; // 纸是书的，书自己收（合上时，见 book3d.js 的 leaveReading）
       engine = null;
     };
   });
@@ -208,11 +208,10 @@
   // 窗口跨过手机宽度、减少动效变了：换一种读法（回到扉页）
   let first = true;
   $effect(() => {
-    narrow; reduced;
+    narrow; reduced; glBook;
     if (first) { first = false; return; }
     untrack(() => {
-      ro?.disconnect();
-      engine?.dispose();
+      if (engine) engine.onSpread = null;
       engine = null;
       s2 = 0; p1 = 0; spread = 0;
       start();
@@ -238,11 +237,9 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="reader" class:is-2d={mode !== 'gl'} bind:this={host} role="region" aria-label={label} tabindex="-1" inert={!on}
+<div class="reader" class:is-2d={mode !== 'gl'} class:is-gl={mode === 'gl'} bind:this={host} role="region" aria-label={label} tabindex="-1" inert={!on}
   onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={onUp}>
-  {#if mode === 'gl'}
-    <canvas bind:this={glCanvas} aria-hidden="true"></canvas>
-  {:else if mode === 'two' || mode === 'one'}
+  {#if mode === 'two' || mode === 'one'}
     <div class="reader-2d" class:is-one={mode === 'one'} onpointerdown={swDown} onpointerup={swUp}>
       {#if mode === 'two'}<div class="rd-page is-left" class:is-blank={s2 === 0} class:is-turn={turning} style:--from={turning > 0 ? '-26px' : '26px'} bind:this={slotL}></div>{/if}
       <div class="rd-page is-right" class:is-turn={turning} style:--from={turning > 0 ? '26px' : '-26px'} bind:this={slotR}></div>

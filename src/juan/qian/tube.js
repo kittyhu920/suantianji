@@ -20,6 +20,7 @@ const G = 2400; // 重力 px/s²
 const K = 90; // 倾角弹簧
 const C = 12; // 倾角阻尼
 const BOUNCE = 0.35;
+const BOUNCE_3D = 0.5;
 const FRICTION = 0.8;
 const STEP = 1 / 120;
 
@@ -356,10 +357,10 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded, vie
           sfx?.clack(Math.min(1, impact / 700) * 0.9);
           buzz(8, 0.05);
         }
-        f.vy = -Math.abs(f.vy) * BOUNCE;
+        f.vy = -Math.abs(f.vy) * (view ? BOUNCE_3D : BOUNCE); // 3D 里弹得明显一点：两下清楚的起落，再停稳
         f.vx *= FRICTION;
         f.w = f.w * 0.4 + (lay - f.rot) * 4;
-        if (Math.abs(f.vy) < 110) st.phase = 'settle';
+        if ((f.hits >= (view ? 3 : 1) && Math.abs(f.vy) < 140) || Math.abs(f.vy) < 50) st.phase = 'settle';
       }
     } else {
       f.settleT += dt;
@@ -392,7 +393,7 @@ export function createQian(svg, { sfx, reduced = false, onRelease, onLanded, vie
     tubeShadow.setAttribute('opacity', '.2');
     view?.done(st);
     draw();
-    setTimeout(() => onLanded?.({ activeMs: st.activeMs }), reduced ? 300 : 700);
+    setTimeout(() => onLanded?.({ activeMs: st.activeMs }), 300); // 停稳 300ms 后，签条再淡入（见 Shake.svelte）
   }
 
   function burst(x, y, power) {

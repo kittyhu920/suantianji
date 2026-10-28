@@ -125,9 +125,9 @@
     linear-gradient(90deg, #bda472, #d8c497 48%, #bda472);
   color: #2a2118;
   box-shadow: inset 0 1px 0 rgba(255, 244, 214, .55), inset 0 0 0 1px rgba(0, 0, 0, .18), 0 5px 0 rgba(70, 48, 22, .55), 0 18px 18px -6px rgba(0, 0, 0, .65);
-  animation: slip-in .7s cubic-bezier(.2, .9, .3, 1.1) both;
+  animation: slip-in .6s ease-out both; /* 签停稳 300ms 后淡入（tube.js 的 onLanded），不再从上面落下来 */
 }
-@keyframes slip-in { from { opacity: 0; transform: translateY(-40px) rotate(-6deg); } }
+@keyframes slip-in { from { opacity: 0; } }
 .sign-slip span, .sign-slip b { writing-mode: vertical-rl; white-space: nowrap; }
 .sl-no { font-size: 13px; letter-spacing: .24em; opacity: .8; }
 .sl-name { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1; letter-spacing: .08em; }

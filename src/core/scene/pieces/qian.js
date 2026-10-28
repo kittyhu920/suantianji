@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { paintBamboo, canvas, makeNoise } from '../paint3d.js';
-import { lathe, puffPool } from './common.js';
+import { lathe, puffPool, inkDots } from './common.js';
 import { trueRandom } from '../../rng.js';
 
 const S = 0.107; // 物理的一个像素，对应多少厘米
@@ -104,7 +104,9 @@ export function buildQian(desk) {
   // 飞出来的那一支
   const flyHolder = new THREE.Group();
   const flyRoll = new THREE.Group();
-  const flyMesh = new THREE.Mesh(stickGeo, stickMat);
+  const flyMat = stickMat.clone(); // 飞出的这一支单独一份材质：签条淡入时，它淡出
+  flyMat.transparent = true;
+  const flyMesh = new THREE.Mesh(stickGeo, flyMat);
   flyRoll.add(flyMesh);
   flyHolder.add(flyRoll);
   flyHolder.visible = false;
@@ -126,6 +128,8 @@ export function buildQian(desk) {
 
   const dustPool = puffPool(desk, { max: 28, color: 0x7a6a52 });
   group.add(dustPool.group);
+  const ink = inkDots(desk); // 签落桌上溅出的墨点
+  group.add(ink.group);
 
   /* ───── 物理 → 3D ───── */
   let lastSig = '';
@@ -155,6 +159,8 @@ export function buildQian(desk) {
       flyHolder.visible = false;
       flyShadow.visible = false;
       rig.rotation.z = 0;
+      flyMat.opacity = 1;
+      ink.clear();
       dustPool.clear();
       lastSig = '';
       zLand = 10 + trueRandom() * 3;
@@ -167,8 +173,22 @@ export function buildQian(desk) {
       sticks.forEach((m) => { m.userData.gone = false; });
     },
     done() { lastSig = ''; },
+    /** 签条淡入的同时，横躺在桌上的这一支淡出（只留签条） */
+    fadeStick(ms = 450) {
+      if (!flyHolder.visible) return;
+      let t = 0;
+      desk.addTicker((dt) => {
+        t += dt * 1000;
+        const u = clamp(t / ms, 0, 1);
+        flyMat.opacity = 1 - u;
+        flyShadow.material.opacity = 0.5 * (1 - u);
+        if (u >= 1) { flyHolder.visible = false; flyShadow.visible = false; return false; }
+        return true;
+      });
+    },
     burst(x, y, power) {
       const wx = (x - PX) * S;
+      ink.splat(wx, zLand * 0.95, 3 + Math.floor(trueRandom() * 3)); // 墨点 3 到 5 个
       for (let i = 0; i < 9; i++) {
         const a = -Math.PI * (0.05 + 0.9 * trueRandom());
         const sp = (3 + 8 * trueRandom()) * (0.5 + power);

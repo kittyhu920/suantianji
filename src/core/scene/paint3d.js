@@ -137,7 +137,7 @@ export function paintWood({ w = 1024, h = 704, seed = 11, planks = 4, light = 0x
 
 /** 书的封面（俯视画面：横的，书脊在上沿）：深靛布面、织纹、四眼订线、题签、四角的残印位。返回 { color, bump }。
     画布的方向已按"书脊朝里的横放"转好：参数 w、h 是屏幕上看到的宽与高（px）。 */
-export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2a4a82', cb = 0x232c40 } = {}) {
+export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2f3b50', cb = 0x232c40 } = {}) {
   const R = mulberry32(seed);
   const color = canvas(h, w); // 实际画布是竖的（u 沿书的宽，v 沿书的高），按旋转后的坐标画
   const bump = canvas(h, w);
@@ -154,6 +154,12 @@ export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2a4a82', cb
     for (let x = 0; x < w; x += 3) { g.fillStyle = (x / 3) % 2 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.09)'; g.fillRect(x, 0, 1, h); }
     for (let y = 0; y < h; y += 3) { g.fillStyle = (y / 3) % 2 ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.08)'; g.fillRect(0, y, w, 1); }
     g.globalAlpha = 1;
+    // 布纹的粗细不匀：几十根偏粗、偏浅或偏深的纱（旧布不是一色的）
+    for (let i = 0; i < 260; i++) {
+      const x = Math.floor(R() * w), y = Math.floor(R() * h), len = 40 + R() * 260;
+      g.fillStyle = R() < 0.5 ? `rgba(190,196,208,${(0.05 + R() * 0.07).toFixed(3)})` : `rgba(10,12,20,${(0.06 + R() * 0.08).toFixed(3)})`;
+      if (R() < 0.5) g.fillRect(x, y, len, 1 + Math.floor(R() * 2)); else g.fillRect(x, y, 1 + Math.floor(R() * 2), len);
+    }
     // 磨损：边角发白、手摸的地方色浅，几团深浅
     for (let i = 0; i < 40; i++) {
       const x = R() * w, y = R() * h, r = 60 + R() * 200;
@@ -163,6 +169,22 @@ export function paintCover({ w = 1440, h = 1040, seed = 3, cloth = '#2a4a82', cb
       rg.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = rg;
       g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // 边与角磨得发灰发白（布面磨掉了一层颜色）
+    for (let i = 0; i < 900; i++) {
+      const side = Math.floor(R() * 4);
+      const t = R();
+      const d = Math.pow(R(), 3) * 26;
+      const x = side === 0 ? d : side === 1 ? w - d : t * w;
+      const y = side === 2 ? d : side === 3 ? h - d : t * h;
+      g.fillStyle = `rgba(206,208,214,${(0.04 + R() * 0.09).toFixed(3)})`;
+      g.fillRect(x, y, 2 + R() * 7, 1 + R() * 3);
+    }
+    for (const [cx, cy] of [[0, h], [w, h], [w, 0]]) { // 四角：手摸得最多
+      const rg = g.createRadialGradient(cx, cy, 0, cx, cy, 120);
+      rg.addColorStop(0, 'rgba(210,212,218,.2)'); rg.addColorStop(1, 'rgba(210,212,218,0)');
+      g.fillStyle = rg;
+      g.fillRect(cx - 120, cy - 120, 240, 240);
     }
     const eg = g.createLinearGradient(0, 0, 0, h);
     eg.addColorStop(0, 'rgba(0,0,0,.45)'); eg.addColorStop(0.07, 'rgba(0,0,0,.08)'); eg.addColorStop(1, 'rgba(0,0,0,.22)');
@@ -609,17 +631,17 @@ export function paintTag({ name, title, closed = false, w = 420, h = 130 }) {
   g.fillStyle = closed ? 'rgba(235,228,210,.82)' : '#2a2118';
   g.textBaseline = 'middle';
   g.textAlign = 'center';
-  g.font = `${Math.round(h * 0.62)}px "Huiwen-mincho","Noto Serif SC",serif`;
+  g.font = `${Math.round(h * 0.68)}px "Huiwen-mincho","Noto Serif SC",serif`;
   g.fillText(name, h * 0.62, h * 0.54);
   g.strokeStyle = closed ? 'rgba(235,228,210,.3)' : 'rgba(42,33,24,.4)';
   g.lineWidth = 2;
   g.beginPath(); g.moveTo(h * 1.12, h * 0.2); g.lineTo(h * 1.12, h * 0.8); g.stroke();
   g.textAlign = 'left';
-  g.font = `${Math.round(h * 0.3)}px "Huiwen-mincho","Noto Serif SC",serif`;
+  g.font = `${Math.round(h * 0.34)}px "Huiwen-mincho","Noto Serif SC",serif`;
   g.fillText(title, h * 1.28, closed ? h * 0.36 : h * 0.5);
   if (closed) {
-    g.font = `${Math.round(h * 0.2)}px "Noto Serif SC",serif`;
-    g.fillStyle = 'rgba(235,228,210,.66)';
+    g.font = `${Math.round(h * 0.23)}px "Noto Serif SC",serif`;
+    g.fillStyle = 'rgba(235,228,210,.74)';
     g.fillText('未开卷', h * 1.28, h * 0.7);
   }
   return cv;
