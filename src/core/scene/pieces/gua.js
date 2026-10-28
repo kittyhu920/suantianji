@@ -17,6 +17,7 @@ const HSH = (PY - RIM) * S * 0.72; // 壳高（比二维里矮一些，从俯视
 const RM = ((238 - 82) / 2) * S; // 壳口半径
 const CR = 1.5; // 铜钱半径（厘米）
 const CD = 0.16; // 铜钱厚度
+const FLOOR = 0.9; // 壳里的底（壳自己的坐标）
 const rad = (d) => (d * Math.PI) / 180;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -46,9 +47,11 @@ function coinGeometry() {
 
 export function buildGua(desk) {
   const group = new THREE.Group();
+  const liftG = new THREE.Group(); // 壳放在桌面上：不论怎么倾、怎么翻，壳最低的一点正好落在桌面（settle() 每次量一下，壳沿不扎进桌面，也不悬空）
+  group.add(liftG);
   const tiltG = new THREE.Group(); // 壳口微微朝向玩家：从俯视的机位看得到壳里的钱
   tiltG.rotation.x = 0.22;
-  group.add(tiltG);
+  liftG.add(tiltG);
   const rig = new THREE.Group();
   tiltG.add(rig);
 
@@ -74,6 +77,27 @@ export function buildGua(desk) {
   );
   body.scale.z = bowl.scale.z = 1.26; // 背甲是椭圆的（前后比左右长），不是一只圆碗
   rig.add(body, bowl);
+  // 壳的最低点：壳身的全部顶点按壳自己的变换放进 rig 的坐标里，倾斜之后只看高度
+  const shellPts = [];
+  for (const mesh of [body, bowl]) {
+    mesh.updateMatrix();
+    const p = mesh.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) shellPts.push(new THREE.Vector3().fromBufferAttribute(p, i).applyMatrix4(mesh.matrix));
+  }
+  const settleM = new THREE.Matrix4();
+  /** 壳绕底中心倾或翻之后，把整只壳抬到最低点落在桌面（y = 0）；返回抬了多少 */
+  const settle = () => {
+    tiltG.position.z = -0.6 * Math.sin(tiltG.rotation.x);
+    tiltG.position.y = 0;
+    tiltG.updateMatrix();
+    rig.updateMatrix();
+    settleM.multiplyMatrices(tiltG.matrix, rig.matrix);
+    const e = settleM.elements;
+    let lo = Infinity;
+    for (const q of shellPts) lo = Math.min(lo, e[1] * q.x + e[5] * q.y + e[9] * q.z + e[13]);
+    liftG.position.y = -lo + 0.02;
+    return -lo;
+  };
 
   // ───── 钱 ─────
   const cm = paintCoin();
@@ -124,6 +148,7 @@ export function buildGua(desk) {
     reset() {
       coins.forEach((c) => { c.holder.visible = true; c.shd.visible = false; });
       rig.rotation.z = 0;
+      settle();
       dustPool.clear();
       lastSig = '';
     },
@@ -167,12 +192,14 @@ export function buildGua(desk) {
     tick(dt) { simT += dt; dustPool.tick(dt); },
     draw(st, inside) {
       rig.rotation.z = -rad(st.a);
+      settle();
       let sig = `${st.a.toFixed(2)}|${st.energy.toFixed(2)}|${dustPool.alive}`;
       if (st.phase === 'shake') {
         coins.forEach((c, i) => {
           const s = inside[i];
           c.holder.parent !== rig && rig.add(c.holder);
-          c.holder.position.set(s.dx * S, 1.15 - s.o * S + st.energy * 0.5, insideZ[i]);
+          // 壳里的钱不能沉进壳底：中心至少在壳底之上一个“躺着的钱按倾角算的半高”
+          c.holder.position.set(s.dx * S, Math.max(1.15 - s.o * S + st.energy * 0.5, FLOOR + lift(s.th * 0.7)), insideZ[i]);
           c.holder.rotation.y = rad(s.z);
           c.flip.rotation.x = s.th * 0.7;
           c.shd.visible = false;
@@ -203,9 +230,10 @@ export function buildGua(desk) {
   // 物理还没起来的时候：三枚钱躺在壳里
   coins.forEach((c, i) => {
     rig.add(c.holder);
-    c.holder.position.set((i - 1) * 3.0 * 0.9, 0.95 + (i === 1 ? 0.18 : 0), (i - 1) * 1.2);
+    const th = [0.5, 0.15, 0.8][i];
+    c.holder.position.set((i - 1) * 3.0 * 0.9, FLOOR + lift(th) + (i === 1 ? 0.18 : 0), (i - 1) * 1.2);
     c.holder.rotation.y = (i - 1) * 0.9;
-    c.flip.rotation.x = [0.5, 0.15, 0.8][i];
+    c.flip.rotation.x = th;
   });
 
   // 摆放：首页里壳口朝下扣在桌上，露出整个背甲（盾片纹与拱起的弧度，从俯视的机位才看得出是龟壳，不是碗）；
@@ -216,8 +244,7 @@ export function buildGua(desk) {
   const applyTilt = (a) => {
     tiltA = a;
     tiltG.rotation.x = a;
-    tiltG.position.y = (HSH + 0.25) * clamp((a - UP) / (Math.PI - UP), 0, 1);
-    tiltG.position.z = -0.6 * Math.sin(a);
+    settle();
   };
   function rest(down, instant = false) {
     const goal = down ? Math.PI : UP;

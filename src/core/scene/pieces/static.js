@@ -16,11 +16,12 @@ export function buildXing(desk) {
   const g = new THREE.Group();
   const brass = new THREE.MeshStandardMaterial({ color: 0xb98a46, roughness: 0.38, metalness: 0.85 });
   const lacquer = new THREE.MeshPhysicalMaterial({ color: 0x23160e, roughness: 0.4, clearcoat: 0.7, clearcoatRoughness: 0.3 });
-  const wedge = new THREE.Mesh(new THREE.BoxGeometry(14, 1.2, 4), lacquer);
-  wedge.position.set(0, 0.6, 5.5);
+  // 盘面朝向玩家：近处的边落在桌上，远处的边由后面一根漆木的支条托起（以前盘面朝后倾，远边插进了桌面）
   const tilt = new THREE.Group();
-  tilt.position.set(0, 1.6, 0);
-  tilt.rotation.x = -0.32; // 盘面朝向玩家
+  tilt.position.set(0, 3.2, 0);
+  tilt.rotation.x = 0.32;
+  const wedge = new THREE.Mesh(new THREE.BoxGeometry(14, 4.4, 2.2), lacquer);
+  wedge.position.set(0, 2.2, -4.6);
   const a = paintAstrolabe();
   const faceMat = new THREE.MeshStandardMaterial({ map: desk.tex(a.color), bumpMap: desk.tex(a.bump, { srgb: false }), bumpScale: 0.9, roughness: 0.4, metalness: 0.7 });
   const disc = new THREE.Mesh(new THREE.CylinderGeometry(8.4, 8.4, 0.4, 56), [brass, faceMat, brass]);

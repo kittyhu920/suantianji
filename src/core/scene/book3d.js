@@ -1,8 +1,10 @@
 // 桌上的书（docs/DESIGN.md §19）：一册线装书，three.js 的实体。
-//   形     深靛布面的封面与底板，中间一叠书页（层层的纸边），封面绕书脊的转轴转（书脊在里侧：封面从近处这一边掀起来，朝里靠）
-//   书的话 封面绕书脊掀起约 62°，整张扉页露出来；字写在扉页上（DOM，按扉页的四个角投影到屏幕，见 pageQuad），不再有横贴在封面上的纸条
+//   形     竖长的线装书（宽 26、高 36，与命书的页 5:7 一致）：旧靛青的布面封面与底板，中间一叠书页（层层的纸边），封面绕书脊的转轴转
+//   右装   传统的右装：书脊在右，封面从左边（书口）掀起，向右绕过书脊翻开；翻开后第一页在左，读的时候从右往左翻
+//   书的话 封面绕书脊掀到过竖直（约 128°），整张扉页露出来；字写在扉页上（DOM，按扉页的四个角投影到屏幕，见 pageQuad）
 //   姿态   首页、仪式、读命书、讲解页各有一个位姿，书在它们之间平滑地走过去，是同一本书
-// 本地坐标（竖放时的样子）：x 自书脊（-13）到书口（+13），z 自书头（-18）到书根（+18），y 向上。书脊朝里（桌子的远端）时，书绕 y 转 -90°。
+// 本地坐标：x 自书脊（-13）到书口（+13），z 自书头（-18）到书根（+18），y 向上。整本书（inner）绕 x 镜像（scale.x = -1）：
+// 书脊在世界的右边，书口在左边；书头朝桌子里侧，书根朝玩家。镜像带来的贴图左右翻转，在封面贴图（repeat.x = -1）与命书的纸（three-book.js 的 uv）里翻回来。
 
 import * as THREE from 'three';
 import { paintCover, paintPaper, paintEdge, canvas } from './paint3d.js';
@@ -11,23 +13,25 @@ import * as sfx from '../audio.js';
 
 export const BOOK = { w: 26, d: 36, board: 0.42, block: 2.0, cover: 0.42 };
 const TOP = BOOK.board + BOOK.block; // 书页最上面一张的高度
-const SPEAK = (62 * Math.PI) / 180; // 书说话时封面掀起的角度：够陡，整张扉页露出来（视线从封面顶端落下去，落点已到书脊边）
+const SPEAK = (128 * Math.PI) / 180; // 书说话时封面掀起的角度：过了竖直，封面向书脊那一边倒靠，整张扉页露出来，看得见封面的里子（不是立着的一面墙）
 
 export const POSES = {
-  home: { x: 0, y: 0, z: -9, ry: -Math.PI / 2, s: 1.4 },
-  ritual: { x: 0, y: 0, z: -16, ry: -Math.PI / 2, s: 1.45 },
-  reading: { x: 18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（x = 12.5·s），摊开在两边
-  doc: { x: 0, y: -6, z: -17, ry: -Math.PI / 2, s: 0.5 },
+  home: { x: 0, y: 0, z: -13.5, ry: 0, s: 1.2 }, // 居中偏里，器物摆在它前面与两侧
+  ritual: { x: -31, y: 0, z: -19, ry: 0, s: 0.9 }, // 仪式：退到桌子里侧的左边旁观（器物与桌上的纸笺占中前部），缩小一点
+  reading: { x: -18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（世界 x = pose.x + 12.5·s = 0），摊开在两边：翻到左边的是读完的，右边是封面
+  doc: { x: 0, y: -6, z: -17, ry: 0, s: 0.5 },
 };
 
 const ease = (t) => 1 - Math.pow(1 - t, 3);
 const easeIO = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const DIP = 3.5 * ((BOOK.w - 0.8) / 500); // curl.js 的 dip（订口处纸向下凹的深度，纸的单位 3.5）折成厘米
 const SC = (BOOK.w - 0.8) / 500; // 命书的纸（three-book.js，一页宽 500 个单位）一个单位多少厘米
 
 export function createBook(desk) {
   const { tex, poser, addTicker, invalidate } = desk;
   const root = new THREE.Group();
   const inner = new THREE.Group();
+  inner.scale.x = -1; // 右装：书脊在右（见文件头）
   root.add(inner);
   desk.root.add(root);
   const pose = poser(root, POSES.home);
@@ -35,6 +39,7 @@ export function createBook(desk) {
   const cover = paintCover();
   const coverMap = tex(cover.color);
   const coverBump = tex(cover.bump, { srgb: false });
+  for (const t of [coverMap, coverBump]) { t.repeat.set(-1, 1); t.offset.set(1, 0); } // 书是镜像摆的，封面的画布按看到的样子画，这里把 u 翻回来
   const clothSide = new THREE.MeshStandardMaterial({ color: 0x2b374e, roughness: 0.9 });
   const clothTop = new THREE.MeshStandardMaterial({ map: coverMap, bumpMap: coverBump, bumpScale: 0.6, roughness: 0.82 });
   const endpaper = new THREE.MeshStandardMaterial({ map: tex(paintPaper({ seed: 9, base: [214, 200, 168], gutter: 0.35 })), roughness: 0.95 });
@@ -65,9 +70,9 @@ export function createBook(desk) {
   sheetsRoot.visible = false;
   inner.add(sheetsRoot);
   const reading = createSheets(desk, sheetsRoot, {
-    z0r: (BOOK.board + 0.04) / SC,
-    z0l: (BOOK.board / 2 + BOOK.cover + 0.05) / SC,
-    stack: BOOK.block / SC,
+    z0r: (BOOK.board + 0.04 + DIP) / SC, // 订口处纸向下凹（curl.js 的 dip），整叠抬高一个凹深，凹下去的那一道才不插进底板与封面
+    z0l: (BOOK.board / 2 + BOOK.cover + 0.05 + DIP) / SC,
+    stack: (BOOK.block - DIP) / SC, // 总高不变：书页的顶还是 TOP，封面合上时不压进纸
   });
   // 书脊：包住书页一侧的布
   const spine = new THREE.Mesh(new THREE.BoxGeometry(0.5, BOOK.board + BOOK.block + BOOK.cover, BOOK.d), clothSide);
@@ -100,8 +105,8 @@ export function createBook(desk) {
   coverMesh.add(tearM);
 
   // 布面的色：昼里偏灰（旧靛蓝），夜里暖灯把蓝压掉一截，所以夜里给布面补一点蓝，看上去仍是深靛
-  const dayTint = new THREE.Color(0xffffff);
-  const nightTint = new THREE.Color(0x7597ee);
+  const dayTint = new THREE.Color().setRGB(1.05, 1.0, 0.82); // 昼里窗光偏冷偏蓝，布面的底色偏暖一点压回来，看上去是褪了色的旧靛青，不是宝蓝
+  const nightTint = new THREE.Color(0x4a78e6);
   const tintCloth = () => {
     const t = desk.themeT;
     clothTop.color.copy(dayTint).lerp(nightTint, t);
@@ -169,7 +174,7 @@ export function createBook(desk) {
   desk.readingPts = () => {
     const p = POSES.reading;
     const pts = [];
-    for (const lx of [-BOOK.w / 2 - BOOK.w, BOOK.w / 2 - 0.3]) for (const lz of [-BOOK.d / 2, BOOK.d / 2]) pts.push(new THREE.Vector3(p.x + p.s * lx, p.s * 1.1, p.z + p.s * lz));
+    for (const lx of [-BOOK.w / 2 - BOOK.w, BOOK.w / 2 - 0.3]) for (const lz of [-BOOK.d / 2, BOOK.d / 2]) pts.push(new THREE.Vector3(p.x - p.s * lx, p.s * 1.1, p.z + p.s * lz)); // 镜像：世界 x = pose.x - s·本地 x
     return pts;
   };
   function tweenCover(from, to, ms, f = easeIO) {
@@ -283,27 +288,29 @@ export function createBook(desk) {
   const v = new THREE.Vector3();
   const toLocal = new THREE.Vector3();
   /**
-   * 扉页上写字的那一块（地面上的四个点，画布像素）：封面掀起之后，扉页近处这一半从封面下面露出来。
-   * 从封面的自由边顶端顺着视线落到扉页上，那一点之后就是看得见的。返回 [远左, 远右, 近右, 近左]。
+   * 扉页上写字的那一块（画布像素）。书脊在右、封面从左边掀起：掀过竖直（说话时 128°）之后，整张扉页都露在外面，
+   * 字写在书口一侧到订口之前的一块（留出订口的暗处）；封面还没掀过竖直（落回、合上的路上）时，按封面自由边的顶端落下来的视线算，只用没被遮住的那一段。
+   * 返回 [左上, 右上, 右下, 左下]（屏幕上的位置），带 ratio（高 / 宽）。
    */
   function pageQuad() {
     root.updateMatrixWorld(true);
-    // 封面自由边顶端（世界）
-    const tip = new THREE.Vector3(BOOK.w, 0, 0).applyMatrix4(coverMesh.matrixWorld);
-    tip.set(BOOK.w - 0.5, BOOK.cover / 2, 0).applyMatrix4(pivot.matrixWorld);
-    const dir = tip.clone().sub(desk.camera.position).normalize();
-    camRay.set(desk.camera.position, dir);
-    const pageTopWorld = new THREE.Vector3(0, TOP, 0).applyMatrix4(inner.matrixWorld).y;
-    const t = (pageTopWorld - tip.y) / dir.y;
-    v.copy(tip).addScaledVector(dir, t);
-    toLocal.copy(v);
-    inner.worldToLocal(toLocal);
-    const xa = Math.max(-BOOK.w / 2 + 3.2, Math.min(BOOK.w / 2 - 6, toLocal.x + 1.1)); // 留一点边，不压到订口
-    const xb = bw / 2 - 1.1;
+    const xb = bw / 2 - 1.1; // 书口一侧（本地 +x，世界的左边）
+    let xa = -BOOK.w / 2 + 3.4; // 订口一侧，留出订线与凹处
+    if (coverA < 1.5) {
+      const tip = new THREE.Vector3(BOOK.w - 0.5, BOOK.cover / 2, 0).applyMatrix4(pivot.matrixWorld);
+      const dir = tip.clone().sub(desk.camera.position).normalize();
+      camRay.set(desk.camera.position, dir);
+      const pageTopWorld = new THREE.Vector3(0, TOP, 0).applyMatrix4(inner.matrixWorld).y;
+      const t = (pageTopWorld - tip.y) / dir.y;
+      v.copy(tip).addScaledVector(dir, t);
+      toLocal.copy(v);
+      inner.worldToLocal(toLocal);
+      xa = Math.max(xa, Math.min(xb - 6, toLocal.x + 1.1)); // 封面压着的那一段不写
+    }
     const za = bd / 2 - 1.2;
-    const pts = [[xa, za], [xa, -za], [xb, -za], [xb, za]];
+    const pts = [[xb, -za], [xa, -za], [xa, za], [xb, za]];
     const out = pts.map(([x, z]) => desk.project(inner.localToWorld(new THREE.Vector3(x, TOP + 0.03, z))));
-    out.ratio = (xb - xa) / (2 * za);
+    out.ratio = (2 * za) / (xb - xa);
     return out;
   }
 
@@ -349,6 +356,7 @@ export function createBook(desk) {
 
   const api = {
     root, inner, pose, version: 0, fx,
+    parts: { cover: coverMesh, board, block, spine, sheetsRoot }, // 穿模检查（overlaps.js）与调试用
     setMode, setLift, pageQuad, reading, beginReading, skipIntro,
     get mode() { return mode; },
     get lift() { return lift; },

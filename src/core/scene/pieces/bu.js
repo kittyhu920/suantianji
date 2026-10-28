@@ -14,6 +14,7 @@ const T = 0.8; // 甲的厚度
 const CX = 150;
 const CY = 211;
 const HEAT = new THREE.Color(0xd2703c);
+const AFTER = 1800; // 出兆的暖光峰值（candela）
 
 /** 把 'M x y C … Z'（只含 M、C、Z 的绝对坐标）的路径读成 Shape */
 function shapeFromPath(d) {
@@ -73,6 +74,9 @@ export function buildBu(desk) {
   flipper.add(lifter);
 
   const shape = shapeFromPath(PLASTRON_D);
+  // 翻面时甲绕长轴转，转到竖起来（90°）时一侧的边会扎进桌面：整块甲随转角抬起半宽乘 sin，最低的边始终落在桌面上
+  const halfW = Math.max(...shape.getPoints(48).map((q) => Math.abs((q.x - CX) * K)));
+  const liftFor = () => halfW * Math.abs(Math.sin(flipper.rotation.z));
   const backCv = canvas(600, 840);
   const frontCv = canvas(600, 840);
   const frontBg = canvas(600, 840);
@@ -123,7 +127,7 @@ export function buildBu(desk) {
   // 出兆的余光：裂纹长出来时甲面泛暖，裂完之后慢慢收住
   const afterLight = new THREE.PointLight(0xd2703c, 0, 22, 2);
   afterLight.position.set(0, 6, 0);
-  lifter.add(afterLight);
+  group.add(afterLight); // 挂在器物上、不挂在会翻转的甲上：以前挂在甲上，翻过来之后灯跑到了甲的下面（桌面里），光几乎照不到甲面
   let afterStop = null;
   const fadeAfter = (ms = 1000) => {
     afterStop?.();
@@ -198,7 +202,7 @@ export function buildBu(desk) {
     hit: [...hits, bodyHit],
     radius: 9,
     spotWorld,
-    dbg: () => ({ rz: flipper.rotation.z, ly: lifter.position.y, smoke: smoke.alive, gen: flipGen, ember: ember.visible, coal: coal.visible }),
+    dbg: () => ({ rz: flipper.rotation.z, ly: flipper.position.y, smoke: smoke.alive, gen: flipGen, ember: ember.visible, coal: coal.visible }),
     setInput(i) { input = i; },
     get input() { return input; },
     /** 同步游戏状态：S.active、S.heat、S.used */
@@ -257,10 +261,10 @@ export function buildBu(desk) {
           p = Math.min(1, p + (dt * 1000) / flipMs);
           const e = p * p * (3 - 2 * p);
           flipper.rotation.z = from + (Math.PI - from) * e;
-          lifter.position.y = Math.sin(p * Math.PI) * 5;
+          flipper.position.y = T / 2 + liftFor(); // 抬的是转轴（世界的竖直方向），不能抬 lifter（它在转着的坐标里，抬起来是朝旁边）
           if (p >= 1) {
             flipper.rotation.z = Math.PI;
-            lifter.position.y = 0;
+            flipper.position.y = T / 2;
             stopFlip = null;
             setTimeout(grow, opt.reduced ? 0 : opt.delay ?? 0);
             return false;
@@ -276,7 +280,7 @@ export function buildBu(desk) {
         stopGrow = desk.addTicker((dt) => {
           t = Math.min(1, t + (dt * 1000) / 2100);
           draw(t, t < 1);
-          afterLight.intensity = 1100 * t * t; // 物理单位：6 厘米外约 30 勒克斯，与灯下的桌面相当，不刺眼
+          afterLight.intensity = AFTER * t * t; // 物理单位：6 厘米外约 50 勒克斯（比灯下的桌面亮一倍多，只照甲面一圈，范围 22 厘米；灯挂在器物上，3600 在昼里已经烧白），静帧看得出甲面泛暖，动起来明显，不刺眼
           if (t >= 1) { draw(1, false); stopGrow = null; fadeAfter(1100); opt.onDone?.(); return false; }
           return true;
         });
@@ -294,13 +298,13 @@ export function buildBu(desk) {
         if (gen !== flipGen) return false;
         p = Math.max(0, p - dt / 0.7);
         flipper.rotation.z = from * (p * p * (3 - 2 * p));
-        lifter.position.y = Math.sin((1 - p) * Math.PI) * 4;
-        if (p <= 0) { flipper.rotation.z = 0; lifter.position.y = 0; return false; }
+        flipper.position.y = T / 2 + liftFor(); // 抬的是转轴（世界的竖直方向），不能抬 lifter（它在转着的坐标里，抬起来是朝旁边）
+        if (p <= 0) { flipper.rotation.z = 0; flipper.position.y = T / 2; return false; }
         return true;
       });
       void stop;
     },
-    resetFlip() { afterStop?.(); afterLight.intensity = 0; flipGen++; flipper.rotation.z = 0; lifter.position.y = 0; desk.invalidate(); },
+    resetFlip() { afterStop?.(); afterLight.intensity = 0; flipGen++; flipper.rotation.z = 0; flipper.position.y = T / 2; desk.invalidate(); },
     reset() {
       used.fill(false);
       paintBack();

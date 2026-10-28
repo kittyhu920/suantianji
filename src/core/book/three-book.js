@@ -3,7 +3,8 @@
 // 它不再有自己的画布与相机：纸挂在 book3d.js 的书里（parent），渲染循环是桌子的（desk.addTicker / invalidate），
 // 所以读命书时是同一本书原地摊开，不是另一本书叠上来。
 // 只在需要时才渲染：静止时一帧不画；翻页时每帧只重算正在翻的那一张纸的顶点与法线，不重画任何纹理。
-// 坐标：纸的局部坐标里 x 自书脊向右（右页 0..W），y 向书头，z 向上；一个单位 = SC 厘米（见 book3d.js 里的挂法）。
+// 坐标：纸的局部坐标里 x 自书脊向书口（“右页”0..W，也就是还没读的那一叠），y 向书头，z 向上；一个单位 = SC 厘米（见 book3d.js 里的挂法）。
+// 右装：整本书在世界里是镜像摆的，书脊在右，所以“右页”（未读的一叠）在屏幕的左边，翻过去的纸落在屏幕右边；下面的“左、右”都指纸自己的坐标。
 
 import { sheetGrid, bend, spring } from './curl.js';
 
@@ -75,7 +76,7 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
   };
 
   // 纸：每张一份网格（正反面共用顶点）
-  const grid = sheetGrid(W, H, COLS, ROWS);
+  const grid = sheetGrid(W, H, COLS, ROWS, true); // 书是右装、镜像摆的（book3d.js）：uv 的 u 翻过来，字才是正的
 
   function makeTexture(cv) {
     const tex = new THREE.CanvasTexture(cv);
@@ -127,8 +128,8 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     }
     const fm = paperMaterial(ft, bt, THREE.FrontSide, veil);
     const bm = paperMaterial(bt, ft, THREE.BackSide, null);
-    fm.color.setScalar(tintK);
-    bm.color.setScalar(tintK);
+    fm.color.setRGB(tintC[0], tintC[1], tintC[2]);
+    bm.color.setRGB(tintC[0], tintC[1], tintC[2]);
     mats.push(fm, bm);
     const fMesh = new THREE.Mesh(geo, fm);
     const bMesh = new THREE.Mesh(geo, bm);
@@ -167,14 +168,17 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     sh.fMesh.renderOrder = sh.bMesh.renderOrder = turning ? 3 : 2;
   }
 
-  // 夜里灯正照在书上，纸被照得过亮、字发褐发橙：纸的亮度压到 0.72，字才沉得下去（昼里不动）
-  let tintK = 1;
+  // 夜里灯是暖色、又正照在书上：深色的字乘上很亮的暖光，发橙发褐（纸烧成一片淡黄，细笔画读不清）。
+  // 所以夜里给纸一个偏冷的底色（红绿略压、蓝抬高），把暖光抵成接近中性的白，纸是素白、字是黑的，像在白炽灯下读书；
+  // 整体压到约 0.45（纸的亮度落在 0.8 上下，与昼里一样，不再烧成一片）：灯下的纸太亮时，深色的字也跟着被照得发亮，压下来字才黑、对比才高（实测见 docs/DESIGN.md §19“夜里读命书”）。昼里不动。
+  const tintC = [1, 1, 1];
   const tint = () => {
-    const k = 1 - 0.28 * desk.themeT;
-    if (Math.abs(k - tintK) < 1e-3) return;
-    tintK = k;
-    for (const m of mats) m.color.setScalar(k);
-    for (const s of sheets) { s.fm.color.setScalar(k); s.bm.color.setScalar(k); }
+    const t = desk.themeT;
+    const c = [1 - 0.18 * t, 1 - 0.04 * t, 1 + 0.5 * t].map((v) => v * (1 - 0.55 * t));
+    if (c.every((v, i) => Math.abs(v - tintC[i]) < 1e-3)) return;
+    c.forEach((v, i) => { tintC[i] = v; });
+    for (const m of mats) m.color.setRGB(c[0], c[1], c[2]);
+    for (const s of sheets) { s.fm.color.setRGB(c[0], c[1], c[2]); s.bm.color.setRGB(c[0], c[1], c[2]); }
   };
   desk.listeners.add(tint);
 

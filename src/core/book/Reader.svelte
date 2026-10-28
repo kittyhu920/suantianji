@@ -10,9 +10,9 @@
   //   on       书已经摊开（封面翻开的演出放完）：这时才接手势、才朗读
   //   glBook   3D 书桌里的书（scene/book3d.js），有它就在桌上的书里翻页；没有（2D 退回）就用 DOM 的书页
   //   onopen   3D：摊开的演出放完（或被点掉）时回调
-  //   spread   现在看到第几个对页：0 是扉页单独在右边，k 是 第 2k-1 页在左、第 2k 页在右；绑定给页脚，用来显示这一页的脚注
+  //   spread   现在看到第几个对页：0 是扉页单独在书口一侧；3D 的右装书里，第 k 个对页是 第 2k-1 页在右、第 2k 页在左（先读右边、再读左边）；2D 退回是左装，第 2k-1 页在左、第 2k 页在右。绑定给页脚，用来显示这一页的脚注
   import { onMount, tick, untrack } from 'svelte';
-  import { PW, PH, ground, folio, loadFonts } from './paint.js';
+  import { PW, PH, ground, folio, loadFonts, embolden } from './paint.js';
   import { deskRef } from '../scene/desk.svelte.js';
 
   let { pages, narrow = false, on = false, reduced = false, glBook = null, onopen = () => {}, spread = $bindable(0) } = $props();
@@ -37,6 +37,9 @@
 
   let veil = null; // 扉页的“只有纸”的底：书刚摊开时字还没浮现（three-book.js 的 veil）
   let begun = false; // 摊开的演出已经放过
+  // 3D 的书是右装：书脊在右，每张纸的正面（偶数页）落在左边、背面（奇数页）落在右边，订口的暗处、页码的位置都要跟着换边；2D 退回是左装
+  let rtl = !!glBook && !narrow && !reduced;
+  const sideOf = (k) => ((k % 2 === 1) === rtl ? 'R' : 'L'); // 这一页落在对页的哪一边（页码在外侧、订口的暗处在内侧）
   function pushSheets(all) {
     if (!engine || !total) return;
     if (!veil) {
@@ -45,7 +48,7 @@
       veil.height = Math.round(PH * scale());
       const g = veil.getContext('2d');
       g.setTransform(scale(), 0, 0, scale(), 0, 0);
-      ground(g, 1000, 'R');
+      ground(g, 1000, 'L'); // 右装：扉页在左边，订口在它的右侧
     }
     engine.setSheets(Array.from({ length: total / 2 }, (_, i) => ({ front: cvs[2 * i], back: cvs[2 * i + 1], veil: i === 0 ? veil : null })), real >> 1);
     if (spread) engine.setSpread(spread);
@@ -68,17 +71,18 @@
     const changed = [];
     for (let k = 0; k < t; k++) {
       const d = list[k];
-      const sig = d ? `${d.id}:${d.sig}` : 'blank';
+      const sig = `${rtl ? 'r' : 'l'}:${d ? `${d.id}:${d.sig}` : 'blank'}`;
       if (cvs[k] && sigs[k] === sig) continue;
       const cv = cvs[k] ?? document.createElement('canvas');
       cv.width = Math.round(PW * sc);
       cv.height = Math.round(PH * sc);
       const g = cv.getContext('2d');
       g.setTransform(sc, 0, 0, sc, 0, 0);
-      ground(g, 1000 + k * 37, k % 2 ? 'L' : 'R');
+      ground(g, 1000 + k * 37, sideOf(k));
+      embolden(g);
       if (d) {
         await d.paint(g);
-        if (k > 0) folio(g, k, k % 2 ? 'L' : 'R');
+        if (k > 0) folio(g, k, sideOf(k));
       }
       cvs[k] = cv;
       sigs[k] = sig;
@@ -164,7 +168,8 @@
 
   function onKey(e) {
     if (!on || e.target.closest?.('input, textarea, select') || e.altKey || e.ctrlKey || e.metaKey) return;
-    const dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    // 右装的书（3D）从右往左读：←是往后翻（把未读的那一叠翻过来），→是往前翻；2D 退回是左装，→往后
+    const dir = (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0) * (mode === 'gl' ? -1 : 1);
     if (!dir) return;
     e.preventDefault();
     if (mode === 'gl') engine?.turn(dir);
@@ -174,6 +179,7 @@
   /* ───────── 模式 ───────── */
   async function start() {
     const wantGl = !!glBook && !narrow && !reduced;
+    rtl = wantGl;
     mode = wantGl ? 'gl' : narrow ? 'one' : 'two';
     await tick();
     if (dead) return;
@@ -214,7 +220,9 @@
       if (engine) engine.onSpread = null;
       engine = null;
       s2 = 0; p1 = 0; spread = 0;
+      const was = rtl;
       start();
+      if (was !== rtl) sync(pages); // 左装 / 右装换了，订口与页码的边跟着换，重画
     });
   });
   // 2D 模式下，页画好之后挂进去

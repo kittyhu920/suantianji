@@ -13,8 +13,9 @@ const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t
 
 /**
  * 网格：cols × rows 个格，(cols+1)(rows+1) 个顶点，铺满 [0,W] × [-H/2,H/2]；返回 { base: Float32Array(xyz), uv, index }
+ * mirror 为真时 uv 的 u 反着走（右装的书是镜像摆的：整本书绕 x 翻过来，贴图要在这里翻回去才不是镜像字）
  */
-export function sheetGrid(W, H, cols, rows) {
+export function sheetGrid(W, H, cols, rows, mirror = false) {
   const n = (cols + 1) * (rows + 1);
   const base = new Float32Array(n * 3);
   const uv = new Float32Array(n * 2);
@@ -23,7 +24,7 @@ export function sheetGrid(W, H, cols, rows) {
       const k = j * (cols + 1) + i;
       base[k * 3] = (i / cols) * W;
       base[k * 3 + 1] = (j / rows - 0.5) * H;
-      uv[k * 2] = i / cols;
+      uv[k * 2] = mirror ? 1 - i / cols : i / cols;
       uv[k * 2 + 1] = j / rows;
     }
   }
