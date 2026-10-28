@@ -35,7 +35,11 @@ export function startDesk(host, { juans, onOpen, onHover, onLost }) {
       deskRef.book = book;
       deskRef.pieces = pieces;
       deskState.on = true;
-      if (location.search.includes('debug')) window.__desk = deskRef;
+      if (location.search.includes('debug')) {
+        window.__desk = deskRef;
+        // 穿模检查：window.__desk.overlaps() 列出互相穿插的东西与低于桌面的东西（scene/overlaps.js）
+        import('./overlaps.js').then(({ createOverlaps }) => { deskRef.overlaps = createOverlaps(desk, deskRef); });
+      }
       return true;
     } catch (e) {
       console.warn('[desk] 3D 书桌起不来，退回 2D', e);

@@ -12,18 +12,18 @@ import { buildBu } from './bu.js';
 import { buildXing, buildNiao, buildLi, buildZi } from './static.js';
 import { dust } from './common.js';
 
-// 首页的位置（厘米，桌面坐标，z 向玩家）：书在桌子里侧中央，器物在它面前与两侧排成一弧
+// 首页的位置（厘米，桌面坐标，z 向玩家）：书在桌子里侧中央（竖长，z 从 -35 到 8），器物在它前面与两侧排成一弧；木签在器物前面，整块木签都要落在桌面上（桌面 z 到 36）
 export const HOME = {
-  xing: { x: -47, z: -20, ry: 0.25 },
-  qian: { x: -31, z: 12, ry: 0 },
-  niao: { x: -14, z: 25, ry: 0 },
-  li: { x: 6, z: 28, ry: 0.15 },
-  zi: { x: 26, z: 25, ry: 0 },
-  gua: { x: 38, z: 12, ry: 0 },
+  xing: { x: -43, z: -17, ry: 0.25 },
+  qian: { x: -32, z: 9, ry: 0 },
+  niao: { x: -13, z: 20, ry: 0 },
+  li: { x: 6, z: 23.5, ry: 0.15 },
+  zi: { x: 24, z: 21, ry: 0 },
+  gua: { x: 41, z: 10, ry: 0 },
   bu: { x: 46, z: -15, ry: -0.2 },
 };
-const TAG_DX = { xing: -4 }; // 星的签往左让一点，不被签筒挡住
-const TAG_DZ = { qian: 8.4, gua: 9.6, bu: 13.4, xing: 12, niao: 9, li: 9.5, zi: 9.5 };
+const TAG_DX = { gua: 2 }; // 卦的签往右让一点，不压在字卷的纸上
+const TAG_DZ = { qian: 8.4, gua: 10.8, bu: 13.4, xing: 13.2, niao: 9, li: 10.4, zi: 11 };
 // 仪式中：版面没给落脚处的屏（择域、问事……），器物停在桌子的一侧；版面给了落脚处的屏，器物走到那里，并放大一些（像拿到面前）
 export const RITUAL = {
   qian: { x: -43, z: 14, s: 1 },
@@ -123,7 +123,10 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
       const h = HOME[id];
       p.wrap.visible = true;
       p.pose.to({ x: h.x, y: 0, z: h.z, ry: h.ry, s: HOME_S[id] ?? 1 }, 5, instant);
-      p.tag.visible = true;
+      // 木签等器物走回原位（约 1 秒）再出现，免得器物还在半路时，木签已经压在它身上
+      clearTimeout(p.tagTimer);
+      if (instant) p.tag.visible = true;
+      else { p.tag.visible = false; p.tagTimer = setTimeout(() => { if (mode === 'home') { p.tag.visible = true; desk.invalidate(); } }, 1100); }
       p.rest?.(true, instant); // 龟壳扣在桌上，露出背甲
     }
     desk.invalidate();
@@ -133,6 +136,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
     activeId = id;
     setHover(null);
     for (const [pid, p] of Object.entries(list)) {
+      clearTimeout(p.tagTimer);
       p.tag.visible = false;
       if (pid === id) {
         const r = RITUAL[id] ?? { x: 0, z: 14, s: 1 };
@@ -141,7 +145,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
         p.rest?.(false, instant); // 龟壳翻过来，壳口朝上
       } else {
         const h = HOME[pid];
-        p.pose.to({ x: h.x * 1.3, z: h.z, s: 0 }, 6, instant);
+        p.pose.to({ x: h.x * 1.08, z: h.z, s: 0 }, 6, instant);
       }
     }
     desk.invalidate();
@@ -152,6 +156,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
     setHover(null);
     for (const [pid, p] of Object.entries(list)) {
       const h = HOME[pid];
+      clearTimeout(p.tagTimer);
       p.tag.visible = false;
       p.pose.to({ x: h.x, z: h.z, s: 0 }, 6, instant);
     }

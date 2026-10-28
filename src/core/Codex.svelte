@@ -122,17 +122,26 @@
   $effect(() => {
     document.dispatchEvent(new CustomEvent('stj-flip', { detail: readerOn }));
   });
+  let piecesBack = 0;
+  let lastPhase3d = '';
   // 3D 书桌随阶段走：书的位姿与封面、器物的位姿
   $effect(() => {
     if (!gl) return;
     const { book, pieces } = deskRef;
     if (!book || !pieces) return;
     const instant = !mounted;
-    if (phase === 'home') { book.setMode('home', instant); pieces.toHome(instant); }
+    clearTimeout(piecesBack);
+    if (phase === 'home') {
+      book.setMode('home', instant);
+      // 从命书回来：书先合上、走回里侧，器物再回到桌上（同时回，摊开的书与器物会互相穿插）
+      if (lastPhase3d === 'reading' && !instant) piecesBack = setTimeout(() => pieces.toHome(false), 1100);
+      else pieces.toHome(instant);
+    }
     else if (phase === 'ritual') { book.setMode('ritual', instant); pieces.toRitual(juan.id, instant); }
     else if (phase === 'reading') { book.setMode('reading', instant); pieces.toAway(instant); }
     else if (phase === 'doc') { book.setMode('doc', instant); pieces.toAway(instant); }
     if (phase !== 'home') tip = null;
+    lastPhase3d = phase;
   });
   $effect(() => {
     if (!gl || phase === 'reading') return; // 读命书时，封面由摊开的演出管（book3d.js 的 beginReading）

@@ -198,6 +198,7 @@ export function buildQian(desk) {
     tick(dt) { simT += dt; dustPool.tick(dt); },
     draw(st, list) {
       rig.rotation.z = -rad(st.a);
+      rig.position.y = Math.abs(Math.sin(rad(st.a))) * R1; // 筒绕筒底中心倾，低的那一边的底沿会扎进桌面，整只筒抬起一个半径乘 sin
       let osum = 0;
       for (let i = 0; i < N; i++) {
         const s = list[i];
@@ -270,7 +271,7 @@ export function buildQian(desk) {
       const spins = 2 + Math.floor(trueRandom() * 3);
       return {
         c,
-        x0: CUP_X[i] * 0.4 + (trueRandom() - 0.5) * 2, z0: 12 + trueRandom() * 2, y0: 7,
+        x0: CUP_X[i] * 0.4 + (trueRandom() - 0.5) * 2, z0: 5.5 + trueRandom() * 2, y0: 7, // 出手的位置不能在桌沿之外（落点在筊杯组的 z 上，组在桌子中前部）
         x1: CUP_X[i] + (trueRandom() - 0.5) * 1.8, z1: (trueRandom() - 0.5) * 2.6,
         rx1: spins * Math.PI * 2 + (res.flat[i] ? Math.PI : 0),
         ry0: trueRandom() * 3, ry1: (trueRandom() - 0.5) * 1.4 + (i ? 0.3 : -0.35),

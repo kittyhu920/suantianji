@@ -16,7 +16,7 @@ const TOP = BOOK.board + BOOK.block; // 书页最上面一张的高度
 const SPEAK = (128 * Math.PI) / 180; // 书说话时封面掀起的角度：过了竖直，封面向书脊那一边倒靠，整张扉页露出来，看得见封面的里子（不是立着的一面墙）
 
 export const POSES = {
-  home: { x: 0, y: 0, z: -11, ry: 0, s: 1.25 }, // 居中偏里，器物摆在它前面与两侧
+  home: { x: 0, y: 0, z: -13.5, ry: 0, s: 1.2 }, // 居中偏里，器物摆在它前面与两侧
   ritual: { x: -31, y: 0, z: -19, ry: 0, s: 0.9 }, // 仪式：退到桌子里侧的左边旁观（器物与桌上的纸笺占中前部），缩小一点
   reading: { x: -18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（世界 x = pose.x + 12.5·s = 0），摊开在两边：翻到左边的是读完的，右边是封面
   doc: { x: 0, y: -6, z: -17, ry: 0, s: 0.5 },
@@ -24,6 +24,7 @@ export const POSES = {
 
 const ease = (t) => 1 - Math.pow(1 - t, 3);
 const easeIO = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const DIP = 3.5 * ((BOOK.w - 0.8) / 500); // curl.js 的 dip（订口处纸向下凹的深度，纸的单位 3.5）折成厘米
 const SC = (BOOK.w - 0.8) / 500; // 命书的纸（three-book.js，一页宽 500 个单位）一个单位多少厘米
 
 export function createBook(desk) {
@@ -69,9 +70,9 @@ export function createBook(desk) {
   sheetsRoot.visible = false;
   inner.add(sheetsRoot);
   const reading = createSheets(desk, sheetsRoot, {
-    z0r: (BOOK.board + 0.04) / SC,
-    z0l: (BOOK.board / 2 + BOOK.cover + 0.05) / SC,
-    stack: BOOK.block / SC,
+    z0r: (BOOK.board + 0.04 + DIP) / SC, // 订口处纸向下凹（curl.js 的 dip），整叠抬高一个凹深，凹下去的那一道才不插进底板与封面
+    z0l: (BOOK.board / 2 + BOOK.cover + 0.05 + DIP) / SC,
+    stack: (BOOK.block - DIP) / SC, // 总高不变：书页的顶还是 TOP，封面合上时不压进纸
   });
   // 书脊：包住书页一侧的布
   const spine = new THREE.Mesh(new THREE.BoxGeometry(0.5, BOOK.board + BOOK.block + BOOK.cover, BOOK.d), clothSide);
@@ -355,6 +356,7 @@ export function createBook(desk) {
 
   const api = {
     root, inner, pose, version: 0, fx,
+    parts: { cover: coverMesh, board, block, spine }, // 穿模检查（overlaps.js）用
     setMode, setLift, pageQuad, reading, beginReading, skipIntro,
     get mode() { return mode; },
     get lift() { return lift; },

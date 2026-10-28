@@ -15,7 +15,7 @@
 - `src/juan/qian/`：签卷。`game.svelte.js` 是一局的流程与结局映射（`attitude()`：破 > 迷 > 逆 > 遵），`fortune-db.json` 是签簿，`zhu.json` 是注。
 - `public/`：原样发布的静态资源（`fonts/`）。
 - `functions/api/oracle.js`：通灵模式，Pages Function + Workers AI（GLM-4.7 Flash，已关闭思考模式）。用 D1 库 `suantianji`（绑定 `DB`）按天限流，建表见 `migrations/`。
-- 页面加 `?debug` 可用 `window.__qian`（签筒）、`window.__shell`（龟壳）、`window.__zipan`（字盘）手动推进，`window.__ctx.gloss('…')` 让书说话，`window.__reader`（命书的 WebGL 引擎与模式）。
+- 页面加 `?debug` 可用 `window.__qian`（签筒）、`window.__shell`（龟壳）、`window.__zipan`（字盘）手动推进，`window.__ctx.gloss('…')` 让书说话，`window.__reader`（命书的 WebGL 引擎与模式），`window.__desk.overlaps()`（3D 书桌的穿模检查：互相穿插、低于桌面、越出桌沿，见 §19“穿模检查”；动了桌上的位置或动画后在各个时刻扫一遍）。
 - `functions/api/stat.js`：匿名统计。`POST` 每局结束记一行（`rounds` 表，字段枚举见 `src/core/stat-schema.js`），`GET ?juan=&days=1|7` 返回聚合（缓存 5 分钟）。单个 IP 哈希每天 60 局、全站每天 5000 局，超限静默丢弃（204），计数复用 `hits` 表。前端在 `src/core/stat.js`（上报）、`peer.svelte.js` / `peer-lines.js`（结局坦白里"和你一样的人"那句，模板集中在 `peer-lines.js`）；问题在浏览器本地归类（词表只在 `src/core/question-class.js`），原文不上报。各卷 `game.statData()` 交出结果标识。隐私说明（账本、关于页）要与上报字段保持一致，见 `docs/DESIGN.md` §16。
 - `functions/api/stats-admin.js` 与 `src/pages/admin/`：只给作者看的统计页，令牌放 `Authorization: Bearer`，与环境变量 `STATS_TOKEN` 常量时间比较，没设置就一律拒绝。页面 noindex，不在任何地方链接。
 
