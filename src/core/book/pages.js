@@ -24,16 +24,19 @@ export function frontispiece({ juan, domain, question, date, seed }) {
   return {
     id: 'front',
     title: '扉页',
-    text: `演算天机${juan.name}${juan.title}所问${domain?.name ?? ''}${domain?.desc ?? ''}${q}${date}`,
+    text: `演算天机命书${juan.name}${juan.title}所问${domain?.name ?? ''}${domain?.desc ?? ''}${q}${date}`,
     sig: 'front',
     zhu: [],
     paint(g) {
       g.textAlign = 'center';
       g.textBaseline = 'alphabetic';
-      g.font = `26px ${F.display}`;
+      g.font = `21px ${F.display}`;
       g.fillStyle = C.goldSoft;
-      g.fillText('演 算 天 机', PW / 2, 108);
-      rule(g, 130, PW / 2 - 60, PW / 2 + 60);
+      g.fillText('演 算 天 机', PW / 2, 78);
+      g.font = `50px ${F.display}`;
+      g.fillStyle = C.gold;
+      g.fillText('命 书', PW / 2, 138);
+      rule(g, 160, PW / 2 - 60, PW / 2 + 60);
       g.font = `230px ${F.display}`;
       g.fillStyle = C.gold;
       g.fillText(juan.name, PW / 2, 360);

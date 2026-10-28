@@ -6,6 +6,8 @@
 
 import * as THREE from 'three';
 import { paintCover, paintPaper, paintEdge, canvas } from './paint3d.js';
+import { createSheets } from '../book/three-book.js';
+import * as sfx from '../audio.js';
 
 export const BOOK = { w: 26, d: 36, board: 0.42, block: 2.0, cover: 0.42 };
 const TOP = BOOK.board + BOOK.block; // 书页最上面一张的高度
@@ -14,11 +16,13 @@ const SPEAK = (38 * Math.PI) / 180;
 export const POSES = {
   home: { x: 0, y: 0, z: -9, ry: -Math.PI / 2, s: 1.4 },
   ritual: { x: 0, y: 0, z: -15.5, ry: -Math.PI / 2, s: 1.2 },
-  reading: { x: 13, y: 0, z: -2, ry: 0, s: 1.5 },
+  reading: { x: 18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（x = 12.5·s），摊开在两边
   doc: { x: 0, y: -6, z: -17, ry: -Math.PI / 2, s: 0.5 },
 };
 
 const ease = (t) => 1 - Math.pow(1 - t, 3);
+const easeIO = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const SC = (BOOK.w - 0.8) / 500; // 命书的纸（three-book.js，一页宽 500 个单位）一个单位多少厘米
 
 export function createBook(desk) {
   const { tex, poser, addTicker, invalidate } = desk;
@@ -53,6 +57,18 @@ export function createBook(desk) {
   const block = new THREE.Mesh(new THREE.BoxGeometry(bw, BOOK.block, bd), [edge, edge, top, edge, edge, edge]);
   block.position.set(0.1, BOOK.board + BOOK.block / 2, 0);
   inner.add(block);
+  // 命书的纸（读命书时代替上面那叠书页）：挂在书脊上，x 向书口、y 向书头、z 向上，一个单位 SC 厘米
+  const sheetsRoot = new THREE.Group();
+  sheetsRoot.position.set(-BOOK.w / 2 + 0.5, 0, 0);
+  sheetsRoot.rotation.x = -Math.PI / 2;
+  sheetsRoot.scale.setScalar(SC);
+  sheetsRoot.visible = false;
+  inner.add(sheetsRoot);
+  const reading = createSheets(desk, sheetsRoot, {
+    z0r: (BOOK.board + 0.04) / SC,
+    z0l: (BOOK.board / 2 + BOOK.cover + 0.05) / SC,
+    stack: BOOK.block / SC,
+  });
   // 书脊：包住书页一侧的布
   const spine = new THREE.Mesh(new THREE.BoxGeometry(0.5, BOOK.board + BOOK.block + BOOK.cover, BOOK.d), clothSide);
   spine.position.set(-BOOK.w / 2 - 0.25 + 0.5, (BOOK.board + BOOK.block + BOOK.cover) / 2, 0);
@@ -100,6 +116,11 @@ export function createBook(desk) {
     // 翻开到底时，封面落在桌面上（与底板齐平），而不是悬在书页的高度
     const drop = Math.max(0, Math.min(1, (coverA - 1.6) / (Math.PI - 1.6)));
     pivot.position.y = TOP + BOOK.cover / 2 - drop * (TOP - BOOK.board / 2 + 0.0);
+    // 书脊的布随封面翻开而压平（翻到底时只剩底板那么高，不再是一根竖着的蓝柱）
+    const k = Math.min(1, coverA / Math.PI);
+    const hSpine = (BOOK.board + BOOK.block + BOOK.cover) * (1 - k * k) + (BOOK.board + 0.1) * k * k;
+    spine.scale.y = hSpine / (BOOK.board + BOOK.block + BOOK.cover);
+    spine.position.y = hSpine / 2;
     contact.visible = true;
     api.version++;
   }
@@ -118,18 +139,132 @@ export function createBook(desk) {
 
   let mode = 'home';
   let lift = 'shut';
-  const readTargets = { shut: 0, speak: SPEAK, open: Math.PI - 0.015 };
+  let collapsing = false;
+  let pendingLift = null;
+  const readTargets = { shut: 0, speak: SPEAK, open: Math.PI };
   function setLift(l, instant = false) {
+    if (collapsing) { pendingLift = l; return; }
     lift = l;
     const a = readTargets[l];
-    if (instant) { coverA = coverGoal = a; applyCover(); invalidate(); return; }
+    if (instant) { coverTicker?.(); coverTicker = null; coverA = coverGoal = a; applyCover(); invalidate(); return; }
     setCover(a, l === 'open' ? 3.2 : l === 'speak' ? 6 : 6.5);
   }
+
+  /* ───────── 读命书：同一本书原地摊开 ───────── */
+  // 读命书时书的位姿是桌子正中，相机走到读书的机位；命书的纸（reading）替下合着时那叠书页，封面翻开，纸就是命书的页。
+  // 演出（beginReading，总长 < 2.5 秒）：封面先合上、再翻开（有厚度、有纸响）→ 扉页浮现“命书”与卷名 → 停一下 → 翻到第一页。点一下可跳过。
+  let intro = null;
+  const swapSheets = (on) => { block.visible = !on; sheetsRoot.visible = on; };
+  desk.readingPts = () => {
+    const p = POSES.reading;
+    const pts = [];
+    for (const lx of [-BOOK.w / 2 - BOOK.w, BOOK.w / 2 - 0.3]) for (const lz of [-BOOK.d / 2, BOOK.d / 2]) pts.push(new THREE.Vector3(p.x + p.s * lx, p.s * 1.1, p.z + p.s * lz));
+    return pts;
+  };
+  function tweenCover(from, to, ms, f = easeIO) {
+    coverTicker?.(); coverTicker = null;
+    return new Promise((res) => {
+      let t = 0;
+      coverTicker = addTicker((dt) => {
+        t += dt * 1000;
+        const u = intro?.skipped ? 1 : Math.min(1, t / ms);
+        coverA = coverGoal = from + (to - from) * f(u);
+        applyCover();
+        if (u >= 1) { coverTicker = null; res(); return false; }
+        return true;
+      });
+    });
+  }
+  function beginReading({ onDone } = {}) {
+    intro?.finish?.();
+    const st = { skipped: false, done: false };
+    intro = st;
+    swapSheets(true);
+    reading.reveal.body = 0;
+    reading.reveal.title = 0;
+    const wait = (ms) => new Promise((res) => {
+      let t = 0;
+      addTicker((dt) => { t += dt * 1000; if (st.skipped || t >= ms) { res(); return false; } return true; });
+    });
+    const tween = (ms, f, e = easeIO) => new Promise((res) => {
+      let t = 0;
+      addTicker((dt) => {
+        t += dt * 1000;
+        const u = st.skipped ? 1 : Math.min(1, t / ms);
+        f(e(u));
+        if (u >= 1) { res(); return false; }
+        return true;
+      });
+    });
+    const end = () => {
+      if (st.done) return;
+      st.done = true;
+      if (intro === st) intro = null;
+      lift = 'open';
+      coverA = coverGoal = readTargets.open;
+      applyCover();
+      reading.reveal.body = reading.reveal.title = 1;
+      invalidate();
+      onDone?.();
+    };
+    st.finish = () => { st.skipped = true; st.snap?.(); end(); };
+    st.snap = () => {
+      pose.to(POSES.reading, 5, true);
+      desk.cameraTo('reading', 0, true);
+      coverTicker?.(); coverTicker = null;
+      if (reading.limit >= 1 && reading.spread < 1) reading.setSpread(1);
+      api.version++;
+    };
+    (async () => {
+      lift = 'open';
+      if (coverA > 0.06) await tweenCover(coverA, 0, 150, ease);
+      if (st.skipped) return;
+      sfx.rustle(0.6, 0.11, true);
+      const open = tweenCover(0, readTargets.open, 950);
+      await wait(380);
+      tween(420, (k) => { reading.reveal.body = k; });
+      await wait(480);
+      if (!st.skipped) sfx.flop(0.12);
+      await tween(450, (k) => { reading.reveal.title = k; });
+      await open;
+      await wait(380);
+      if (st.skipped) return;
+      if (reading.limit >= 1) { sfx.rustle(0.45, 0.09, true); await reading.turn(1, { omega: 9.5, zeta: 0.8, bounce: 0.2 }); }
+      end();
+    })();
+    return { skip() { if (!st.done) st.finish(); }, get running() { return !st.done; } };
+  }
+  function skipIntro() { intro?.finish?.(); }
+
+  // 读完合上：翻开的纸一起翻回去，封面绕书脊合拢，纸收起、合着的书页回来
+  function leaveReading(instant) {
+    skipIntro();
+    if (instant) { reading.clear(); swapSheets(false); return; }
+    collapsing = true;
+    pendingLift = null;
+    reading.collapse(320).then(() => {
+      collapsing = false;
+      sfx.rustle(0.4, 0.08, false);
+      setLift(pendingLift ?? 'shut');
+      pendingLift = null;
+      const stop = addTicker(() => {
+        if (mode === 'reading') { stop(); return false; } // 又回去读了
+        if (coverA > 0.05) return true;
+        reading.clear();
+        swapSheets(false);
+        invalidate();
+        return false;
+      });
+    });
+  }
   function setMode(m, instant = false) {
+    const was = mode;
     mode = m;
-    pose.to(POSES[m] ?? POSES.home, m === 'reading' ? 2.8 : 4.2, instant);
+    pose.to(POSES[m] ?? POSES.home, m === 'reading' ? 2.6 : 4.2, instant);
+    desk.cameraTo(m === 'reading' ? 'reading' : 'table', m === 'reading' ? 1300 : 900, instant);
     inner.position.x = 0;
     root.visible = true;
+    if (was === 'reading' && m !== 'reading') leaveReading(instant);
     invalidate();
   }
   pose.onMove = () => { api.version++; };
@@ -205,7 +340,7 @@ export function createBook(desk) {
 
   const api = {
     root, inner, pose, version: 0, fx,
-    setMode, setLift, pageQuad,
+    setMode, setLift, pageQuad, reading, beginReading, skipIntro,
     get mode() { return mode; },
     get lift() { return lift; },
     set visible(b) { root.visible = b; invalidate(); },
@@ -213,5 +348,6 @@ export function createBook(desk) {
   };
   setMode('home', true);
   setLift('shut', true);
+  desk.fit();
   return api;
 }

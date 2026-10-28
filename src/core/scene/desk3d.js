@@ -197,18 +197,50 @@ export async function createDesk(host, { onLost } = {}) {
   glow.renderOrder = 0;
   root.add(glow);
 
-  /* ───────── 相机：框住桌子 ───────── */
+  /* ───────── 相机：框住桌子；读命书时平滑推近到读书的机位 ───────── */
   const target = new THREE.Vector3(0, 0, 2);
   const corners = [];
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) { corners.push(new THREE.Vector3(sx * TABLE.w / 2, 0, sz * TABLE.d / 2)); corners.push(new THREE.Vector3(sx * TABLE.w / 2, -TABLE.h, sz * TABLE.d / 2)); }
   let W = 1;
   let H = 1;
   let distance = 150;
-  function placeCamera() {
-    camera.position.set(target.x, target.y + distance * Math.sin(ELEV), target.z + distance * Math.cos(ELEV));
-    camera.lookAt(target);
+  const tanH = () => Math.tan((FOV * Math.PI) / 360);
+  const place = (tg, dist, elev) => {
+    camera.position.set(tg.x, tg.y + dist * Math.sin(elev), tg.z + dist * Math.cos(elev));
+    camera.lookAt(tg);
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
+  };
+  /** 让一组世界点落进画面里的一块（NDC：x 在 ±band.x 内，y 在 band.ylo..band.yhi 内）：调距离与注视点 */
+  function frame(pts, elev, band, tg, dist) {
+    const t = tg.clone();
+    for (let k = 0; k < 16; k++) {
+      place(t, dist, elev);
+      let xmax = 0;
+      let ymax = -9;
+      let ymin = 9;
+      for (const c of pts) {
+        const p = c.clone().project(camera);
+        xmax = Math.max(xmax, Math.abs(p.x));
+        ymax = Math.max(ymax, p.y);
+        ymin = Math.min(ymin, p.y);
+      }
+      const need = Math.max(xmax / band.x, (ymax - ymin) / (band.yhi - band.ylo));
+      dist *= lerp(1, need, 0.8);
+      const mid = (ymax + ymin) / 2 - (band.yhi + band.ylo) / 2;
+      t.z -= ((mid * dist * tanH()) / Math.sin(elev)) * 0.8;
+    }
+    return { tg: t, dist };
+  }
+  // 读命书的机位：书摊开在桌子中央，机位比看桌子时更陡、更近（由 book3d 给出摊开的书占的几个点）
+  const cam = { k: 0, goal: 0, rd: null, ticker: null };
+  const READ = { elev: (63 * Math.PI) / 180, band: { x: 0.9, ylo: -0.6, yhi: 0.84 } };
+  function applyCam() {
+    const k = cam.k;
+    if (!cam.rd || k <= 0) { place(target, distance, ELEV); return; }
+    const rd = cam.rd;
+    const tg = new THREE.Vector3().lerpVectors(target, rd.tg, k);
+    place(tg, lerp(distance, rd.dist, k), lerp(ELEV, rd.elev, k));
   }
   function fit() {
     W = Math.max(1, host.clientWidth);
@@ -216,26 +248,38 @@ export async function createDesk(host, { onLost } = {}) {
     renderer.setSize(W, H, false);
     camera.aspect = W / H;
     camera.fov = FOV;
-    const tanH = Math.tan((FOV * Math.PI) / 360);
-    for (let k = 0; k < 14; k++) {
-      placeCamera();
-      let xmax = 0;
-      let ymax = -9;
-      let ymin = 9;
-      for (const c of corners) {
-        const p = c.clone().project(camera);
-        xmax = Math.max(xmax, Math.abs(p.x));
-        ymax = Math.max(ymax, p.y);
-        ymin = Math.min(ymin, p.y);
-      }
-      const need = Math.max(xmax / 0.985, (ymax - ymin) / 2 / 0.97);
-      distance *= lerp(1, need, 0.8);
-      const mid = (ymax + ymin) / 2;
-      target.z -= (mid * distance * tanH) / Math.sin(ELEV) * 0.8;
+    const r = frame(corners, ELEV, { x: 0.985, ylo: -0.97, yhi: 0.97 }, target, distance);
+    target.copy(r.tg);
+    distance = r.dist;
+    cam.rd = null;
+    const pts = desk.readingPts?.();
+    if (pts) {
+      const rr = frame(pts, READ.elev, READ.band, new THREE.Vector3(0, 0, 0), distance * 0.7);
+      cam.rd = { tg: rr.tg, dist: rr.dist, elev: READ.elev };
     }
-    placeCamera();
+    applyCam();
     view.version++;
     invalidate();
+  }
+  /** 相机走到某个机位：'table' 看桌子，'reading' 读命书。ms 毫秒、缓入缓出；instant 直接到位 */
+  function cameraTo(mode, ms = 1100, instant = false) {
+    cam.goal = mode === 'reading' ? 1 : 0;
+    if (!cam.rd) cam.goal = 0;
+    cam.ticker?.();
+    cam.ticker = null;
+    if (instant || ms <= 0) { cam.k = cam.goal; applyCam(); view.version++; invalidate(); return; }
+    const from = cam.k;
+    let t = 0;
+    cam.ticker = addTicker((dt) => {
+      t += dt * 1000;
+      const u = Math.min(1, t / ms);
+      const e = u * u * (3 - 2 * u);
+      cam.k = lerp(from, cam.goal, e);
+      applyCam();
+      view.version++;
+      if (u >= 1) { cam.ticker = null; return false; }
+      return true;
+    });
   }
 
   /** 世界点 → 画布上的 CSS 像素 */
@@ -377,7 +421,9 @@ export async function createDesk(host, { onLost } = {}) {
     THREE, scene, root, camera, renderer, canvas: canvasEl, host,
     TABLE, tex, shadowed, blob, poser, paintCanvas: canvas,
     invalidate, addTicker, frameNow, project, floorAt, pick, register, unregister,
-    view, listeners, stats,
+    view, listeners, stats, cameraTo,
+    readingPts: null, // 由 book3d 填：摊开的书占的几个世界点（读命书的机位据此框画面）
+    get camReading() { return cam.k; },
     get size() { return { w: W, h: H }; },
     get rect() { return canvasEl.getBoundingClientRect(); },
     setTheme: goTheme,

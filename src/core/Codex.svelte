@@ -102,11 +102,21 @@
   // 读命书时，页脚放这一页（左右两页）的脚注
   const notes = $derived(bookPages ? footnotes(juan?.zhu, [readIdx * 2 - 1, readIdx * 2].flatMap((i) => bookPages[i]?.zhu ?? [])).slice(0, 3) : []);
 
-  // 读命书：书先滑到桌子中央、封面翻开，再换成 WebGL 的书；离开立刻收起
+  // 读命书：3D 书桌下，书原地摊开（Reader 把纸交给桌上的书，演出放完 readerOn 才为真）；2D 退回时，书先滑到桌子中央、封面翻开，再换成 DOM 的书页
   $effect(() => {
     if (phase !== 'reading') { readerOn = false; return; }
-    const t = setTimeout(() => { readerOn = true; }, session.ctx?.reduced ? 0 : 1500);
+    // 3D 的演出由 Reader 起、book3d 放；万一没起来，6 秒后照样让人读
+    const t = setTimeout(() => { if (!readerOn) { deskRef.book?.skipIntro(); readerOn = true; } }, gl ? 6000 : session.ctx?.reduced ? 0 : 1500);
     return () => clearTimeout(t);
+  });
+  // 演出期间，点一下或按键就跳过
+  $effect(() => {
+    if (!gl || phase !== 'reading' || readerOn) return;
+    const skip = () => deskRef.book?.skipIntro();
+    const onKey = (e) => { if (['Enter', ' ', 'Escape'].includes(e.key)) skip(); };
+    window.addEventListener('pointerdown', skip, true);
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('pointerdown', skip, true); window.removeEventListener('keydown', onKey); };
   });
   // 读命书时，字盘暂停（翻页的纸要用满合成器；字盘慢慢漂移，这时不画也看不出来）
   $effect(() => {
@@ -125,14 +135,8 @@
     if (phase !== 'home') tip = null;
   });
   $effect(() => {
-    if (!gl) return;
+    if (!gl || phase === 'reading') return; // 读命书时，封面由摊开的演出管（book3d.js 的 beginReading）
     deskRef.book?.setLift(lift);
-  });
-  // 读命书：书摊开之后换成 WebGL 的翻页（Reader），这时桌上的书淡出
-  $effect(() => {
-    if (!gl) return;
-    const b = deskRef.book;
-    if (b) b.visible = !readerOn;
   });
   // 读命书时，书不再说话
   $effect(() => {
@@ -401,7 +405,7 @@
     {/if}
 
     {#if phase === 'reading' && bookPages}
-      <Reader pages={bookPages} {narrow} on={readerOn} reduced={ctx?.reduced ?? false} bind:spread={readIdx} />
+      <Reader pages={bookPages} {narrow} on={readerOn} reduced={ctx?.reduced ?? false} glBook={gl ? deskRef.book : null} onopen={() => { readerOn = true; }} bind:spread={readIdx} />
     {/if}
   </div>
 

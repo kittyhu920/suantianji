@@ -98,6 +98,41 @@ export function thud() {
   clack(0.8);
 }
 
+// 纸响：一阵扫过的带通噪声，像一叠纸被翻开（封面翻开、书页翻过）。dur 秒，up 为真时音调由低到高
+export function rustle(dur = 0.5, vol = 0.12, up = true) {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(dur + 0.1);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 0.9;
+  bp.frequency.setValueAtTime(up ? 900 : 2600, t);
+  bp.frequency.exponentialRampToValueAtTime(up ? 2600 : 900, t + dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.35);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(bp).connect(g).connect(master);
+  src.start(t);
+  src.stop(t + dur + 0.1);
+}
+
+// 封面落到桌上：一声闷的、软的（比签落地轻）
+export function flop(vol = 0.16) {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator();
+  o.frequency.setValueAtTime(130, t);
+  o.frequency.exponentialRampToValueAtTime(55, t + 0.14);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  o.connect(g).connect(master);
+  o.start(t);
+  o.stop(t + 0.22);
+}
+
 // 水滴：一声上扬的短音，隔一拍再有一点空腔的余响
 export function drip(vol = 0.06) {
   if (!ctx) return;
