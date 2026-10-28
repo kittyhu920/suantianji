@@ -99,6 +99,17 @@ export function createBook(desk) {
   tearM.position.set(BOOK.w / 2 - 0.5 + 1, BOOK.cover / 2 + 0.02, 0);
   coverMesh.add(tearM);
 
+  // 布面的色：昼里偏灰（旧靛蓝），夜里暖灯把蓝压掉一截，所以夜里给布面补一点蓝，看上去仍是深靛
+  const dayTint = new THREE.Color(0xffffff);
+  const nightTint = new THREE.Color(0x7597ee);
+  const tintCloth = () => {
+    const t = desk.themeT;
+    clothTop.color.copy(dayTint).lerp(nightTint, t);
+    clothSide.color.setHex(0x2b374e).lerp(nightTint.clone().multiplyScalar(0.24), t * 0.9);
+    back.color.copy(clothSide.color);
+  };
+  desk.listeners.add(tintCloth);
+  tintCloth();
   desk.shadowed(root);
   board.castShadow = true;
   // 接触影

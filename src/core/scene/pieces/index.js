@@ -22,14 +22,15 @@ export const HOME = {
   gua: { x: 38, z: 12, ry: 0 },
   bu: { x: 46, z: -15, ry: -0.2 },
 };
-const TAG_DZ = { qian: 8.4, gua: 8.6, bu: 13.4, xing: 12, niao: 9, li: 9.5, zi: 9.5 };
+const TAG_DX = { xing: -4 }; // 星的签往左让一点，不被签筒挡住
+const TAG_DZ = { qian: 8.4, gua: 9.6, bu: 13.4, xing: 12, niao: 9, li: 9.5, zi: 9.5 };
 // 仪式中：版面没给落脚处的屏（择域、问事……），器物停在桌子的一侧；版面给了落脚处的屏，器物走到那里，并放大一些（像拿到面前）
 export const RITUAL = {
   qian: { x: -43, z: 14, s: 1 },
   gua: { x: 43, z: 13, s: 1 },
   bu: { x: 44, z: 8, s: 1 },
 };
-const HOME_S = { qian: 0.82, gua: 0.9, bu: 0.95, xing: 0.9, niao: 0.9, li: 0.95, zi: 0.95 };
+const HOME_S = { qian: 0.82, gua: 1.02, bu: 0.95, xing: 0.9, niao: 0.9, li: 0.95, zi: 0.95 };
 export const BIG = { qian: 1.08, gua: 1.3, bu: 1.55 };
 const BUILD = { qian: buildQian, gua: buildGua, bu: buildBu, xing: buildXing, niao: buildNiao, li: buildLi, zi: buildZi };
 
@@ -71,12 +72,12 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
 
     // 小木签：卷名与全称（未开卷的灰、写"未开卷"）
     const tag = new THREE.Mesh(
-      new THREE.BoxGeometry(10.6, 0.5, 3.3),
+      new THREE.BoxGeometry(14.4, 0.6, 4.5), // 1440 宽下卷名约 25px、全称约 14px（paintTag 里按木签高度取字号）
       [0, 1, 2, 3, 4, 5].map((i) => new THREE.MeshStandardMaterial(i === 2
-        ? { map: (tagTex[j.id] = desk.tex(paintTag({ name: j.name, title: j.title, closed: !j.open }))), roughness: 0.7 }
+        ? { map: (tagTex[j.id] = desk.tex(paintTag({ name: j.name, title: j.title, closed: !j.open, w: 640, h: 198 }))), roughness: 0.7 }
         : { color: j.open ? 0xb99d68 : 0x5a5547, roughness: 0.8 })),
     );
-    tag.position.set(h.x, 0.25, h.z + TAG_DZ[j.id] * (HOME_S[j.id] ?? 1));
+    tag.position.set(h.x + (TAG_DX[j.id] ?? 0), 0.3, h.z + TAG_DZ[j.id] * (HOME_S[j.id] ?? 1));
     tag.rotation.y = h.ry * 0.5 + (j.open ? 0.02 : -0.03);
     desk.shadowed(tag);
     desk.root.add(tag);
@@ -123,6 +124,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
       p.wrap.visible = true;
       p.pose.to({ x: h.x, y: 0, z: h.z, ry: h.ry, s: HOME_S[id] ?? 1 }, 5, instant);
       p.tag.visible = true;
+      p.rest?.(true, instant); // 龟壳扣在桌上，露出背甲
     }
     desk.invalidate();
   }
@@ -136,6 +138,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
         const r = RITUAL[id] ?? { x: 0, z: 14, s: 1 };
         p.wrap.visible = true;
         p.pose.to({ x: r.x, y: 0, z: r.z, ry: 0, s: r.s }, 4.5, instant);
+        p.rest?.(false, instant); // 龟壳翻过来，壳口朝上
       } else {
         const h = HOME[pid];
         p.pose.to({ x: h.x * 1.3, z: h.z, s: 0 }, 6, instant);

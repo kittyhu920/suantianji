@@ -424,6 +424,7 @@ export async function createDesk(host, { onLost } = {}) {
     view, listeners, stats, cameraTo,
     readingPts: null, // 由 book3d 填：摊开的书占的几个世界点（读命书的机位据此框画面）
     get camReading() { return cam.k; },
+    get themeT() { return themeT; }, // 0 昼 1 夜（切换时在 0.9 秒里平滑变）
     get size() { return { w: W, h: H }; },
     get rect() { return canvasEl.getBoundingClientRect(); },
     setTheme: goTheme,
