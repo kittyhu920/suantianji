@@ -132,6 +132,27 @@ export function buildGua(desk) {
       coins.forEach((c) => { c.zLand = 7 + trueRandom() * 4; c.shd.visible = true; });
     },
     done() { lastSig = ''; },
+    /** 卦成：最后一爻落定时，三枚铜钱轻轻一颤（各自微微跳起、转一点点，很快停稳），约 0.6 秒 */
+    shiver() {
+      const base = coins.map((c) => ({ y: c.holder.position.y, ry: c.holder.rotation.y, rx: c.flip.rotation.x }));
+      let t = 0;
+      desk.addTicker((dt) => {
+        t += dt;
+        const u = clamp(t / 0.62, 0, 1);
+        const decay = (1 - u) ** 2;
+        coins.forEach((c, i) => {
+          const ph = t * 46 + i * 1.7;
+          c.holder.position.y = base[i].y + 0.16 * decay * Math.abs(Math.sin(ph));
+          c.holder.rotation.y = base[i].ry + 0.05 * decay * Math.sin(ph * 0.9);
+          c.flip.rotation.x = base[i].rx + 0.04 * decay * Math.sin(ph * 1.1 + 1);
+        });
+        if (u >= 1) {
+          coins.forEach((c, i) => { c.holder.position.y = base[i].y; c.holder.rotation.y = base[i].ry; c.flip.rotation.x = base[i].rx; });
+          return false;
+        }
+        return true;
+      });
+    },
     burst(x, y, power) {
       const i = Math.max(0, Math.min(2, Math.round((x - 68) / 92)));
       void i;

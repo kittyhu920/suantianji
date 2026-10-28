@@ -1,7 +1,7 @@
 // 器物共用的小工具：车削体（LatheGeometry）的 uv 按高度重排、一池软圆点（烟、尘、火星）、把一组材质压暗成"未开卷"的样子。
 
 import * as THREE from 'three';
-import { paintPuff } from '../paint3d.js';
+import { paintPuff, canvas } from '../paint3d.js';
 
 /** 车削体：pts 是 (半径, 高) 的折线（自下而上）；uv 的 v 改成按高度算（Lathe 默认按点序号算） */
 export function lathe(pts, segs, H, phi = Math.PI * 2) {
@@ -58,6 +58,78 @@ export function puffPool(desk, { max = 48, color = 0x4a4036, blending = THREE.No
       return items.length > 0;
     },
     clear() { for (const p of items) { p.s.visible = false; free.push(p.s); } items.length = 0; },
+  };
+}
+
+/**
+ * 桌面上的墨点（贴花）：一团主墨加几粒溅出去的小点，落下时略洇开，然后慢慢淡去（life 毫秒）。
+ * splat(x, z, n) 在桌面（本组坐标）的 (x, z) 附近撒 n 个；clear() 立刻收掉。淡去用低频的小步，不占满每一帧。
+ */
+export function inkDots(desk, { max = 6, life = 9000 } = {}) {
+  const cv = canvas(128, 128);
+  const g = cv.getContext('2d');
+  const blob = (x, y, r, a) => {
+    const gr = g.createRadialGradient(x, y, r * 0.15, x, y, r);
+    gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.7, `rgba(255,255,255,${a * 0.85})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  };
+  blob(64, 64, 34, 1);
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + 0.4; const d = 38 + (i * 13) % 17; blob(64 + Math.cos(a) * d, 64 + Math.sin(a) * d, 5 + (i * 7) % 6, 0.95); }
+  blob(52, 58, 12, 1); blob(78, 72, 10, 1);
+  const map = desk.tex(cv, {});
+  const group = new THREE.Group();
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const dots = [];
+  for (let i = 0; i < max; i++) {
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map, color: 0x120d08, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.rotation.x = -Math.PI / 2;
+    m.renderOrder = 1;
+    m.visible = false;
+    group.add(m);
+    dots.push({ m, t0: 0, size: 1, a0: 0.85 });
+  }
+  let timer = 0;
+  const step = () => {
+    const now = performance.now();
+    let alive = false;
+    for (const d of dots) {
+      if (!d.m.visible) continue;
+      const age = now - d.t0;
+      if (age >= life) { d.m.visible = false; continue; }
+      alive = true;
+      const grow = 1 + 0.28 * (1 - Math.exp(-age / 350)); // 落纸后略洇开
+      d.m.scale.set(d.size * grow, d.size * grow, 1);
+      d.m.material.opacity = d.a0 * (1 - Math.pow(age / life, 1.6));
+    }
+    desk.invalidate();
+    timer = alive ? setTimeout(step, age60()) : 0;
+  };
+  // 刚落下的头半秒要细一点（洇开），之后每 250ms 一步就看不出台阶
+  const age60 = () => (performance.now() - (dots.reduce((a, d) => Math.max(a, d.t0), 0)) < 600 ? 40 : 250);
+  return {
+    group,
+    splat(x, z, n = 4) {
+      const now = performance.now();
+      let k = 0;
+      for (const d of dots) {
+        if (k >= n) break;
+        if (d.m.visible && now - d.t0 < life * 0.5) continue;
+        const main = k === 0;
+        d.size = main ? 3.4 + Math.random() * 1.0 : 1.4 + Math.random() * 1.3;
+        d.a0 = main ? 0.9 : 0.8;
+        d.t0 = now;
+        d.m.position.set(x + (main ? 0 : (Math.random() - 0.5) * 11), 0.045 + k * 0.002, z + (main ? 0 : (Math.random() - 0.5) * 8));
+        d.m.rotation.z = Math.random() * Math.PI * 2;
+        d.m.scale.set(d.size, d.size, 1);
+        d.m.material.opacity = d.a0;
+        d.m.visible = true;
+        k++;
+      }
+      clearTimeout(timer);
+      step();
+    },
+    clear() { clearTimeout(timer); timer = 0; for (const d of dots) d.m.visible = false; desk.invalidate(); },
   };
 }
 

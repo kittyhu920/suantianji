@@ -54,6 +54,7 @@ export function createGame(ctx) {
   const ui = $state({ posterOpen: false });
   let lastVisit = ctx.memory.get(); // 上一局的记录，只存在玩家本机
   let shell = null;
+  let shellView = null; // 龟壳在 3D 桌上的表现（卦成时铜钱一颤用）
   let fin = null; // 收尾时算好的：整局用时、画像
   let timers = [];
 
@@ -137,6 +138,7 @@ export function createGame(ctx) {
 
   // 起卦屏挂上时创建龟壳；离开时停掉
   function attachShell(svg, view) {
+    shellView = view;
     shell = createShell(svg, {
       view,
       sfx,
@@ -146,7 +148,7 @@ export function createGame(ctx) {
     });
     if (location.search.includes('debug')) window.__shell = shell; // 调试：面板隐藏时 rAF 暂停，可手动 step()
     shell.start();
-    return () => { shell?.stop(); shake.holdEnd(); shell = null; };
+    return () => { shell?.stop(); shake.holdEnd(); shell = null; shellView = null; };
   }
 
   // 出手：三枚铜钱的朝向在这一刻就定了（真随机）；可以在页面里注入 window.__coins 来复现某一掷（调试用）
@@ -175,6 +177,9 @@ export function createGame(ctx) {
       later(() => { S.rolling = false; S.tried = false; S.readyAt = performance.now(); ctx.touch(); }, 900);
       return;
     }
+    // 卦成：最后一爻落定，铜钱轻轻一颤，一声很轻的铜响
+    shellView?.shiver?.();
+    sfx.bronze(660, 0.9, 0.04);
     later(completeCast, 1100);
   }
 

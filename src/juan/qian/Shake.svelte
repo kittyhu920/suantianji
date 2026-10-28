@@ -26,6 +26,9 @@
     };
   }
 
+  // 签条淡入的同时，桌上横躺的那一支淡出：只留签条
+  $effect(() => { if (S.signShown && deskState.on) deskRef.pieces?.list.qian?.view.fadeStick?.(); });
+
   const noteNow = $derived(!shake.hasMotion
     ? '按住桌上的签筒左右拖着摇；只按住不动，它也会自己轻轻摇。不用鼠标：Tab 聚焦签筒，按住空格（或回车）它就摇，松开签就落。'
     : shake.motion === 'denied'

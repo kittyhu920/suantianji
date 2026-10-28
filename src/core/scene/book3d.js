@@ -1,6 +1,6 @@
 // 桌上的书（docs/DESIGN.md §19）：一册线装书，three.js 的实体。
 //   形     深靛布面的封面与底板，中间一叠书页（层层的纸边），封面绕书脊的转轴转（书脊在里侧：封面从近处这一边掀起来，朝里靠）
-//   书的话 封面掀起约 38°，露出扉页；字写在扉页上（DOM，按扉页的四个角投影到屏幕，见 pageQuad），不再有横贴在封面上的纸条
+//   书的话 封面绕书脊掀起约 62°，整张扉页露出来；字写在扉页上（DOM，按扉页的四个角投影到屏幕，见 pageQuad），不再有横贴在封面上的纸条
 //   姿态   首页、仪式、读命书、讲解页各有一个位姿，书在它们之间平滑地走过去，是同一本书
 // 本地坐标（竖放时的样子）：x 自书脊（-13）到书口（+13），z 自书头（-18）到书根（+18），y 向上。书脊朝里（桌子的远端）时，书绕 y 转 -90°。
 
@@ -11,11 +11,11 @@ import * as sfx from '../audio.js';
 
 export const BOOK = { w: 26, d: 36, board: 0.42, block: 2.0, cover: 0.42 };
 const TOP = BOOK.board + BOOK.block; // 书页最上面一张的高度
-const SPEAK = (38 * Math.PI) / 180;
+const SPEAK = (62 * Math.PI) / 180; // 书说话时封面掀起的角度：够陡，整张扉页露出来（视线从封面顶端落下去，落点已到书脊边）
 
 export const POSES = {
   home: { x: 0, y: 0, z: -9, ry: -Math.PI / 2, s: 1.4 },
-  ritual: { x: 0, y: 0, z: -15.5, ry: -Math.PI / 2, s: 1.2 },
+  ritual: { x: 0, y: 0, z: -16, ry: -Math.PI / 2, s: 1.45 },
   reading: { x: 18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（x = 12.5·s），摊开在两边
   doc: { x: 0, y: -6, z: -17, ry: -Math.PI / 2, s: 0.5 },
 };
@@ -289,7 +289,7 @@ export function createBook(desk) {
     v.copy(tip).addScaledVector(dir, t);
     toLocal.copy(v);
     inner.worldToLocal(toLocal);
-    const xa = Math.min(BOOK.w / 2 - 6, toLocal.x + 1.1); // 留一点边
+    const xa = Math.max(-BOOK.w / 2 + 3.2, Math.min(BOOK.w / 2 - 6, toLocal.x + 1.1)); // 留一点边，不压到订口
     const xb = bw / 2 - 1.1;
     const za = bd / 2 - 1.2;
     const pts = [[xa, za], [xa, -za], [xb, -za], [xb, za]];

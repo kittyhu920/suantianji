@@ -120,6 +120,23 @@ export function buildBu(desk) {
   lifter.add(ember);
   const emberLight = new THREE.PointLight(0xd2703c, 0, 16, 2);
   lifter.add(emberLight);
+  // 出兆的余光：裂纹长出来时甲面泛暖，裂完之后慢慢收住
+  const afterLight = new THREE.PointLight(0xd2703c, 0, 22, 2);
+  afterLight.position.set(0, 6, 0);
+  lifter.add(afterLight);
+  let afterStop = null;
+  const fadeAfter = (ms = 1000) => {
+    afterStop?.();
+    const from = afterLight.intensity;
+    let t = 0;
+    afterStop = desk.addTicker((dt) => {
+      t += dt * 1000;
+      const u = Math.min(1, t / ms);
+      afterLight.intensity = from * (1 - u) ** 2;
+      if (u >= 1) { afterLight.intensity = 0; afterStop = null; return false; }
+      return true;
+    });
+  };
   const smoke = puffPool(desk, { max: 56, color: 0x3a342e });
   group.add(smoke.group);
   // 键盘焦点的圈
@@ -259,7 +276,8 @@ export function buildBu(desk) {
         stopGrow = desk.addTicker((dt) => {
           t = Math.min(1, t + (dt * 1000) / 2100);
           draw(t, t < 1);
-          if (t >= 1) { draw(1, false); stopGrow = null; opt.onDone?.(); return false; }
+          afterLight.intensity = 70 * t * t;
+          if (t >= 1) { draw(1, false); stopGrow = null; fadeAfter(1100); opt.onDone?.(); return false; }
           return true;
         });
       };
@@ -268,6 +286,7 @@ export function buildBu(desk) {
     },
     /** 翻回背面（再灼一处） */
     showBack() {
+      afterStop?.(); afterLight.intensity = 0;
       let p = 1;
       const from = flipper.rotation.z;
       const gen = ++flipGen;
@@ -281,7 +300,7 @@ export function buildBu(desk) {
       });
       void stop;
     },
-    resetFlip() { flipGen++; flipper.rotation.z = 0; lifter.position.y = 0; desk.invalidate(); },
+    resetFlip() { afterStop?.(); afterLight.intensity = 0; flipGen++; flipper.rotation.z = 0; lifter.position.y = 0; desk.invalidate(); },
     reset() {
       used.fill(false);
       paintBack();
