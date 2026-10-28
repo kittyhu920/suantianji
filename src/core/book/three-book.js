@@ -88,7 +88,7 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
   // 两面共用同一份纹理（不另造合成的画布）；背面的纹理在着色器里左右翻回来（从背面看，纸是镜像的）。
   // veil：扉页（第一张纸的正面）另有一张只有纸、没有字的底，书刚摊开时字还没浮现：body 管整页，title 管上面一块（命书、卷名）。
   function paperMaterial(map, through, side, veil) {
-    const m = new THREE.MeshStandardMaterial({ map, side, roughness: 0.92, metalness: 0 });
+    const m = new THREE.MeshLambertMaterial({ map, side }); // 纸只有漫反射：标准材质的 4% 镜面反射会把灯光叠在字上，字就发褐发白
     m.customProgramCacheKey = () => `paper-${side === THREE.FrontSide ? 'front' : 'back'}${veil ? '-veil' : ''}`; // 着色器不同，不能共用一份编译结果
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uThrough = { value: through };
@@ -127,6 +127,8 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     }
     const fm = paperMaterial(ft, bt, THREE.FrontSide, veil);
     const bm = paperMaterial(bt, ft, THREE.BackSide, null);
+    fm.color.setScalar(tintK);
+    bm.color.setScalar(tintK);
     mats.push(fm, bm);
     const fMesh = new THREE.Mesh(geo, fm);
     const bMesh = new THREE.Mesh(geo, bm);
@@ -164,6 +166,17 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     sh.fMesh.receiveShadow = sh.bMesh.receiveShadow = !turning;
     sh.fMesh.renderOrder = sh.bMesh.renderOrder = turning ? 3 : 2;
   }
+
+  // 夜里灯正照在书上，纸被照得过亮、字发褐发橙：纸的亮度压到 0.72，字才沉得下去（昼里不动）
+  let tintK = 1;
+  const tint = () => {
+    const k = 1 - 0.28 * desk.themeT;
+    if (Math.abs(k - tintK) < 1e-3) return;
+    tintK = k;
+    for (const m of mats) m.color.setScalar(k);
+    for (const s of sheets) { s.fm.color.setScalar(k); s.bm.color.setScalar(k); }
+  };
+  desk.listeners.add(tint);
 
   /* ───────── 动起来：借桌子的渲染循环 ───────── */
   function request() {
@@ -223,6 +236,8 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
       N = list.length;
       T = Math.max(1.2, Math.min(9, stack / Math.max(1, N)));
       list.forEach((c, i) => sheets.push(buildSheet(i, c)));
+      // 纹理先上传到显卡（同步，会卡一下）：放在演出开始之前，别让第一帧在演出里卡住
+      for (const s of sheets) for (const t of [s.ft, s.bt, s.vt]) if (t) desk.renderer.initTexture(t);
       for (const s of sheets) { s.st.p = s.i < spreadNow ? 1 : 0; flags(s, false); shape(s); }
       restEdges();
       invalidate();
@@ -348,6 +363,7 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     },
     dispose() {
       disposed = true;
+      desk.listeners.delete(tint);
       api.clear();
       edgeMat.map.dispose();
       edgeMat.dispose();

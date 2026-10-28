@@ -276,7 +276,7 @@ export function buildBu(desk) {
         stopGrow = desk.addTicker((dt) => {
           t = Math.min(1, t + (dt * 1000) / 2100);
           draw(t, t < 1);
-          afterLight.intensity = 70 * t * t;
+          afterLight.intensity = 1100 * t * t; // 物理单位：6 厘米外约 30 勒克斯，与灯下的桌面相当，不刺眼
           if (t >= 1) { draw(1, false); stopGrow = null; fadeAfter(1100); opt.onDone?.(); return false; }
           return true;
         });

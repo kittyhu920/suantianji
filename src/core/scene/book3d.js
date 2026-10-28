@@ -163,7 +163,7 @@ export function createBook(desk) {
 
   /* ───────── 读命书：同一本书原地摊开 ───────── */
   // 读命书时书的位姿是桌子正中，相机走到读书的机位；命书的纸（reading）替下合着时那叠书页，封面翻开，纸就是命书的页。
-  // 演出（beginReading，总长 < 2.5 秒）：封面先合上、再翻开（有厚度、有纸响）→ 扉页浮现“命书”与卷名 → 停一下 → 翻到第一页。点一下可跳过。
+  // 演出（beginReading，总长约 2.2 秒）：封面先合上、再翻开（有厚度、有纸响）→ 扉页浮现“命书”与卷名 → 停一下 → 翻到第一页。点一下可跳过。
   let intro = null;
   const swapSheets = (on) => { block.visible = !on; sheetsRoot.visible = on; };
   desk.readingPts = () => {
@@ -175,10 +175,9 @@ export function createBook(desk) {
   function tweenCover(from, to, ms, f = easeIO) {
     coverTicker?.(); coverTicker = null;
     return new Promise((res) => {
-      let t = 0;
-      coverTicker = addTicker((dt) => {
-        t += dt * 1000;
-        const u = intro?.skipped ? 1 : Math.min(1, t / ms);
+      const t0 = performance.now();
+      coverTicker = addTicker(() => {
+        const u = intro?.skipped ? 1 : Math.min(1, (performance.now() - t0) / ms);
         coverA = coverGoal = from + (to - from) * f(u);
         applyCover();
         if (u >= 1) { coverTicker = null; res(); return false; }
@@ -193,15 +192,15 @@ export function createBook(desk) {
     swapSheets(true);
     reading.reveal.body = 0;
     reading.reveal.title = 0;
+    // 演出的时钟用挂钟，不用每帧的 dt（dt 有上限；第一帧上传纹理卡一下，用 dt 计时就会整体拖后）
     const wait = (ms) => new Promise((res) => {
-      let t = 0;
-      addTicker((dt) => { t += dt * 1000; if (st.skipped || t >= ms) { res(); return false; } return true; });
+      const t0 = performance.now();
+      addTicker(() => { if (st.skipped || performance.now() - t0 >= ms) { res(); return false; } return true; });
     });
     const tween = (ms, f, e = easeIO) => new Promise((res) => {
-      let t = 0;
-      addTicker((dt) => {
-        t += dt * 1000;
-        const u = st.skipped ? 1 : Math.min(1, t / ms);
+      const t0 = performance.now();
+      addTicker(() => {
+        const u = st.skipped ? 1 : Math.min(1, (performance.now() - t0) / ms);
         f(e(u));
         if (u >= 1) { res(); return false; }
         return true;
@@ -228,19 +227,18 @@ export function createBook(desk) {
     };
     (async () => {
       lift = 'open';
-      if (coverA > 0.06) await tweenCover(coverA, 0, 150, ease);
+      if (coverA > 0.06) await tweenCover(coverA, 0, 120, ease); // 说话时掀着的封面先落回，合着的书才翻得开
       if (st.skipped) return;
-      sfx.rustle(0.6, 0.11, true);
-      const open = tweenCover(0, readTargets.open, 950);
-      await wait(380);
-      tween(420, (k) => { reading.reveal.body = k; });
-      await wait(480);
-      if (!st.skipped) sfx.flop(0.12);
-      await tween(450, (k) => { reading.reveal.title = k; });
+      sfx.rustle(0.55, 0.11, true);
+      const open = tweenCover(0, readTargets.open, 850).then(() => { if (!st.skipped) sfx.flop(0.12); }); // 封面落在桌上：一声闷响
+      await wait(300);
+      tween(380, (k) => { reading.reveal.body = k; });
+      await wait(250);
+      await tween(420, (k) => { reading.reveal.title = k; }); // “命书”与卷名浮现
       await open;
-      await wait(380);
+      await wait(250); // 停一下
       if (st.skipped) return;
-      if (reading.limit >= 1) { sfx.rustle(0.45, 0.09, true); await reading.turn(1, { omega: 9.5, zeta: 0.8, bounce: 0.2 }); }
+      if (reading.limit >= 1) { sfx.rustle(0.4, 0.09, true); await Promise.race([reading.turn(1, { omega: 12, zeta: 0.9, bounce: 0.12 }), wait(650)]); } // 页翻过去了，回弹的尾巴不用等
       end();
     })();
     return { skip() { if (!st.done) st.finish(); }, get running() { return !st.done; } };
