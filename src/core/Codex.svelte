@@ -2,7 +2,7 @@
   // 书桌：整个站点常驻的一张桌子和桌上的书（docs/DESIGN.md §19）。用 Astro ClientRouter 的 transition:persist 跨路由保留，
   // 从书桌点一件器物进卷、再回来，都不整页刷新；字盘的 three.js 画布同样常驻。
   //   天头栏   卷名、回书桌、源流与关于、通灵开关、昼夜、声
-  //   书桌     首页：正中一本合上的书，四周摆各卷的器物；进卷：书退到桌子里侧，合着旁观，说话时封面掀起；
+  //   书桌     首页：正中一本合上的书，四周摆各卷的器物；进卷：书翻开着摊在桌子里侧，扉页朝上，书的话写在上面；
   //            仪式用桌上的实物完成；仪式完，书滑到桌子中央、摊开，是替你写的命书（Reader.svelte，WebGL 翻页）
   //   按钮槽   这一步的主操作，在桌面下方中央、紧挨着器物（desk/BenchSlot.svelte，docs/DESIGN.md §20）
 //   页脚     两行：这一步的说明（读命书时是这一页的脚注）；本卷的步骤、存疑（读命书时是合上、再来、保存）
@@ -98,7 +98,9 @@
   const steps = $derived(juan?.steps ?? []);
   const stepIdx = $derived(ctx ? steps.findIndex((s) => s.k === ctx.screen) : -1);
   const atStart = $derived(!ctx || ctx.screen === juan?.start);
-  const lift = $derived(phase === 'reading' ? 'open' : stage.speaking ? 'speak' : 'shut');
+  // 进卷后书就翻开着：3D 里封面平躺在桌上、扉页朝上，一直到结局（直接接到命书的摊开）；只在回书桌时合上。
+  // 2D 退回（手机、减少动效）里封面掀起一个角度，写字的纸笺一直在
+  const lift = $derived(phase === 'reading' ? 'open' : phase === 'ritual' ? (glState === 'on' ? 'open' : 'speak') : 'shut');
   // 读命书时，页脚放这一页（左右两页）的脚注
   const notes = $derived(bookPages ? footnotes(juan?.zhu, [readIdx * 2 - 1, readIdx * 2].flatMap((i) => bookPages[i]?.zhu ?? [])).slice(0, 3) : []);
 
@@ -205,7 +207,7 @@
     e.currentTarget.blur();
   }
 
-  // 书的话：写在扉页上。字是 DOM，按扉页（封面掀起后露出的那一块）的四个角投影到屏幕，用一个透视变换贴上去
+  // 书的话：写在扉页上。字是 DOM，按扉页（翻开后露出的那一块）的四个角投影到屏幕，用一个透视变换贴上去
   function placeVoice() {
     if (!vplane || !deskRef.book) return;
     const q = deskRef.book.pageQuad();
