@@ -11,7 +11,7 @@
 //   open, start          是否开卷；第一屏的名字
 //   steps                页脚的步骤进度 [{ k: 屏名, name: 两字步骤名 }]，按先后排；入口屏不在其中
 //   screens              { 屏名: Svelte 组件 }。每一屏收到 { ctx, game }。
-//                        **仪式在桌上，书合着旁观，结果写进命书**：屏不画页面，只放一个 <Spread>（core/Spread.svelte），
+//                        **仪式在桌上，书翻开着在旁边，结果写进命书**：屏不画页面，只放一个 <Spread>（core/Spread.svelte），
 //                        把 hint（页脚的说明）、foot（页脚的按钮）、desk（桌上的器物与要玩家动手的东西）交给 Codex 渲染。
 //                        器物里要接指针或物理的元素，用 use: 动作去接（desk 由 Codex 渲染，不在屏的 onMount 里，别用 bind:this + onMount）。
 //                        问题写在桌上的纸笺（.ask-sheet.paper）上；择域是三支木牌（.slips）；样式见 core/styles/desk.css。

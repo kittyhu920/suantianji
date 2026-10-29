@@ -135,7 +135,7 @@
 .cv-seal-3 { right: 12px; bottom: 14px; transform: rotate(-4deg); }
 .cv-tear { position: absolute; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5)); }
 
-/* 扉页上的字迹：封面掀起时，一张写字的纸笺从书里露出一截。尺寸按书的缩放反着算，屏幕上的大小不变 */
+/* 2D 退回：扉页上的字迹。仪式里封面掀起，一张写字的纸笺从书里露出一截。尺寸按书的缩放反着算，屏幕上的大小不变 */
 .bk-slip {
   --w: 520px;
   position: absolute;

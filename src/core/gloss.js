@@ -1,17 +1,16 @@
-// 书的话：大师（这本书）开口时，封面掀起一个角度，字迹写在露出的扉页上（docs/DESIGN.md §4、§19）。
+// 书的话：大师（这本书）开口，字迹写在翻开着的扉页上（docs/DESIGN.md §4、§19；仪式里书一直是翻开的，不再等封面掀起）。
 // 一句话先整句排好版（每个字都已在 DOM 里，只是被动画延迟压着没出现），再一笔一笔洇开；
-// 写完停一会儿，再慢慢渗进纸里、淡去；这一句的字迹淡去后，下一句接着写；没有下一句了，封面落回。
+// 写完停一会儿，再慢慢渗进纸里、淡去；这一句的字迹淡去后，下一句接着写。
 // 队列、去重（key）、写快写慢的节奏沿用旧的眉批槽。
 // 字全是墨（不点朱）：用 --f-voice 的行书；警示句的着重点也用墨。
-// 减少动效：不逐字洇开、封面不掀，只淡入、淡出。
+// 减少动效：不逐字洇开，只淡入、淡出。
 
 import { inkChar } from './inkchars.js';
 
 const CLAUSE = /[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g;
-const LIFT_MS = 520; // 封面掀起要的时间
 
 /**
- * host：扉页上写字的容器（.voice）。onState(true|false)：书开始说话（封面掀起）/ 说完（封面落回）。
+ * host：扉页上写字的容器（.voice）。onState(true|false)：书开始说话 / 说完（stage.speaking，读屏与调试用）。
  * onSay(text)：书每说一句，就把那一句的原文交出去（读屏的朗读区用它：扉页上的字是一个个洇开的，读屏读不到）。
  */
 export function createGloss(host, { reduced = false, onState, onSay } = {}) {
@@ -65,9 +64,7 @@ export function createGloss(host, { reduced = false, onState, onSay } = {}) {
     busy = true;
     while (queue.length) {
       if (!open) {
-        setOpen(true);
-        if (!reduced) await sleep(LIFT_MS); // 等封面掀起来
-        if (!queue.length) break;
+        setOpen(true); // 书一直翻开着，不用等封面
       }
       const item = queue.shift();
       cur = item;
@@ -85,7 +82,7 @@ export function createGloss(host, { reduced = false, onState, onSay } = {}) {
       if (queue.length) await sleep(item.woken || backlog > 2 ? 120 : 360); // 前一句渗进去一点，再写下一句
     }
     cur = null;
-    await sleep(reduced ? 200 : 700); // 余韵：话刚说完，封面不立刻落下
+    await sleep(reduced ? 200 : 700); // 余韵：话刚说完，不立刻收场
     if (queue.length) { drain(); return; }
     busy = false;
     setOpen(false);

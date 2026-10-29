@@ -1,7 +1,7 @@
 // 桌上的书（docs/DESIGN.md §19）：一册线装书，three.js 的实体。
 //   形     竖长的线装书（宽 26、高 36，与命书的页 5:7 一致）：旧靛青的布面封面与底板，中间一叠书页（层层的纸边），封面绕书脊的转轴转
 //   右装   传统的右装：书脊在右，封面从左边（书口）掀起，向右绕过书脊翻开；翻开后第一页在左，读的时候从右往左翻
-//   书的话 封面绕书脊掀到过竖直（约 128°），整张扉页露出来；字写在扉页上（DOM，按扉页的四个角投影到屏幕，见 pageQuad）
+//   书的话 仪式里封面一直翻开、平躺在桌上（和读命书时一样的摊开），扉页朝上；字写在扉页上（DOM，按扉页的四个角投影到屏幕，见 pageQuad）
 //   姿态   首页、仪式、读命书、讲解页各有一个位姿，书在它们之间平滑地走过去，是同一本书
 // 本地坐标：x 自书脊（-13）到书口（+13），z 自书头（-18）到书根（+18），y 向上。整本书（inner）绕 x 镜像（scale.x = -1）：
 // 书脊在世界的右边，书口在左边；书头朝桌子里侧，书根朝玩家。镜像带来的贴图左右翻转，在封面贴图（repeat.x = -1）与命书的纸（three-book.js 的 uv）里翻回来。
@@ -13,11 +13,11 @@ import * as sfx from '../audio.js';
 
 export const BOOK = { w: 26, d: 36, board: 0.42, block: 2.0, cover: 0.42 };
 const TOP = BOOK.board + BOOK.block; // 书页最上面一张的高度
-const SPEAK = (128 * Math.PI) / 180; // 书说话时封面掀起的角度：过了竖直，封面向书脊那一边倒靠，整张扉页露出来，看得见封面的里子（不是立着的一面墙）
+const SPEAK = (128 * Math.PI) / 180; // 封面掀起、还没翻到底的角度（以前说话时用；现在仪式里封面一直翻到底，这个只留给 setLift('speak') 调试）
 
 export const POSES = {
   home: { x: 0, y: 0, z: -13.5, ry: 0, s: 1.2 }, // 居中偏里，器物摆在它前面与两侧
-  ritual: { x: -31, y: 0, z: -19, ry: 0, s: 0.9 }, // 仪式：退到桌子里侧的左边旁观（器物与桌上的纸笺占中前部），缩小一点
+  ritual: { x: -42, y: 0, z: -20.2, ry: 0, s: 0.85 }, // 仪式：翻开着，摊在桌子里侧的左边（书页在左、平躺的封面在右，占 x −53…−9，z −35.5…−5；器物与桌上的纸笺占中前部），缩小一点
   reading: { x: -18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（世界 x = pose.x + 12.5·s = 0），摊开在两边：翻到左边的是读完的，右边是封面
   doc: { x: 0, y: -6, z: -17, ry: 0, s: 0.5 },
 };
@@ -158,6 +158,7 @@ export function createBook(desk) {
   let collapsing = false;
   let pendingLift = null;
   const readTargets = { shut: 0, speak: SPEAK, open: Math.PI };
+  const OPEN_FROM = 2.6; // 封面翻过这个角度，就算已经翻开、平躺着了
   function setLift(l, instant = false) {
     if (collapsing) { pendingLift = l; return; }
     lift = l;
@@ -232,16 +233,19 @@ export function createBook(desk) {
     };
     (async () => {
       lift = 'open';
-      if (coverA > 0.06) await tweenCover(coverA, 0, 120, ease); // 说话时掀着的封面先落回，合着的书才翻得开
-      if (st.skipped) return;
-      sfx.rustle(0.55, 0.11, true);
-      const open = tweenCover(0, readTargets.open, 850).then(() => { if (!st.skipped) sfx.flop(0.12); }); // 封面落在桌上：一声闷响
-      await wait(300);
+      // 仪式里封面一直翻开着：不再先合上再翻开，直接从摊开的样子接过来（扉页的底与字浮现 → 翻到第一个对页）。万一封面没开到底（直接进命书），就从现在的角度继续翻开
+      const already = coverA >= OPEN_FROM;
+      let open = Promise.resolve();
+      if (!already) {
+        sfx.rustle(0.55, 0.11, true);
+        open = tweenCover(coverA, readTargets.open, Math.round(850 * (1 - coverA / Math.PI))).then(() => { if (!st.skipped) sfx.flop(0.12); }); // 封面落在桌上：一声闷响
+      }
+      await wait(already ? 60 : 300);
       tween(380, (k) => { reading.reveal.body = k; });
-      await wait(250);
+      await wait(already ? 140 : 250);
       await tween(420, (k) => { reading.reveal.title = k; }); // “命书”与卷名浮现
       await open;
-      await wait(250); // 停一下
+      await wait(already ? 450 : 250); // 停一下：相机还在推近，书在往桌子中央走
       if (st.skipped) return;
       if (reading.limit >= 1) { sfx.rustle(0.4, 0.09, true); await Promise.race([reading.turn(1, { omega: 12, zeta: 0.9, bounce: 0.12 }), wait(650)]); } // 页翻过去了，回弹的尾巴不用等
       end();
@@ -263,7 +267,7 @@ export function createBook(desk) {
       pendingLift = null;
       const stop = addTicker(() => {
         if (mode === 'reading') { stop(); return false; } // 又回去读了
-        if (coverA > 0.05) return true;
+        if (lift !== 'open' && coverA > 0.05) return true; // 回书桌：等封面合上；再来一次（回到仪式）：封面本来就该开着，直接收纸、露出翻开着的扉页
         reading.clear();
         swapSheets(false);
         invalidate();
@@ -288,7 +292,7 @@ export function createBook(desk) {
   const v = new THREE.Vector3();
   const toLocal = new THREE.Vector3();
   /**
-   * 扉页上写字的那一块（画布像素）。书脊在右、封面从左边掀起：掀过竖直（说话时 128°）之后，整张扉页都露在外面，
+   * 扉页上写字的那一块（画布像素）。书脊在右、封面从左边翻开：翻过竖直之后（仪式里是翻到底、平躺），整张扉页都露在外面，
    * 字写在书口一侧到订口之前的一块（留出订口的暗处）；封面还没掀过竖直（落回、合上的路上）时，按封面自由边的顶端落下来的视线算，只用没被遮住的那一段。
    * 返回 [左上, 右上, 右下, 左下]（屏幕上的位置），带 ratio（高 / 宽）。
    */
@@ -336,10 +340,14 @@ export function createBook(desk) {
     },
     riffle() {
       const base = coverGoal;
-      setCover(1.08, 9);
+      setCover(base > OPEN_FROM ? base - 0.95 : 1.08, 9); // 封面一直翻开着时，抬起一角再落回
       setTimeout(() => setCover(base, 6), 560);
     },
     tear() {
+      // 封面翻开着时，撕口画在扉页上（封面的正面朝下了）
+      const onPage = coverA >= OPEN_FROM;
+      (onPage ? inner : coverMesh).add(tearM);
+      tearM.position.set(onPage ? 0.1 : BOOK.w / 2 - 0.5 + 1, onPage ? TOP + 0.04 : BOOK.cover / 2 + 0.02, 0);
       const g = tearCv.getContext('2d');
       g.clearRect(0, 0, 512, 256);
       g.beginPath();

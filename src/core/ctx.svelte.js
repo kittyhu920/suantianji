@@ -3,7 +3,7 @@
 //   screen / show(name,{shut,reset,onCommit})  当前屏与换屏。shut:true 是"重来"：书合着，封面掀一下再落回；
 //                            reset:true 是回卷首、再来一局：同样掀一下，并换一册新书。onCommit 在换屏的那一刻同步执行
 //   turn(commit,{shut})      不换屏、只改状态（例如签落了）：commit() 里改状态
-//   gloss(text, {alarm,key}) 书说一句话：封面掀起，字迹写在露出的扉页上，说完渗进纸里、封面落回；clearGloss() 清空
+//   gloss(text, {alarm,key}) 书说一句话：字迹写在翻开着的扉页上，说完渗进纸里；clearGloss() 清空
 //   thud()                   结局时，书沉一下
 //   sfx                      声音（audio.js 的全部导出）
 //   reduced / coarse         减少动效、触屏
@@ -160,7 +160,7 @@ export function createCtx(juan) {
       cleanups.push(() => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible); });
     },
 
-    // 书说话的地方（扉页上的 .voice）由 Codex 交进来；书说话时封面掀起（stage.speaking）
+    // 书说话的地方（扉页上的 .voice）由 Codex 交进来；书说话的状态记在 stage.speaking
     attach({ voice }) {
       glossEngine = createGloss(voice, { reduced, onState: (on) => { stage.speaking = on; }, onSay: (t) => { stage.said = t; stage.saidN++; } });
       ctx.voice = glossEngine;
