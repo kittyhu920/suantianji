@@ -233,10 +233,20 @@ export async function createDesk(host, { onLost } = {}) {
     return { tg: t, dist };
   }
   // 读命书的机位：书摊开在桌子中央，机位比看桌子时更陡、更近（由 book3d 给出摊开的书占的几个点）
-  const cam = { k: 0, goal: 0, rd: null, ticker: null };
+  const cam = { k: 0, goal: 0, rd: null, ticker: null, ext: { sx: 1, sz: 1 } };
   const READ = { elev: (63 * Math.PI) / 180, band: { x: 0.9, ylo: -0.6, yhi: 0.84 } };
+  // 读命书的机位里，桌面要铺满天头栏到页脚之间的整个画面（书以外全是桌面，不露桌外的背景，也不露桌角）：
+  // 相机推近时，桌子的木面向四周长大（只长桌面，厚度不变），长到把画布四角落在桌面上的点都包进去
+  function applyExt(k) {
+    const e = cam.rd && k > 0 ? (() => { const u = Math.min(1, k * 1.5); return u * u * (3 - 2 * u); })() : 0;
+    const sx = lerp(1, cam.ext.sx, e);
+    const sz = lerp(1, cam.ext.sz, e);
+    table.scale.set(sx, 1, sz);
+    under.scale.set(TABLE.w * 1.28 * sx, TABLE.d * 1.4 * sz, 1);
+  }
   function applyCam() {
     const k = cam.k;
+    applyExt(k);
     if (!cam.rd || k <= 0) { place(target, distance, ELEV); return; }
     const rd = cam.rd;
     const tg = new THREE.Vector3().lerpVectors(target, rd.tg, k);
@@ -256,7 +266,19 @@ export async function createDesk(host, { onLost } = {}) {
     if (pts) {
       const rr = frame(pts, READ.elev, READ.band, new THREE.Vector3(0, 0, 0), distance * 0.7);
       cam.rd = { tg: rr.tg, dist: rr.dist, elev: READ.elev };
-    }
+      // 读命书机位下，画布四角落在桌面（y = 0）上的点：桌面要把它们都包进去，留一点余量（倒角、圆角）
+      place(rr.tg, rr.dist, READ.elev);
+      let mx = 0;
+      let mz = 0;
+      for (const [nx, ny] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        ndc.set(nx, ny);
+        ray.setFromCamera(ndc, camera);
+        floorPlane.constant = 0;
+        const hit = ray.ray.intersectPlane(floorPlane, new THREE.Vector3());
+        if (hit) { mx = Math.max(mx, Math.abs(hit.x)); mz = Math.max(mz, Math.abs(hit.z)); }
+      }
+      cam.ext = { sx: Math.max(1, (mx + 4) / (TABLE.w / 2)), sz: Math.max(1, (mz + 4) / (TABLE.d / 2)) };
+    } else cam.ext = { sx: 1, sz: 1 };
     applyCam();
     view.version++;
     invalidate();
