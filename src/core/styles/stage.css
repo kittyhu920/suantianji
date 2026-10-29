@@ -16,6 +16,9 @@
   padding: 8px 0 8px;
   /* 天头栏、页脚坐在深色的案上：这两条里的字用纸白，两套主题相同 */
   --bar-ink: #ece4d0;
+  /* 天头栏与页脚都是定高：桌子（3D 画布）的大小只由视口与这两个值决定，页脚里放多少字都不挤它（docs/DESIGN.md §20） */
+  --top-h: 52px;
+  --bot-h: 118px;
 }
 .an { position: relative; height: 100dvh; display: block; }
 
@@ -50,7 +53,8 @@
   -webkit-backdrop-filter: blur(5px);
 }
 .topbar {
-  height: 52px;
+  height: var(--top-h);
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -114,17 +118,19 @@
 .tag-btn[aria-pressed="true"] { color: rgba(0, 0, 0, .4); text-decoration: line-through; }
 
 .botbar {
-  min-height: 92px;
+  height: var(--bot-h);
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 18px 6px;
 }
 .bot-doubt { display: flex; align-items: center; justify-content: center; min-width: 0; }
 .bot-mid { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .bot-hint { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-soft); min-height: 1.6em; text-wrap: pretty; }
-.bot-acts { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+.bot-acts { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: nowrap; }
 .bot-acts .btn { color: var(--bar-ink); border-color: rgba(236, 228, 208, .5); }
 .bot-acts .btn:hover { border-color: var(--bar-ink); }
 .bot-acts .btn-primary { color: var(--on-zhu); border-color: var(--cinnabar); }
@@ -347,15 +353,14 @@
 
 /* ───────── 矮窗口：1366×768 一类。场景整体缩小，只有天头栏与页脚收紧 ───────── */
 @media (min-width: 960px) and (max-height: 820px) {
-  .topbar { height: 46px; }
-  .botbar { min-height: 80px; padding: 6px 14px; }
-  .shell { padding: 4px 0; }
+  .shell { --top-h: 46px; --bot-h: 104px; padding: 4px 0; }
+  .botbar { padding: 6px 14px; }
 }
 
 /* ───────── 手机（< 960px）：首页是器物网格，仪式时书缩成顶部的小图标，读命书是单页 ───────── */
 @media (max-width: 959px) {
-  .shell { width: 100vw; padding: 0; }
-  .topbar { border-radius: 0; border-left: 0; border-right: 0; height: 48px; grid-template-columns: auto 1fr auto; gap: 8px; padding: 0 10px; }
+  .shell { width: 100vw; padding: 0; --top-h: 48px; --bot-h: calc(138px + env(safe-area-inset-bottom)); }
+  .topbar { border-radius: 0; border-left: 0; border-right: 0; grid-template-columns: auto 1fr auto; gap: 8px; padding: 0 10px; }
   .top-title { justify-content: center; font-size: 17px; letter-spacing: .1em; }
   .top-title small { display: none; }
   .topbar .corner-theme { --s: 30px; font-size: 15px; }
@@ -390,8 +395,7 @@
   .doc-sheet .lp-name { font-size: 34px; }
   .only-narrow { display: block !important; }
   .botbar {
-    grid-template-columns: 1fr;
-    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0;
@@ -399,7 +403,7 @@
   }
   .bot-doubt { position: absolute; left: 8px; bottom: 8px; z-index: 2; }
   .bot-mid { align-items: center; padding: 0 44px; }
-  .bot-hint { font-size: 14px; line-height: 1.55; }
+  .bot-hint { font-size: 13px; line-height: 1.45; }
   .bot-steps { justify-content: center; font-size: 12px; flex-wrap: nowrap; }
   .bot-steps li:not(.is-cur) .stp-name, .bot-steps li:not(.is-cur) .stp-dot { display: none; }
   .stp-arrow { margin: 0 .45em; }
@@ -408,7 +412,7 @@
   .bot-links { justify-content: center; font-size: 12px; }
   .shell:not([data-phase="home"]):not([data-phase="doc"]) .bot-links { display: none; }
   .bot-acts { justify-content: center; gap: 10px; }
-  .bot-acts .btn { padding: 6px 16px; min-height: 40px; }
+  .bot-acts .btn { padding: 6px 8px; min-height: 40px; }
   .seal-doubt { --s: 40px; }
   .reader-2d { padding: 6px; }
   .reader-2d .rd-page { max-width: 100%; }

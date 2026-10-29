@@ -7,20 +7,25 @@
    · 手机（375 宽）上，所有能点的东西至少 44×44：视觉尺寸不变的，用透明的点击区撑大。 */
 
 /* ───────── 页脚：两行 ───────── */
+/* 页脚定高（--bot-h，定义在 stage.css 的 .shell）：上面一块放说明或脚注（至多三行），下面一行放步骤与按钮；
+   内容多了也只在这一块里处理，不把页脚撑高，桌子不被挤。按钮不换行。 */
 .botbar {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   align-items: stretch;
   gap: 4px;
   min-height: 0;
   padding: 8px 18px 6px;
 }
+.bot-hint, .bot-notes { align-self: center; max-height: 100%; overflow: hidden auto; scrollbar-width: none; }
+.bot-hint::-webkit-scrollbar, .bot-notes::-webkit-scrollbar { display: none; }
 .bot-hint { min-height: 0; text-wrap: balance; }
 .bot-row { display: flex; align-items: center; gap: 16px; min-height: 40px; }
-.bot-steps { flex: 1 1 auto; min-width: 0; }
-.bot-acts { margin-left: auto; flex: none; }
+.bot-steps { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
+.bot-acts { margin-left: auto; flex: none; flex-wrap: nowrap; white-space: nowrap; }
+.bot-acts .btn { white-space: nowrap; }
 .bot-acts:empty { display: none; }
-.bot-notes { margin-bottom: 2px; }
 /* 页脚步骤里的点与箭头是信息（走到第几步了）：不再用 .22 的淡墨 */
 .stp-arrow, .stp-dot { color: rgba(236, 228, 208, .66); }
 
@@ -146,12 +151,15 @@
 /* ───────── 手机（375 宽）：版式与触控目标 ───────── */
 @media (max-width: 959px) {
   .botbar { padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); text-align: center; gap: 2px; }
-  .bot-hint { font-size: 14px; }
+  .bot-hint { font-size: 13px; line-height: 1.45; }
+  /* 说明里的术语，点击区向外撑了 11px：给说明那一块留够边（负外边距抵掉），免得撑出来的点击区被 overflow 剪掉 */
+  .bot-hint, .bot-notes { box-sizing: border-box; padding-block: 11px; margin-block: -11px; }
   .bot-row { justify-content: center; gap: 10px; min-height: 44px; }
   .bot-steps { flex: 0 1 auto; justify-content: center; }
   .doubt-btn { position: relative; }
-  .bot-acts { margin-left: 0; flex-wrap: wrap; justify-content: center; }
-  .bot-acts .btn { min-height: 44px; }
+  .bot-acts { margin-left: 0; flex-wrap: nowrap; justify-content: center; gap: 6px; }
+  .bot-acts .btn { min-height: 44px; font-size: 13px; letter-spacing: .04em; }
+  .bot-acts .oq { display: block; font-size: 11px; line-height: 1.1; letter-spacing: 0; }
   .botbar .about-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
   .bot-links { gap: 0 8px; }
 
@@ -184,5 +192,8 @@
   .piece.is-closed .piece-name, .piece.is-closed .piece-intro { color: rgba(236, 228, 208, .86); }
 }
 @media (min-width: 960px) and (max-height: 820px) {
-  .botbar { min-height: 0; padding: 6px 16px 4px; }
+  .botbar { padding: 6px 16px 4px; }
+  .bot-row { min-height: 36px; }
+  .bot-notes { font-size: 12.5px; line-height: 1.4; }
+  .bot-hint { line-height: 1.5; }
 }

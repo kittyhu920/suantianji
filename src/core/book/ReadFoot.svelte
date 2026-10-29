@@ -12,7 +12,7 @@
 <button class="btn btn-ghost" id="btn-close" onclick={() => navigate('/')}>合上</button>
 <button class="btn btn-ghost" id="btn-again" onclick={onagain}>{again}</button>
 {#if oracle.phase === 'offer' && ctx.copy.oracleButton}
-  <button class="btn btn-ghost" id="btn-oracle" disabled={out} onclick={game.askOracle}>{ctx.copy.oracleButton}{quota}</button>
+  <button class="btn btn-ghost" id="btn-oracle" disabled={out} onclick={game.askOracle}>{ctx.copy.oracleButton}{#if quota}<small class="oq">{quota}</small>{/if}</button>
 {:else if oracle.phase === 'loading'}
   <span class="oracle-wait" id="oracle-wait">{ctx.copy.oracleWait}……</span>
 {/if}
