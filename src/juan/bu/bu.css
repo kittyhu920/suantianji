@@ -40,6 +40,12 @@
 @keyframes carve-in { from { clip-path: inset(0 0 100% 0); opacity: .25; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
 
 
+/* 2D 退回：龟甲与兆图缩到 260 宽，读兆时命辞挪到纸笺里，按钮槽（桌面下方中央）才不压在甲的下沿上 */
+@media (min-width: 960px) {
+  .shell:not(.is-gl) .card { --cw: 260px; }
+  .shell:not(.is-gl) .zhuo-main .omen-fig { width: 260px; }
+}
+
 /* 桌上的龟甲：卡的大小固定 */
 .card { --cw: 300px; }
 @media (max-width: 959px) { .card { --cw: 210px; } .omen-fig { width: 220px; } }

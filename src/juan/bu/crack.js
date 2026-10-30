@@ -256,11 +256,14 @@ export function paintCrack(g, crack, { x, y, k = 1, t = 1, flip = false, alpha =
     const main = s.kind === 'trunk' || s.kind === 'branch';
     const segs = runs(pts);
     if (halo && (main || s.kind === 'bfork' || s.kind === 'tfork')) {
-      g.strokeStyle = `rgba(70,48,28,${(0.1 * a).toFixed(3)})`;
-      g.lineWidth = (main ? 7.5 : 4.2);
-      g.beginPath();
-      for (const run of segs) { g.moveTo(run[0].x, run[0].y); for (let i = 1; i < run.length; i++) g.lineTo(run[i].x, run[i].y); }
-      g.stroke();
+      // 焦痕晕：灼裂处两侧的一圈焦褐（外宽淡、内窄深），兆放大之后才看得出是烧出来的
+      for (const [w, al] of main ? [[8.5, 0.12], [4.6, 0.2]] : [[4.2, 0.1]]) {
+        g.strokeStyle = `rgba(70,48,28,${(al * a).toFixed(3)})`;
+        g.lineWidth = w;
+        g.beginPath();
+        for (const run of segs) { g.moveTo(run[0].x, run[0].y); for (let i = 1; i < run.length; i++) g.lineTo(run[i].x, run[i].y); }
+        g.stroke();
+      }
     }
     g.fillStyle = `rgba(27,20,14,${((s.kind === 'hair' ? 0.5 : 0.9) * a).toFixed(3)})`;
     for (const run of segs) if (run.length > 1) ribbon(g, run);

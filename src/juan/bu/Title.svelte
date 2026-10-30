@@ -10,7 +10,7 @@
 
 {#snippet desk()}
   <figure class="idle-piece">
-    {#if deskState.on}<div class="piece-slot is-bu" use:slot={{ id: 'bu', at: [0.5, 0.4] }}></div>{:else}<div class="idle-art"><Instrument id="bu" /></div>{/if}
+    {#if deskState.on}<div class="piece-slot is-bu" use:slot={{ id: 'bu', at: [0.5, 0.36] }}></div>{:else}<div class="idle-art"><Instrument id="bu" /></div>{/if}
     <figcaption>你灼龟，我读兆</figcaption>
   </figure>
 {/snippet}

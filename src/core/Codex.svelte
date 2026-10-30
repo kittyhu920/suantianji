@@ -87,6 +87,7 @@
   let themeBtn;
   let readerOn = $state(false);
   let readIdx = $state(0);
+  let bookClosed = $state(false); // 命书读完、合上了（Reader 绑定回来）：页脚换提示，2D 里封面合拢、盖印
 
   const juan = $derived(page.kind === 'juan' ? modules[page.juan] ?? null : null);
   const reg = $derived(juan ? juans.find((j) => j.id === juan.id) : null);
@@ -100,9 +101,12 @@
   const atStart = $derived(!ctx || ctx.screen === juan?.start);
   // 进卷后书就翻开着：3D 里封面平躺在桌上、扉页朝上，一直到结局（直接接到命书的摊开）；只在回书桌时合上。
   // 2D 退回（手机、减少动效）里封面掀起一个角度，写字的纸笺一直在
-  const lift = $derived(phase === 'reading' ? 'open' : phase === 'ritual' ? (glState === 'on' ? 'open' : 'speak') : 'shut');
+  const lift = $derived(phase === 'reading' ? (bookClosed && glState !== 'on' ? 'shut' : 'open') : phase === 'ritual' ? (glState === 'on' ? 'open' : 'speak') : 'shut');
   // 读命书时，页脚放这一页（左右两页）的脚注
-  const notes = $derived(bookPages ? footnotes(juan?.zhu, [readIdx * 2 - 1, readIdx * 2].flatMap((i) => bookPages[i]?.zhu ?? [])).slice(0, 3) : []);
+  // 翻到最后一个对页：页脚多一句“再翻一页，合上。”（脚注少留一条）
+  const lastSpread = $derived(bookPages ? bookPages.length >> 1 : 0);
+  const atLast = $derived(phase === 'reading' && readerOn && !bookClosed && lastSpread > 0 && readIdx >= lastSpread);
+  const notes = $derived(bookPages ? footnotes(juan?.zhu, [readIdx * 2 - 1, readIdx * 2].flatMap((i) => bookPages[i]?.zhu ?? [])).slice(0, atLast ? (narrow ? 1 : 2) : 3) : []);
 
   // 读命书：3D 书桌下，书原地摊开（Reader 把纸交给桌上的书，演出放完 readerOn 才为真）；2D 退回时，书先滑到桌子中央、封面翻开，再换成 DOM 的书页
   $effect(() => {
@@ -120,6 +124,7 @@
     window.addEventListener('keydown', onKey);
     return () => { window.removeEventListener('pointerdown', skip, true); window.removeEventListener('keydown', onKey); };
   });
+  $effect(() => { if (phase !== 'reading') bookClosed = false; });
   // 读命书时，字盘暂停（翻页的纸要用满合成器；字盘慢慢漂移，这时不画也看不出来）
   $effect(() => {
     document.dispatchEvent(new CustomEvent('stj-flip', { detail: readerOn }));
@@ -310,7 +315,7 @@
   });
 </script>
 
-<div class="shell" data-phase={phase} data-reader={readerOn ? 'on' : 'off'} class:is-narrow={narrow} class:is-gl={gl}>
+<div class="shell" data-phase={phase} data-reader={readerOn ? (bookClosed ? 'closed' : 'on') : 'off'} class:is-narrow={narrow} class:is-gl={gl}>
   {#if page.kind === 'home' || juan}<h1 class="visually-hidden">{juan ? `演算天机　${juan.name}卷　${juan.title}` : '演算天机　书桌'}</h1>{/if}
   <header class="topbar">
     {#if juan}
@@ -365,7 +370,7 @@
       {/if}
 
       <div class="book-anchor" aria-hidden={phase === 'doc'}>
-        <Book {lift} bind:voice={voice2d} />
+        <Book {lift} stamped={bookClosed && !gl} bind:voice={voice2d} />
       </div>
       {#if mounted && juan && voice}{#key `${juan.id}:${glState}`}<Ritual {juan} {voice} />{/key}{/if}
 
@@ -416,16 +421,21 @@
     {/if}
 
     {#if phase === 'reading' && bookPages}
-      <Reader pages={bookPages} {narrow} on={readerOn} reduced={ctx?.reduced ?? false} glBook={gl ? deskRef.book : null} onopen={() => { readerOn = true; }} bind:spread={readIdx} />
+      <Reader pages={bookPages} {narrow} on={readerOn} reduced={ctx?.reduced ?? false} glBook={gl ? deskRef.book : null} onopen={() => { readerOn = true; }} bind:spread={readIdx} bind:closed={bookClosed} />
     {/if}
   </div>
 
   <footer class="botbar">
     {#if juan}
-      {#if phase === 'reading' && notes.length}
+      {#if phase === 'reading' && bookClosed}
+        <p class="bot-hint" id="bot-hint">书合上了，点一下书，可以再翻开读。</p>
+      {:else if phase === 'reading' && notes.length}
         <ul class="bot-notes" id="bot-notes" aria-label="这一页的注">
           {#each notes as n}<li><b>{n.term}</b>{n.body}<small>{n.kind}</small></li>{/each}
+          {#if atLast}<li class="bot-end">再翻一页，合上。</li>{/if}
         </ul>
+      {:else if atLast}
+        <p class="bot-hint" id="bot-hint">再翻一页，合上。</p>
       {:else}
         <p class="bot-hint" id="bot-hint">{#each termSegments(cur?.hint ?? '', juan.zhu) as sg}{#if sg.term}<Zhu term={sg.term}>{sg.t}</Zhu>{:else}{sg.t}{/if}{/each}</p>
       {/if}

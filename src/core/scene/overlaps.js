@@ -103,6 +103,7 @@ export function createOverlaps(desk, deskRef) {
       const sheets = book.reading?.list ?? [];
       const rest = { 0: [], 1: [] };
       sheets.forEach((s) => {
+        s.fMesh.geometry.userData.liveBox = true; // 每张纸的包围盒都按现在的顶点重算（只在翻着的时候才重算，纸合上之后用的是翻开时的旧盒子，会误报）
         if (s.st.p > 0.001 && s.st.p < 0.999) {
           s.fMesh.geometry.userData.liveBox = true;
           items.push({ name: `书:翻着的纸${s.i}`, root: `s:${s.i}`, meshes: [s.fMesh] });

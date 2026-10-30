@@ -10,12 +10,13 @@
   //   on       书已经摊开（封面翻开的演出放完）：这时才接手势、才朗读
   //   glBook   3D 书桌里的书（scene/book3d.js），有它就在桌上的书里翻页；没有（2D 退回）就用 DOM 的书页
   //   onopen   3D：摊开的演出放完（或被点掉）时回调
+  //   closed   读完了：翻过最后一个对页再往后翻一次就是合书（纸翻回去、封面合拢、封面上落一方朱印），点书可以再翻开（回到第一个对页）；绑定给 Codex（页脚的提示、2D 的封面与印）
   //   spread   现在看到第几个对页：0 是扉页单独在书口一侧；3D 的右装书里，第 k 个对页是 第 2k-1 页在右、第 2k 页在左（先读右边、再读左边）；2D 退回是左装，第 2k-1 页在左、第 2k 页在右。绑定给页脚，用来显示这一页的脚注
   import { onMount, tick, untrack } from 'svelte';
   import { PW, PH, ground, folio, loadFonts, embolden } from './paint.js';
   import { deskRef } from '../scene/desk.svelte.js';
 
-  let { pages, narrow = false, on = false, reduced = false, glBook = null, onopen = () => {}, spread = $bindable(0) } = $props();
+  let { pages, narrow = false, on = false, reduced = false, glBook = null, onopen = () => {}, spread = $bindable(0), closed = $bindable(false) } = $props();
 
   let host;
   let slotL = $state(null);
@@ -101,6 +102,37 @@
     if (mode !== 'gl') show2d();
   }
 
+  /* ───────── 读完合上、落印；点书再翻开 ───────── */
+  let shutting = false; // 合书、翻开的演出正在放，不接新的输入
+  async function closeBook() {
+    if (shutting || closed || !on) return;
+    shutting = true;
+    if (mode === 'gl' && glBook) {
+      closed = true; // 先告诉 Codex：页脚的提示换成合上之后的
+      const ok = await glBook.closeBook();
+      if (!ok) closed = false;
+    } else {
+      closed = true; // 2D：Codex 把封面合上、盖印（CSS 的动画，见 book.css 的 .cv-stamp）
+      await new Promise((r) => setTimeout(r, reduced ? 0 : 1900));
+    }
+    shutting = false;
+  }
+  async function reopenBook() {
+    if (shutting || !closed) return;
+    shutting = true;
+    if (mode === 'gl' && glBook) {
+      const ok = await glBook.reopenBook();
+      if (ok) closed = false;
+    } else {
+      closed = false;
+      s2 = 0; p1 = 0;
+      show2d();
+    }
+    shutting = false;
+  }
+  // 合上之后：它不在翻页的位置上；点书、按键都是再翻开
+  const atEnd = () => (mode === 'gl' ? !!engine && engine.spread >= engine.limit : mode === 'one' ? p1 >= real - 1 : s2 >= lastSpread());
+
   /* ───────── 2D 退回方案 ───────── */
   const lastSpread = () => real >> 1;
   function show2d() {
@@ -115,6 +147,9 @@
     spread = s2;
   }
   async function go(dir) {
+    if (shutting) return;
+    if (closed) { reopenBook(); return; }
+    if (dir > 0 && atEnd()) { closeBook(); return; }
     if (mode === 'one') {
       const to = Math.max(0, Math.min(real - 1, p1 + dir));
       if (to === p1) return;
@@ -134,10 +169,16 @@
   let down = null;
   function onDown(e) {
     if (mode !== 'gl' || !engine || !on || e.button > 0) return;
+    if (shutting || glBook?.state === 'closing' || glBook?.state === 'opening') return;
     const w = engine.toWorld(e.clientX, e.clientY);
+    if (closed) { // 合着的书：点在书上就再翻开（合着的书从书脊向书口，占纸的右半边）
+      if (w.x > -40 && w.x < 540 && Math.abs(w.y) < 400) { e.preventDefault(); reopenBook(); }
+      return;
+    }
     if (Math.abs(w.y) > 380 || Math.abs(w.x) > 520) return;
     const side = w.x >= 0 ? 'R' : 'L';
-    if ((side === 'R' && engine.spread >= engine.limit) || (side === 'L' && engine.spread <= 0)) return;
+    if (side === 'R' && engine.spread >= engine.limit) { e.preventDefault(); closeBook(); return; } // 翻到底了，再往后翻一次：合书
+    if (side === 'L' && engine.spread <= 0) return;
     e.preventDefault();
     host.setPointerCapture?.(e.pointerId);
     down = { x: e.clientX, y: e.clientY, side, handle: null };
@@ -170,9 +211,10 @@
     if (!on || e.target.closest?.('input, textarea, select') || e.altKey || e.ctrlKey || e.metaKey) return;
     // 右装的书（3D）从右往左读：←是往后翻（把未读的那一叠翻过来），→是往前翻；2D 退回是左装，→往后
     const dir = (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0) * (mode === 'gl' ? -1 : 1);
-    if (!dir) return;
+    if (closed && (dir || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); reopenBook(); return; }
+    if (!dir || shutting) return;
     e.preventDefault();
-    if (mode === 'gl') engine?.turn(dir);
+    if (mode === 'gl') turnGl(dir);
     else go(dir);
   }
 
@@ -219,7 +261,7 @@
     untrack(() => {
       if (engine) engine.onSpread = null;
       engine = null;
-      s2 = 0; p1 = 0; spread = 0;
+      s2 = 0; p1 = 0; spread = 0; closed = false; shutting = false;
       const was = rtl;
       start();
       if (was !== rtl) sync(pages); // 左装 / 右装换了，订口与页码的边跟着换，重画
@@ -240,15 +282,22 @@
   const where = $derived(mode === 'one' ? `第 ${p1 + 1} 页，共 ${countOf()} 页` : `第 ${spread + 1} 个对页，共 ${countOf()} 个`);
   const label = $derived(pages ? `命书，${where}` : '命书');
   // 朗读区的内容：翻到哪，读哪。书还没摊开的时候不读
-  const said = $derived(on ? `${where}。${seen.map((i) => `${titleOf(i)}。${bodyOf(i)}`).join('　')}` : '');
-  const turnBy = (dir) => { if (mode === 'gl') engine?.turn(dir); else go(dir); };
+  const said = $derived(!on ? '' : closed ? '命书合上了，我在封面落了一方印。' : `${where}。${seen.map((i) => `${titleOf(i)}。${bodyOf(i)}`).join('　')}`);
+  // 3D：往后翻到底，再往后翻一次就是合书
+  function turnGl(dir) {
+    if (!engine || shutting) return;
+    if (closed) { reopenBook(); return; }
+    if (dir > 0 && engine.spread >= engine.limit && !engine.busy) { closeBook(); return; }
+    engine.turn(dir);
+  }
+  const turnBy = (dir) => { if (mode === 'gl') turnGl(dir); else go(dir); };
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="reader" class:is-2d={mode !== 'gl'} class:is-gl={mode === 'gl'} bind:this={host} role="region" aria-label={label} tabindex="-1" inert={!on}
+<div class="reader" class:is-2d={mode !== 'gl'} class:is-gl={mode === 'gl'} class:is-closed={closed} bind:this={host} role="region" aria-label={label} tabindex="-1" inert={!on}
   onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={onUp}>
   {#if mode === 'two' || mode === 'one'}
-    <div class="reader-2d" class:is-one={mode === 'one'} onpointerdown={swDown} onpointerup={swUp}>
+    <div class="reader-2d" class:is-one={mode === 'one'} onpointerdown={swDown} onpointerup={swUp} onclick={() => { if (closed) reopenBook(); }}>
       {#if mode === 'two'}<div class="rd-page is-left" class:is-blank={s2 === 0} class:is-turn={turning} style:--from={turning > 0 ? '-26px' : '26px'} bind:this={slotL}></div>{/if}
       <div class="rd-page is-right" class:is-turn={turning} style:--from={turning > 0 ? '26px' : '-26px'} bind:this={slotR}></div>
       <button class="rd-nav rd-prev" type="button" aria-label="上一页" onclick={() => go(-1)}></button>

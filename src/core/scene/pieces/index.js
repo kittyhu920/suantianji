@@ -26,10 +26,12 @@ const TAG_DX = { gua: 2 }; // 卦的签往右让一点，不压在字卷的纸�
 const TAG_DZ = { qian: 8.4, gua: 10.8, bu: 13.4, xing: 13.2, niao: 9, li: 10.4, zi: 11 };
 // 仪式中：版面没给落脚处的屏（择域、问事……），器物停在桌子的一侧；版面给了落脚处的屏，器物走到那里，并放大一些（像拿到面前）
 export const RITUAL = {
-  qian: { x: -43, z: 14, s: 1 },
+  qian: { x: -43, z: 19, s: 1 },
   gua: { x: 43, z: 13, s: 1 },
   bu: { x: 44, z: 8, s: 1 },
 };
+// 掷筊时签筒让到桌子的右后方（掷筊的规矩在左、三杯的记录在右前、书在左后，右后是空的）
+const PARK = { qian: { x: 44, z: -4 } };
 const HOME_S = { qian: 0.82, gua: 1.02, bu: 0.95, xing: 0.9, niao: 0.9, li: 0.95, zi: 0.95 };
 export const BIG = { qian: 1.08, gua: 1.3, bu: 1.55 };
 const BUILD = { qian: buildQian, gua: buildGua, bu: buildBu, xing: buildXing, niao: buildNiao, li: buildLi, zi: buildZi };
@@ -141,6 +143,8 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
       if (pid === id) {
         const r = RITUAL[id] ?? { x: 0, z: 14, s: 1 };
         p.wrap.visible = true;
+        p.parked = false;
+        p.hidden = false;
         p.pose.to({ x: r.x, y: 0, z: r.z, ry: 0, s: r.s }, 4.5, instant);
         p.rest?.(false, instant); // 龟壳翻过来，壳口朝上
       } else {
@@ -166,14 +170,32 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
   function place(id, x, z, s) {
     const p = list[id];
     if (!p || mode !== 'ritual' || activeId !== id) return;
+    p.parked = false;
+    p.hidden = false;
     p.pose.to({ x, z, s: s ?? BIG[id] ?? 1.3 }, 5);
+  }
+  /** 这一屏没有给器物落脚处（择域、问事……）：器物回到仪式里停在桌子一侧的位置（否则它停在上一屏落脚处，会被这一屏的纸笺压住）。掷筊让到旁边的（park）不动 */
+  function settle(id) {
+    const p = list[id];
+    if (!p || mode !== 'ritual' || activeId !== id || p.parked || p.hidden) return;
+    const r = RITUAL[id] ?? { x: 0, z: 14, s: 1 };
+    p.pose.to({ x: r.x, y: 0, z: r.z, ry: 0, s: r.s }, 4.5);
+  }
+  /** 收起一件器物（它的位置由别的东西占了，比如刻辞屏上摆的是刻好辞的甲） */
+  function hide(id) {
+    const p = list[id];
+    if (!p || mode !== 'ritual' || activeId !== id) return;
+    p.hidden = true;
+    p.pose.to({ s: 0 }, 6);
   }
   /** 把某件器物放回首页的位置（掷筊时，签筒让到旁边） */
   function park(id, s = 1) {
     const p = list[id];
     if (!p) return;
     const h = HOME[id];
-    p.pose.to({ x: h.x * 0.9, z: h.z + 4, ry: 0, s }, 4.5);
+    const q = PARK[id] ?? { x: h.x * 0.9, z: h.z + 4 };
+    p.parked = true;
+    p.pose.to({ x: q.x, z: q.z, ry: 0, s }, 4.5);
   }
 
   /* ───── 指针 ───── */
@@ -241,7 +263,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
   cv.addEventListener('pointerleave', onLeave);
 
   return {
-    list, setHover, toHome, toRitual, toAway, place, park,
+    list, setHover, toHome, toRitual, toAway, place, park, settle, hide,
     get mode() { return mode; },
     get active() { return activeId ? list[activeId] : null; },
     get hoverId() { return hoverId; },
