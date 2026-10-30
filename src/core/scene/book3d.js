@@ -306,6 +306,19 @@ export function createBook(desk) {
     desk.shadowed(tool);
     return (stamp = { at, mark, halo, tool, map });
   }
+  /** 把石章、印文、晕画一帧（编译着色器、上传纹理），再收起：落印时不会因第一次用它们而卡住 */
+  function warmStamp() {
+    const st = ensureStamp();
+    desk.renderer.initTexture(st.map);
+    st.tool.visible = true;
+    st.tool.position.y = 7.2;
+    st.mark.material.opacity = 0.01;
+    st.halo.material.opacity = 0.01;
+    desk.renderer.compile(desk.scene, desk.camera);
+    st.tool.visible = false;
+    st.mark.material.opacity = 0;
+    st.halo.material.opacity = 0;
+  }
   function dropStamp(fade) {
     if (!stamp) return;
     const st = stamp;
@@ -321,12 +334,16 @@ export function createBook(desk) {
     st.stamped = true;
     const { mark, halo, tool } = st;
     tool.visible = true;
-    const t0 = performance.now();
+    let t0 = performance.now();
+    let last = t0;
     let hit = false;
     await new Promise((res) => {
       addTicker(() => {
         if (my !== epoch || stamp !== st) { res(); return false; }
-        const t = performance.now() - t0;
+        const now = performance.now();
+        if (now - last > 120) t0 += now - last - 16; // 卡了一下（着色器编译、上传纹理）：演出停在卡之前的地方接着放，不跳过按下去的那一段
+        last = now;
+        const t = now - t0;
         // 0–300 抬起、斜着悬在上面；300–520 按下；520–700 压着；700–1100 抬走
         const hover = 7.2;
         let h;
@@ -360,6 +377,7 @@ export function createBook(desk) {
     state = 'closing';
     api.version++;
     skipIntro();
+    warmStamp(); // 石章、印文、晕的着色器与纹理先备好：落印那 1.1 秒里不能卡
     sfx.rustle(0.5, 0.1, false);
     await reading.collapse(560);
     if (my !== epoch) return false;

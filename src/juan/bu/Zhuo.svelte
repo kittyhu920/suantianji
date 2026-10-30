@@ -93,7 +93,7 @@
     <div class="zhuo-side" use:beside={{ id: 'bu', side: 'right' }}>{@render side()}</div>
   {:else}
     <div class="zhuo-main">
-      <p class="ming-line" id="ming-line">贞：{ming}</p>
+      {#if !reading}<p class="ming-line" id="ming-line">贞：{ming}</p>{/if}
       {#if reading && away && crack}
         {#key S.cur}
           <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={300} onDone={game.onGrown} />
@@ -106,7 +106,10 @@
         </div>
       {/if}
     </div>
-    <div class="zhuo-side">{@render side()}</div>
+    <div class="zhuo-side">
+      {#if reading}<p class="ming-line" id="ming-line">贞：{ming}</p>{/if}
+      {@render side()}
+    </div>
   {/if}
 {/snippet}
 
