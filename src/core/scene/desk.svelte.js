@@ -39,6 +39,8 @@ export function startDesk(host, { juans, onOpen, onHover, onLost }) {
         window.__desk = deskRef;
         // 穿模检查：window.__desk.overlaps() 列出互相穿插的东西与低于桌面的东西（scene/overlaps.js）
         import('./overlaps.js').then(({ createOverlaps }) => { deskRef.overlaps = createOverlaps(desk, deskRef); });
+        // 屏幕空间的遮挡检查：器物挡扉页文字、DOM 纸笺压器物或书（scene/occlusions.js）
+        import('./occlusions.js').then(({ createOcclusions }) => { deskRef.occlusions = createOcclusions(desk, deskRef); });
       }
       return true;
     } catch (e) {
