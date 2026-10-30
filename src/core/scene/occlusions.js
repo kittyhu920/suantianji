@@ -102,6 +102,7 @@ export function createOcclusions(desk, deskRef) {
     let body = null;
     if (book?.root.visible && book.mode !== 'doc') {
       const pts = [];
+      for (const s of book.reading?.list ?? []) s.fMesh.geometry.userData.liveBox = true; // 纸的包围盒按现在的顶点重算
       meshPoints(book.inner, pts);
       if (pts.length) body = hull(pts);
       if (book.mode === 'ritual') text = book.pageQuad().map((q) => [q.x, q.y]);

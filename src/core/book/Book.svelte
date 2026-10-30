@@ -3,13 +3,14 @@
   //   封面   深靛布面，左边是书脊，四眼订法的丝线压过书脊；左上贴一张题签，封面四角各留一个残印位（印痕极淡）
   //   厚度   右侧与下沿露出层层纸边；封面绕书脊翻开：2D 退回时仪式里掀起三四十度，读命书时翻开到底（3D 的书在仪式里就翻到底）
   //   voice  扉页上写字的地方（gloss.js）：封面掀起时，书把话写在露出的扉页上
+  // stamped：读完合上之后（2D 退回），封面上落一方朱印“命”（3D 书桌里的印在 scene/book3d.js 的 stampSeal）
   // lift：'shut' 合着 | 'speak' 掀起一个角度 | 'open' 翻开到底。残印的数据是 store 里的 stamps（本批只画出空位）。
   import { onMount } from 'svelte';
   import { juans } from '../../juan/index.js';
   import { stamps } from '../store.js';
   import { bookEl, stage } from './stage.svelte.js';
 
-  let { lift = 'shut', voice = $bindable(null) } = $props();
+  let { lift = 'shut', stamped = false, voice = $bindable(null) } = $props();
   let el;
 
   // 四个角各对应一卷：左上 签、右上 卦、左下 卜、右下 星
@@ -46,6 +47,7 @@
           <g fill="#0e0a05">{#each [60, 140, 212, 292] as y}<circle cx="22" cy={y} r="3"/>{/each}</g>
         </svg>
         <div class="cv-label"><span>演算天机</span></div>
+        {#if stamped}<i class="cv-stamp" aria-hidden="true"><b>命</b></i>{/if}
         {#each CORNERS as id, i}
           <svg class="cv-seal cv-seal-{i}" class:is-got={got[id]} data-juan={id} viewBox="0 0 32 32" aria-hidden="true">
             <title>{juans.find((j) => j.id === id)?.name}卷的残印</title>

@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { paintCover, paintPaper, paintEdge, canvas } from './paint3d.js';
 import { createSheets } from '../book/three-book.js';
+import { seal as paintSeal } from '../book/paint.js';
 import * as sfx from '../audio.js';
 
 export const BOOK = { w: 26, d: 36, board: 0.42, block: 2.0, cover: 0.42 };
@@ -20,6 +21,7 @@ export const POSES = {
   ritual: { x: -42, y: 0, z: -20.2, ry: 0, s: 0.85 }, // 仪式：翻开着，摊在桌子里侧的左边（书页在左、平躺的封面在右，占 x −53…−9，z −35.5…−5；器物与桌上的纸笺占中前部），缩小一点
   reading: { x: -18.75, y: 0, z: 0, ry: 0, s: 1.5 }, // 书脊在桌子正中（世界 x = pose.x + 12.5·s = 0），摊开在两边：翻到左边的是读完的，右边是封面
   doc: { x: 0, y: -6, z: -17, ry: 0, s: 0.5 },
+  closed: { x: 0, y: 0, z: 0, ry: 0, s: 1.5 }, // 读完合上：合着的书在桌子正中（镜像：世界 x = pose.x − s·本地 x，书的本地 x 对称，pose.x = 0 就是正中）
 };
 
 const ease = (t) => 1 - Math.pow(1 - t, 3);
@@ -193,6 +195,9 @@ export function createBook(desk) {
   }
   function beginReading({ onDone } = {}) {
     intro?.finish?.();
+    epoch++;
+    state = 'open';
+    dropStamp(false);
     const st = { skipped: false, done: false };
     intro = st;
     swapSheets(true);
@@ -254,9 +259,147 @@ export function createBook(desk) {
   }
   function skipIntro() { intro?.finish?.(); }
 
+  /* ───────── 读完合上，落一方印（docs/DESIGN.md §19“读完自动合书、落印”）───────── */
+  // 翻到最后一个对页再往后翻一次，就是合书：纸一张张翻回去（0.56 秒），封面合拢、书走到桌子正中（0.75 秒），
+  // 停 0.22 秒，在封面上落一方朱印（“命”，与扉页上的是同一方）：一块印从上面抬着、斜着（0.3 秒）→ 按下（0.22 秒，一声闷响，印文洇出来）→ 停一下 → 抬走（0.4 秒），共 1.1 秒。
+  // 镜头不动，停在合上的书上。点书可以再翻开（reopenBook，回到第一个对页）。印在这一局里一直留着（再翻开时在封面外面，合上时又看得见），离开命书时淡去。
+  // state：'open' 翻开着（读） | 'closing' | 'closed' | 'opening'
+  let state = 'open';
+  let epoch = 0; // 合书、翻开中途离开命书（回书桌、再来一次）：旧的演出作废
+  let stamp = null;
+  const wait = (ms) => new Promise((res) => { const t0 = performance.now(); addTicker(() => { if (performance.now() - t0 >= ms) { res(); return false; } return true; }); });
+  function ensureStamp() {
+    if (stamp) return stamp;
+    const S = 6.4;
+    const cv = canvas(256, 256);
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 256, 256);
+    paintSeal(g, 128, 128, 196, '命', 11);
+    const map = tex(cv);
+    map.repeat.set(-1, 1); map.offset.set(1, 0); // 书是镜像摆的，和封面一样把 u 翻回来
+    const mark = new THREE.Mesh(new THREE.PlaneGeometry(S, S), new THREE.MeshLambertMaterial({ map, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    // 洇开的一圈：印文四周一层淡淡的朱晕
+    const hv = canvas(128, 128);
+    const hg = hv.getContext('2d');
+    const rg = hg.createRadialGradient(64, 64, 20, 64, 64, 64);
+    rg.addColorStop(0, 'rgba(176,38,31,.55)'); rg.addColorStop(0.65, 'rgba(176,38,31,.18)'); rg.addColorStop(1, 'rgba(176,38,31,0)');
+    hg.fillStyle = rg; hg.fillRect(0, 0, 128, 128);
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(S * 1.5, S * 1.5), new THREE.MeshBasicMaterial({ map: tex(hv), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    // 印章本身：一块深色的石头，底上一层朱
+    const tool = new THREE.Group();
+    const stone = new THREE.Mesh(new THREE.BoxGeometry(S * 0.5, 2.4, S * 0.5), new THREE.MeshStandardMaterial({ color: 0x2e1d18, roughness: 0.55 }));
+    stone.position.y = 1.4;
+    const knob = new THREE.Mesh(new THREE.BoxGeometry(S * 0.26, 1.7, S * 0.26), new THREE.MeshStandardMaterial({ color: 0x3a2620, roughness: 0.5 }));
+    knob.position.y = 3.35;
+    const base = new THREE.Mesh(new THREE.BoxGeometry(S * 0.5, 0.35, S * 0.5), new THREE.MeshStandardMaterial({ color: 0xb02a20, roughness: 0.7 }));
+    base.position.y = 0.17;
+    tool.add(stone, knob, base);
+    tool.visible = false;
+    const at = new THREE.Group(); // 落在封面的右下偏中（题签与订线之外）
+    at.position.set(BOOK.w / 2 - 0.56 * BOOK.w, BOOK.cover / 2 + 0.014, 9.4);
+    at.rotation.y = -0.06;
+    mark.rotation.x = -Math.PI / 2;
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = -0.004;
+    at.add(halo, mark, tool);
+    coverMesh.add(at);
+    desk.shadowed(tool);
+    return (stamp = { at, mark, halo, tool, map });
+  }
+  function dropStamp(fade) {
+    if (!stamp) return;
+    const st = stamp;
+    stamp = null;
+    const done = () => { coverMesh.remove(st.at); st.mark.geometry.dispose(); st.halo.geometry.dispose(); st.map.dispose(); invalidate(); };
+    if (!fade) { done(); return; }
+    const o0 = st.mark.material.opacity;
+    const t0 = performance.now();
+    addTicker(() => { const u = Math.min(1, (performance.now() - t0) / 450); st.mark.material.opacity = o0 * (1 - u); st.halo.material.opacity *= 0.9; if (u >= 1) { done(); return false; } return true; });
+  }
+  async function stampSeal(my) {
+    const st = ensureStamp();
+    st.stamped = true;
+    const { mark, halo, tool } = st;
+    tool.visible = true;
+    const t0 = performance.now();
+    let hit = false;
+    await new Promise((res) => {
+      addTicker(() => {
+        if (my !== epoch || stamp !== st) { res(); return false; }
+        const t = performance.now() - t0;
+        // 0–300 抬起、斜着悬在上面；300–520 按下；520–700 压着；700–1100 抬走
+        const hover = 7.2;
+        let h;
+        let tilt;
+        if (t < 300) { const u = ease(t / 300); h = hover + (1 - u) * 3; tilt = 0.2; }
+        else if (t < 520) { const u = (t - 300) / 220; const e = u * u; h = hover * (1 - e); tilt = 0.2 * (1 - e); }
+        else if (t < 700) { h = 0; tilt = 0; }
+        else { const u = easeIO(Math.min(1, (t - 700) / 400)); h = hover * u; tilt = 0.1 * u; }
+        tool.position.y = h;
+        tool.rotation.set(tilt, 0, -tilt * 0.6);
+        tool.visible = t < 1100;
+        if (t >= 520 && !hit) { hit = true; sfx.thud(); }
+        if (t >= 520) {
+          const u = Math.min(1, (t - 520) / 380);
+          mark.material.opacity = Math.min(1, (t - 520) / 90); // 一按下，印文就出来
+          const k = 1.04 - 0.04 * ease(u); // 微微缩回：印泥被压开又收住
+          mark.scale.set(k, k, 1);
+          halo.material.opacity = 0.55 * (1 - 0.35 * u) * Math.min(1, (t - 520) / 120); // 洇开的一圈，慢慢淡到一层薄晕
+          const hk = 0.92 + 0.2 * ease(u);
+          halo.scale.set(hk, hk, 1);
+        }
+        invalidate();
+        if (t >= 1100) { tool.visible = false; res(); return false; }
+        return true;
+      });
+    });
+  }
+  async function closeBook() {
+    if (state !== 'open' || mode !== 'reading') return false;
+    const my = ++epoch;
+    state = 'closing';
+    api.version++;
+    skipIntro();
+    sfx.rustle(0.5, 0.1, false);
+    await reading.collapse(560);
+    if (my !== epoch) return false;
+    pose.to(POSES.closed, 3.6);
+    await tweenCover(coverA, 0, 750);
+    if (my !== epoch) return false;
+    lift = 'shut';
+    sfx.flop(0.12);
+    await wait(220);
+    if (my !== epoch) return false;
+    if (!stamp?.stamped) await stampSeal(my);
+    if (my !== epoch) return false;
+    state = 'closed';
+    api.version++;
+    return true;
+  }
+  async function reopenBook() {
+    if (state !== 'closed' || mode !== 'reading') return false;
+    const my = ++epoch;
+    state = 'opening';
+    api.version++;
+    pose.to(POSES.reading, 2.6);
+    sfx.rustle(0.55, 0.11, true);
+    await tweenCover(coverA, readTargets.open, 850);
+    if (my !== epoch) return false;
+    lift = 'open';
+    sfx.flop(0.12);
+    if (reading.limit >= 1) { sfx.rustle(0.4, 0.09, true); await Promise.race([reading.turn(1, { omega: 12, zeta: 0.9, bounce: 0.12 }), wait(650)]); }
+    if (my !== epoch) return false;
+    state = 'open';
+    api.version++;
+    return true;
+  }
+
   // 读完合上：翻开的纸一起翻回去，封面绕书脊合拢，纸收起、合着的书页回来
   function leaveReading(instant) {
     skipIntro();
+    epoch++;
+    state = 'open';
+    dropStamp(!instant);
     if (instant) { reading.clear(); swapSheets(false); return; }
     collapsing = true;
     pendingLift = null;
@@ -341,7 +484,8 @@ export function createBook(desk) {
     riffle() {
       const base = coverGoal;
       setCover(base > OPEN_FROM ? base - 0.95 : 1.08, 9); // 封面一直翻开着时，抬起一角再落回
-      setTimeout(() => setCover(base, 6), 560);
+      // 落回哪里：按此刻封面该在的位置（读完合上之后再来一次：抬起时封面是合着的，落回时它该是翻开的）
+      setTimeout(() => setCover(collapsing ? base : readTargets[lift] ?? base, 6), 560);
     },
     tear() {
       // 封面翻开着时，撕口画在扉页上（封面的正面朝下了）
@@ -365,7 +509,9 @@ export function createBook(desk) {
   const api = {
     root, inner, pose, version: 0, fx,
     parts: { cover: coverMesh, board, block, spine, sheetsRoot }, // 穿模检查（overlaps.js）与调试用
-    setMode, setLift, pageQuad, reading, beginReading, skipIntro,
+    setMode, setLift, pageQuad, reading, beginReading, skipIntro, closeBook, reopenBook,
+    get state() { return state; }, // 读命书的翻开 / 合上：'open' | 'closing' | 'closed' | 'opening'
+    get stamped() { return !!stamp?.stamped; },
     get mode() { return mode; },
     get lift() { return lift; },
     set visible(b) { root.visible = b; invalidate(); },

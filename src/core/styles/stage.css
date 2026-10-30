@@ -155,6 +155,7 @@
 .bot-notes { width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.5; color: var(--ink-soft); }
 .bot-notes li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bot-notes b { font-weight: 600; margin-right: .5em; color: var(--ink); letter-spacing: .06em; }
+.bot-notes li.bot-end { color: var(--ink-dim); letter-spacing: .08em; display: list-item !important; }
 .bot-notes small { font-size: 11px; margin-left: .5em; color: var(--ink-dim); }
 .pg-no { font-variant-numeric: tabular-nums; }
 
@@ -327,7 +328,7 @@
 
 /* ───────── 命书：读的时候，书在桌子中央摊开（core/book/Reader.svelte） ───────── */
 .reader { position: absolute; inset: 0; z-index: 6; opacity: 0; pointer-events: none; transition: opacity .5s ease; touch-action: none; }
-.shell[data-reader="on"] .reader { opacity: 1; pointer-events: auto; }
+.shell[data-reader="on"] .reader, .shell[data-reader="closed"] .reader { opacity: 1; pointer-events: auto; }
 .reader canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .reader-2d { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0; padding: 14px 10px; }
 .reader-2d .rd-page { position: relative; height: 100%; max-width: 50%; aspect-ratio: 5 / 7; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
@@ -335,6 +336,8 @@
 .reader-2d .rd-page.is-left { border-radius: 3px 0 0 3px; background: linear-gradient(270deg, rgba(40, 24, 6, .35), transparent 10%); }
 .reader-2d .rd-page.is-right { border-radius: 0 3px 3px 0; }
 .reader-2d .rd-page.is-blank { visibility: hidden; }
+/* 2D 退回：读完合上之后，两页淡出，封面合拢、盖印（Book.svelte 的 .cv-stamp）；点哪里都是再翻开 */
+.reader.is-closed .reader-2d .rd-page, .reader.is-closed .rd-page-no { opacity: 0; transition: opacity .3s ease; pointer-events: none; }
 .reader-2d .rd-page.is-turn { animation: rd-turn .45s var(--ease-out) both; }
 @keyframes rd-turn { from { opacity: 0; transform: translateX(var(--from, 24px)); } }
 .rd-nav { position: absolute; top: 0; bottom: 0; width: 22%; background: none; border: 0; cursor: pointer; opacity: 0; }
