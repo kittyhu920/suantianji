@@ -4,6 +4,7 @@
 //                            reset:true 是回卷首、再来一局：同样掀一下，并换一册新书。onCommit 在换屏的那一刻同步执行
 //   turn(commit,{shut})      不换屏、只改状态（例如签落了）：commit() 里改状态
 //   gloss(text, {alarm,key}) 书说一句话：字迹写在翻开着的扉页上，说完渗进纸里；clearGloss() 清空
+//   jot(key, text) / unjot(前缀)  仪式进行时，右页（平躺的封面里侧）记一条账 / 划掉以前缀开头的几条；文案在 ledger-lines.js
 //   thud()                   结局时，书沉一下
 //   sfx                      声音（audio.js 的全部导出）
 //   reduced / coarse         减少动效、触屏
@@ -21,7 +22,7 @@
 
 import { createGloss } from './gloss.js';
 import { tear, tremble, thud, riffle } from './book/fx.js';
-import { stage } from './book/stage.svelte.js';
+import { stage, ledger } from './book/stage.svelte.js';
 import { store, daysAgo } from './store.js';
 import { hashString } from './rng.js';
 import * as sfx from './audio.js';
@@ -78,6 +79,14 @@ export function createCtx(juan) {
     gloss(text, opts) { glossEngine?.push(text, opts); },
     clearGloss() { glossEngine?.clear(); },
 
+    // 右页记账：同一个 key 的旧条目被顶替，最多 6 条（超了划掉最旧的）
+    jot(key, text) {
+      const items = ledger.items.filter((it) => it.key !== key);
+      items.push({ id: ++ledger.n, key, text });
+      ledger.items = items.slice(-6);
+    },
+    unjot(prefix) { ledger.items = ledger.items.filter((it) => !it.key.startsWith(prefix)); },
+
     // onCommit：换屏的那一刻同步执行，卷用它重置自己的状态
     show(name, { shut = false, reset = false, onCommit } = {}) {
       ctx.prevScreen = ui.screen;
@@ -112,6 +121,7 @@ export function createCtx(juan) {
     /* ───────── 一局里的观测：发呆、离开页面、存疑印 ───────── */
     // 新的一局：计数清零，局号加一（通灵等迟到的回复据此判断是不是上一局的）
     resetRound() {
+      ledger.items = [];
       Object.assign(round, { idle: 0, hidden: 0, doubtShown: false, doubted: false, finished: false, id: round.id + 1 });
     },
 
@@ -130,6 +140,7 @@ export function createCtx(juan) {
     async pressDoubt(game) {
       if (round.finished) return;
       round.doubted = true;
+      stage.said = '你按了存疑，我停下推演，替你收尾'; stage.saidN++; // 读屏马上播报（书的话要排队，扉页上的字读屏读不到）
       ctx.gloss('你打断了我', { alarm: true });
       ctx.gloss('你不想被我算');
       sfx.bronze(220, 2.6, 0.16);
@@ -175,6 +186,7 @@ export function createCtx(juan) {
       cleanups.forEach((f) => f());
       cleanups = [];
       glossEngine?.clear();
+      ledger.items = [];
       stage.speaking = false;
     },
   };

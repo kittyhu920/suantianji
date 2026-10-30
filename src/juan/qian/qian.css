@@ -9,14 +9,14 @@
 .oracle-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .oracle-row { display: inline-flex; align-items: center; gap: 10px; }
 .oracle-name { font-size: 16px; color: var(--ink); letter-spacing: .1em; }
-.oracle-state { font-size: 13px; color: var(--ink-dim); }
-.oracle-quota { font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.oracle-state { font-size: 14px; color: var(--ink-soft); }
+.oracle-quota { font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .oracle-quota::before { content: "· "; }
 .oracle-toggle input:disabled ~ .oracle-row { opacity: .5; }
 .oracle-state::after { content: "未开启"; }
 .oracle-toggle input:checked ~ .oracle-row .oracle-state { color: var(--ink); }
 .oracle-toggle input:checked ~ .oracle-row .oracle-state::after { content: "已开启"; }
-.oracle-toggle .seal { cursor: pointer; opacity: .75; }
+.oracle-toggle .seal { cursor: pointer; } /* 未开启时的描边印也要看得清：不再压到 .75 的不透明度（对天头栏 ≥ 4.5:1） */
 .oracle-toggle input:checked ~ .oracle-row .seal {
   background: var(--cinnabar); color: var(--on-zhu); box-shadow: none; opacity: 1;
 }
@@ -39,7 +39,7 @@
 
 /* ───────── 掷筊：一对筊杯 ───────── */
 .jiao-labels { display: flex; gap: 18px; }
-.jiao-labels span { width: 104px; min-height: 1.4em; font-size: 12px; color: var(--ink-soft); text-align: center; }
+.jiao-labels span { width: 104px; min-height: 1.4em; font-size: 14px; color: var(--ink-soft); text-align: center; }
 .jiao {
   display: flex;
   gap: 18px;

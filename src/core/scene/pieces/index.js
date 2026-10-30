@@ -22,8 +22,8 @@ export const HOME = {
   gua: { x: 41, z: 10, ry: 0 },
   bu: { x: 46, z: -15, ry: -0.2 },
 };
-const TAG_DX = { gua: 2 }; // 卦的签往右让一点，不压在字卷的纸上
-const TAG_DZ = { qian: 8.4, gua: 10.8, bu: 13.4, xing: 13.2, niao: 9, li: 10.4, zi: 11 };
+const TAG_DX = { gua: 2, zi: 3, niao: -3, xing: -3 }; // 卦的签往右让一点，不压在字卷的纸上
+const TAG_DZ = { qian: 8.4, gua: 10.8, bu: 15, xing: 13.2, niao: 9, li: 10.3, zi: 11 };
 // 仪式中：版面没给落脚处的屏（择域、问事……），器物停在桌子的一侧；版面给了落脚处的屏，器物走到那里，并放大一些（像拿到面前）
 export const RITUAL = {
   qian: { x: -43, z: 19, s: 1 },
@@ -74,9 +74,9 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
 
     // 小木签：卷名与全称（未开卷的灰、写"未开卷"）
     const tag = new THREE.Mesh(
-      new THREE.BoxGeometry(14.4, 0.6, 4.5), // 1440 宽下卷名约 25px、全称约 14px（paintTag 里按木签高度取字号）
+      new THREE.BoxGeometry(18, 0.6, 5.2), // 1440 宽下卷名约 30px、全称约 20px 宽（paintTag 里按木签宽高取字号）
       [0, 1, 2, 3, 4, 5].map((i) => new THREE.MeshStandardMaterial(i === 2
-        ? { map: (tagTex[j.id] = desk.tex(paintTag({ name: j.name, title: j.title, closed: !j.open, w: 640, h: 198 }))), roughness: 0.7 }
+        ? { map: (tagTex[j.id] = desk.tex(paintTag({ name: j.name, title: j.title, closed: !j.open, w: 800, h: 231 }))), roughness: 0.7 }
         : { color: j.open ? 0xb99d68 : 0x5a5547, roughness: 0.8 })),
     );
     tag.position.set(h.x + (TAG_DX[j.id] ?? 0), 0.3, h.z + TAG_DZ[j.id] * (HOME_S[j.id] ?? 1));

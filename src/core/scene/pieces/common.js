@@ -134,7 +134,7 @@ export function inkDots(desk, { max = 6, life = 9000 } = {}) {
 }
 
 /** 未开卷：把这件器物的所有材质往灰、往暗里压，再蒙一层灰尘的哑光。amount 0..1 */
-export function dust(group, amount = 0.58) {
+export function dust(group, amount = 0.72) { // 未开卷的器物整体压暗、去饱和（颜色，不加遮罩）；悬停时 pieces/index.js 的 setLiftGlow 把它照亮
   const grey = new THREE.Color(0x6a655a);
   group.traverse((o) => {
     if (!o.isMesh) return;
@@ -143,7 +143,7 @@ export function dust(group, amount = 0.58) {
       if (m.userData.dusted || !m.color) continue;
       m.userData.dusted = true;
       m.userData.base = m.color.clone();
-      m.color.lerp(grey, amount).multiplyScalar(0.62);
+      m.color.lerp(grey, amount).multiplyScalar(0.5);
       if ('roughness' in m) m.roughness = Math.min(1, (m.roughness ?? 0.8) + 0.3);
       if ('metalness' in m) m.metalness *= 0.4;
       if ('clearcoat' in m) m.clearcoat = 0;

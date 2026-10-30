@@ -39,7 +39,7 @@
 }
 .slip-name, .slip-desc { white-space: nowrap; flex: none; writing-mode: vertical-rl; }
 .desk .slip-name { font-family: var(--f-display); font-size: 28px; line-height: 1; margin-top: 8px; color: var(--wood-ink); }
-.desk .slip-desc { font-size: 11px; letter-spacing: .2em; color: var(--wood-ink); opacity: .78; }
+.desk .slip-desc { font-size: 14px; letter-spacing: .2em; color: var(--wood-ink); opacity: .78; }
 .desk .slip:hover:not(:disabled) { filter: brightness(1.1); }
 .desk .slip[aria-checked="true"] {
   transform: translateY(-16px);
@@ -71,7 +71,7 @@
 }
 .ask-sheet .shichen, .ask-sheet .ask-domain { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
 .ask-sheet .ask-domain b { font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--ink); margin: 0 .3em; }
-.ask-label { font-size: 13px; color: var(--ink-dim); }
+.ask-label { font-size: 14px; color: var(--ink-dim); }
 .ask-paper {
   display: block;
   width: 100%;
@@ -99,15 +99,15 @@
   45% { opacity: .55; filter: blur(2.4px); letter-spacing: .12em; }
   100% { opacity: .82; filter: blur(0); letter-spacing: .05em; }
 }
-.ask-count { align-self: flex-end; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.ask-count { align-self: flex-end; font-size: 14px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .ming-preview { margin: 0; min-height: 1.6em; font-family: var(--f-display); font-size: 22px; letter-spacing: .06em; overflow-wrap: anywhere; }
-.ledger-intro { margin: 0; font-size: 13px; color: var(--ink-dim); }
+.ledger-intro { margin: 0; font-size: 14px; color: var(--ink-dim); }
 
 /* 验辞：上回的命辞，也写在一张纸笺上 */
 .yan-h { margin: 0; font-family: var(--f-display); font-size: 26px; letter-spacing: .2em; }
 .yan-quote { margin: 0; padding: 4px 14px; border-left: 2px solid var(--ink-dim); }
 .yan-q { margin: 0; font-family: var(--f-display); font-size: 22px; line-height: 1.45; letter-spacing: .04em; overflow-wrap: anywhere; }
-.yan-meta { margin: 4px 0 0; font-size: 13px; color: var(--ink-dim); }
+.yan-meta { margin: 4px 0 0; font-size: 14px; color: var(--ink-dim); }
 
 /* ───────── 摇签、起卦：签筒与龟壳摆在桌面上 ───────── */
 .desk .tube-wrap, .desk .shell-wrap { width: auto; height: 400px; aspect-ratio: 320 / 440; margin: 0; flex: none; }
@@ -129,7 +129,7 @@
 }
 @keyframes slip-in { from { opacity: 0; } }
 .sign-slip span, .sign-slip b { writing-mode: vertical-rl; white-space: nowrap; }
-.sl-no { font-size: 13px; letter-spacing: .24em; opacity: .8; }
+.sl-no { font-size: 14px; letter-spacing: .24em; opacity: .8; }
 .sl-name { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1; letter-spacing: .08em; }
 .sl-level { font-family: var(--f-display); font-size: 17px; letter-spacing: .3em; }
 
@@ -158,12 +158,12 @@
 .cast-line, .cast-result { margin: 0; font-size: 14px; line-height: 1.7; color: var(--ink-soft); text-align: left; }
 .cast-line b, .cast-result b { font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--ink); }
 .jie-board { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.jie-earlier { margin: 0; font-size: 13px; color: var(--ink-dim); }
+.jie-earlier { margin: 0; font-size: 14px; color: var(--ink-dim); }
 .jie-figs { display: flex; gap: 46px; align-items: flex-start; }
 .jie-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .jie-fig figcaption { font-size: 15px; color: var(--ink-soft); }
 .jie-fig figcaption b { font-family: var(--f-display); font-weight: 400; font-size: 22px; color: var(--ink); }
-.jie-fig figcaption small { display: block; font-size: 12px; color: var(--ink-dim); }
+.jie-fig figcaption small { display: block; font-size: 14px; color: var(--ink-dim); }
 .jiegua-ci { margin: 0; font-family: var(--f-display); font-size: 21px; line-height: 1.6; color: var(--ink); max-width: 20em; text-align: center; }
 .jiegua-ci b { display: block; font-weight: 400; font-size: 14px; letter-spacing: .3em; color: var(--ink-dim); }
 
@@ -173,7 +173,7 @@
 .zhuo-side { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; max-width: 22em; text-align: left; }
 .zhuo-side:empty { display: none; }
 .ke-note { margin: 0; max-width: 14em; font-size: 14px; line-height: 1.8; color: var(--ink-soft); text-align: left; }
-.burn-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-dim); }
+.burn-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-dim); }
 .burn-chips li span { font-family: var(--f-display); font-size: 16px; margin-right: .4em; color: var(--ink-soft); }
 .burn-chips li.is-cur { color: var(--ink); }
 .read { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; animation: ink-in .9s var(--ease-out) both; }
@@ -182,7 +182,7 @@
 .read-name small { font-size: 18px; color: var(--ink-soft); }
 .read-name b { font-weight: 400; font-size: 54px; line-height: 1.1; letter-spacing: .08em; color: var(--ink); }
 .read-line { margin: 0; font-size: 15px; line-height: 1.8; color: var(--ink); }
-.read-how, .read-dui { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-dim); }
+.read-how, .read-dui { margin: 0; font-size: 14px; line-height: 1.8; color: var(--ink-dim); }
 .read-dui { color: var(--ink-soft); }
 .read-dui b { font-family: var(--f-display); font-weight: 400; font-size: 17px; color: var(--ink); }
 .ask { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 300px; }
@@ -205,7 +205,10 @@
   .sl-name { font-size: 26px; }
   .desk .jiao { height: 100px; }
   .jiao-tally { align-items: center; min-width: 0; }
-  .jiao-tally .cups { flex-direction: row; gap: 14px; }
+  .jiao-tally .cups { flex-direction: row; gap: 10px; justify-content: center; max-width: 100%; }
+  .jiao-tally .cup { flex-direction: column; align-items: center; gap: 2px; min-width: 0; } /* 手机：杯名在上、结果在下，三杯排成一行也不溢出 */
+  .jiao-tally .cup-name { font-size: 15px; }
+  .jiao-tally .cup-kind { font-size: 22px; min-width: 0; }
   .jiao-result { text-align: center; max-width: none; min-height: 2.4em; }
   .cast-hex { align-items: center; min-width: 0; }
   .jie-figs { gap: 22px; }

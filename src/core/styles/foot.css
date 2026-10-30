@@ -40,7 +40,7 @@
   background: transparent;
   color: rgba(236, 228, 208, .8);
   font-family: var(--f-display);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   letter-spacing: .2em;
   cursor: pointer;
@@ -74,11 +74,10 @@
   color: var(--ink);
 }
 .bench-slot:empty { display: none; }
-.bench-slot .btn { min-height: 46px; padding: 8px 26px; color: var(--ink); border-color: rgba(236, 228, 208, .5); background: rgba(14, 11, 8, .5); }
-.bench-slot .btn:hover:not(:disabled) { border-color: var(--ink); }
+.bench-slot .btn { color: var(--ink); border-color: rgba(236, 228, 208, .8); background: rgba(14, 11, 8, .62); box-shadow: 0 3px 8px rgba(0, 0, 0, .4); }
+.bench-slot .btn:hover:not(:disabled) { border-color: var(--ink); background: rgba(236, 228, 208, .14); }
 .bench-slot .btn-primary { color: var(--on-zhu); border-color: var(--cinnabar); background: var(--cinnabar); }
 .bench-slot .btn-primary:hover { background: var(--cinnabar-press); }
-.bench-slot .btn-ghost { border-color: transparent; background: transparent; color: var(--ink-soft); }
 /* 桌上的东西为按钮槽留出位置，别压在它下面 */
 .desk-items { padding-bottom: 78px; }
 
@@ -86,23 +85,9 @@
 .desk-items { --cinnabar-hi: #ef6b5d; }
 .jiao-tally .cup-name, .jiao-tally .cup-kind { white-space: nowrap; }
 
-/* 二选一：两个按钮同样大小、同样样式，都不朱。哪一个都不比另一个更“该按” */
-.btn.btn-pair {
-  min-width: 12em;
-  min-height: 48px;
-  padding: 8px 20px;
-  border: 1.5px solid rgba(236, 228, 208, .8);
-  border-radius: 2px;
-  background: rgba(14, 11, 8, .62);
-  color: #ece4d0;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: .12em;
-  text-decoration: none;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, .4);
-}
-.btn.btn-pair:hover:not(:disabled) { border-color: #ece4d0; background: rgba(236, 228, 208, .14); }
-.btn.btn-pair:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+/* 二选一：两个按钮同样大小、同样样式（就是次级按钮），都不朱。哪一个都不比另一个更“该按” */
+.btn.btn-pair { min-width: 12em; }
+.bench-slot .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
 
 /* ───────── 图例：收进一张纸笺（掷筊的规矩、一爻怎么算） ───────── */
 .legend-plaque {
@@ -151,7 +136,7 @@
 /* ───────── 手机（375 宽）：版式与触控目标 ───────── */
 @media (max-width: 959px) {
   .botbar { padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); text-align: center; gap: 2px; }
-  .bot-hint { font-size: 13px; line-height: 1.45; }
+  .bot-hint { font-size: 14px; line-height: 1.4; }
   /* 说明里的术语，点击区向外撑了 11px：给说明那一块留够边（负外边距抵掉），免得撑出来的点击区被 overflow 剪掉 */
   .bot-hint, .bot-notes { box-sizing: border-box; padding-block: 11px; margin-block: -11px; }
   .bot-row { justify-content: center; gap: 10px; min-height: 44px; }
@@ -164,9 +149,11 @@
   .bot-links { gap: 0 8px; }
 
   .bench-slot { bottom: 8px; gap: 8px 12px; width: calc(100% - 16px); }
-  .bench-slot .btn { min-height: 46px; padding: 8px 18px; }
+  .bench-slot .btn { padding: 8px 18px; }
   .btn.btn-pair { min-width: 0; flex: 1 1 9.5em; max-width: 14em; padding: 8px 12px; }
   .desk-items { padding-bottom: 72px; }
+  .table:has(.bench-slot > :nth-child(3)) .desk-items { padding-bottom: 128px; } /* 三四个按钮折成两排（卜卷读兆）：桌上的内容让出两排的高度，不被按钮压住 */
+  .bench-slot .btn { min-height: 44px; }
 
   /* 天头栏：视觉大小不变，点击区撑到 44×44 */
   .topbar .corner-theme, .tag-btn, .oracle-toggle.is-bar { position: relative; }
@@ -194,6 +181,6 @@
 @media (min-width: 960px) and (max-height: 820px) {
   .botbar { padding: 6px 16px 4px; }
   .bot-row { min-height: 36px; }
-  .bot-notes { font-size: 12.5px; line-height: 1.4; }
+  .bot-notes { font-size: 14px; line-height: 1.35; }
   .bot-hint { line-height: 1.5; }
 }

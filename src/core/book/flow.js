@@ -39,9 +39,9 @@ export function flow(blocks, { top = 160, bottom = PH - 74, first = 170 } = {}) 
       for (const line of lines(b.text, size, font)) put({ text: line, size, font, color: b.color ?? C.gold, align: b.align ?? 'left' }, lh);
       y += b.gap ?? size * 0.55;
     } else if (b.k === 'kv') {
-      const ks = 20;
-      const vs = 22;
-      const ns = 19;
+      const ks = 21;
+      const vs = 23;
+      const ns = 22; // 旁注：命书的页 600 宽缩到屏幕上约 0.75 倍，22 → 屏幕上约 16px（≥ 14px）
       const vl = lines(b.value, vs, F.text, w);
       const nl = b.note ? lines(b.note, ns, F.kai, w - 20) : [];
       const h = ks * 1.6 + vl.length * vs * 1.65 + nl.length * ns * 1.65 + 12;

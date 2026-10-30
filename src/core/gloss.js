@@ -6,8 +6,7 @@
 // 减少动效：不逐字洇开，只淡入、淡出。
 
 import { inkChar } from './inkchars.js';
-
-const CLAUSE = /[^，。：；、！？]+[，。：；、！？]?|[，。：；、！？]/g;
+import { wrap } from './gloss-wrap.js';
 
 /**
  * host：扉页上写字的容器（.voice）。onState(true|false)：书开始说话 / 说完（stage.speaking，读屏与调试用）。
@@ -37,20 +36,35 @@ export function createGloss(host, { reduced = false, onState, onSay } = {}) {
     if (!busy) drain();
   }
 
+  // 一行放几个字：量写字的容器（.voice）有多宽、一个字（含字距）有多宽。量不出来（容器还没排好）就按 8 个字
+  function capOf(el) {
+    const w = host.clientWidth;
+    if (w < 40) return 8;
+    const cs = getComputedStyle(el);
+    const fs = parseFloat(cs.fontSize) || 20;
+    const ls = parseFloat(cs.letterSpacing) || 0;
+    return Math.max(3, Math.floor(w / (fs + ls) + 0.15));
+  }
+
+  // 先整句排好版（只在标点与词边界折行，见 gloss-wrap.js），每个字一开始就在 DOM 里，只是被动画延迟压着没出现
   function build(item, step) {
     const el = document.createElement('p');
     el.className = 'gloss' + (item.alarm ? ' is-alarm' : '') + (reduced ? ' is-plain' : '');
     const box = document.createElement('span');
     box.className = 'gloss-t';
-    let n = 0;
-    // 按标点切成语段，每段是不可拆的一块：只在语段之间折行，不在一个词中间断开
-    for (const clause of item.text.match(CLAUSE) ?? []) {
-      const word = document.createElement('span');
-      word.className = 'ink-w';
-      for (const ch of clause) word.append(inkChar(ch, reduced ? 0 : n++ * step));
-      box.append(word);
-    }
     el.append(box);
+    host.replaceChildren(el); // 一次只写一句：扉页上只留这一句
+    let n = 0;
+    for (const line of wrap(item.text, capOf(el))) {
+      const row = document.createElement('span');
+      row.className = 'gloss-l';
+      for (const ch of line) {
+        const c = inkChar(ch, reduced ? 0 : n++ * step);
+        if (ch === ' ') c.classList.add('ink-sp'); // 数字与汉字之间的空，窄窄的
+        row.append(c);
+      }
+      box.append(row);
+    }
     return { el, n };
   }
 
@@ -71,7 +85,6 @@ export function createGloss(host, { reduced = false, onState, onSay } = {}) {
       const backlog = queue.length; // 后面还排着几条：写快些、停得短些
       const step = reduced ? 0 : backlog > 1 ? 14 : backlog ? 28 : 46;
       const { el, n } = build(item, step);
-      host.replaceChildren(el); // 一次只写一句：扉页上只留这一句
       onSay?.(item.text);
       item.el = el;
 

@@ -144,7 +144,7 @@ export function buildBu(desk) {
   const smoke = puffPool(desk, { max: 56, color: 0x3a342e });
   group.add(smoke.group);
   // 键盘焦点的圈
-  const ring = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.4, 28), new THREE.MeshBasicMaterial({ color: 0xf4ecd6, transparent: true, opacity: 0.9, depthWrite: false }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.7, 36), new THREE.MeshBasicMaterial({ color: 0xf4ecd6, transparent: true, opacity: 0.9, depthWrite: false }));
   ring.rotation.x = -Math.PI / 2;
   ring.visible = false;
   lifter.add(ring);

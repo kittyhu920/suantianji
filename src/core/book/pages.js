@@ -136,7 +136,7 @@ export function ledgerPages({ rows, privacy }) {
     { k: 'p', text: '刚才的每一步，我都记下了。后面那幅图，就是用这些织成的。账本里的细节只存在你自己的设备上。', size: 21, font: F.kai, color: C.goldSoft, gap: 16 },
     ...rows.map((r) => ({ k: 'kv', key: r.k, value: r.v, note: r.note })),
     { k: 'sp', h: 8 },
-    { k: 'p', text: privacy, size: 19, font: F.kai, color: C.goldDim },
+    { k: 'p', text: privacy, size: 21, font: F.kai, color: C.goldDim },
   ];
   const pages = flow(blocks);
   return pages.map((ops, i) => ({
