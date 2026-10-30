@@ -16,7 +16,9 @@
 
 /* ───────── 案上字盘 ───────── */
 :root[data-theme="dark"] .an-board { filter: brightness(.62) saturate(.55); }
+:root[data-stj-focus] .an-board, :root[data-theme="dark"][data-stj-focus] .an-board { filter: brightness(.3) saturate(.5); } /* 灼卜时镜头推近：字盘跟着压暗（desk3d.js 的 focusTo） */
 .an-board {
+  transition: filter .5s ease;
   position: absolute;
   inset: 0;
   z-index: 0;

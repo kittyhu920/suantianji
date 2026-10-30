@@ -3,6 +3,8 @@
   import Spread from '../../core/Spread.svelte';
   import Zhu from '../../core/Zhu.svelte';
   import OmenFigure from './OmenFigure.svelte';
+  import { onMount } from 'svelte';
+  import { deskState, deskRef } from '../../core/scene/desk.svelte.js';
 
   let { ctx, game } = $props();
   const { S } = game;
@@ -11,6 +13,8 @@
   const crack = z && game.crackOf(z);
   const other = f && game.crackOf(f);
   const carve = $state.snapshot(game.carveData()) ?? null;
+  // 3D 书桌下，刻好辞的甲是 DOM 里的兆图（摆在桌上）：桌上那块 3D 的龟甲收起，免得两块甲叠在一起
+  onMount(() => { if (deskState.on) deskRef.pieces?.hide('bu'); });
 </script>
 
 {#snippet desk()}

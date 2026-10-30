@@ -15,7 +15,7 @@ import { wrapCols } from './data.js';
 const SCALE = 1.7;
 
 function carveOf(d) {
-  const c = { xu: d.main?.xu, mainSpot: d.main?.spot, fanSpot: d.fan ? d.fan.spot : null, qian: d.qianci, ming: wrapCols(d.question), zhan: wrapCols(d.zhan, 8) };
+  const c = { xu: d.main?.xu, mainSpot: d.main?.spot, fanSpot: d.fan ? d.fan.spot : null, mainCrack: d.main?.crack, fanCrack: d.fan?.crack, qian: d.qianci, ming: wrapCols(d.question), zhan: wrapCols(d.zhan, 8) };
   if (d.fan) {
     c.fanXu = d.fan.xu;
     c.fanMing = wrapCols(`贞：${d.fanQuestion}`);

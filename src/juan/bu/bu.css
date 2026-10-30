@@ -42,5 +42,7 @@
 
 /* 桌上的龟甲：卡的大小固定 */
 .card { --cw: 300px; }
+/* 2D 退回：读兆时兆图放大一些（兆纹本身也放大了，见 shell.js 的 CRACK_K）；纸笺在它旁边，不压在甲上 */
+.shell:not(.is-gl) .zhuo-main .omen-fig { width: 340px; }
 @media (max-width: 959px) { .card { --cw: 210px; } .omen-fig { width: 220px; } }
 @media (prefers-reduced-motion: reduce) { .card-inner, .card { transition-duration: .01ms !important; } }

@@ -7,7 +7,7 @@
   import Plastron from './Plastron.svelte';
   import OmenFigure from './OmenFigure.svelte';
   import OmenGL from './OmenGL.svelte';
-  import { deskState, deskRef, slot } from '../../core/scene/desk.svelte.js';
+  import { deskState, beside } from '../../core/scene/desk.svelte.js';
   import { explain, isXiong, OMENS } from './omen.js';
   import { fanOf, cnNum } from './data.js';
 
@@ -81,28 +81,33 @@
 {/snippet}
 
 {#snippet desk()}
-  <div class="zhuo-main">
-    <p class="ming-line" id="ming-line">贞：{ming}</p>
-    {#if deskState.on}
-      <Plastron {ctx} {game} />
-      {#if reading && crack}
-        {#key S.cur}
-          <OmenGL {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} delay={300} onDone={game.onGrown} />
-        {/key}
-      {/if}
-    {:else if reading && away && crack}
+  {#if deskState.on}
+    <!-- 3D：龟甲在桌上，位置由 Plastron 的落脚处定死；命辞的纸笺在它左边、读兆的纸笺在它右边，都按龟甲投影到屏幕上的矩形来摆，不压在甲上 -->
+    <p class="ming-line" id="ming-line" use:beside={{ id: 'bu', side: 'left', dy: 12 }}>贞：{ming}</p>
+    <Plastron {ctx} {game} />
+    {#if reading && crack}
       {#key S.cur}
-        <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={300} onDone={game.onGrown} />
+        <OmenGL {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} delay={300} onDone={game.onGrown} />
       {/key}
-    {:else}
-      <div class="zhuo-card">
-        <div class="card">
-          <Plastron {ctx} {game} />
-        </div>
-      </div>
     {/if}
-  </div>
-  <div class="zhuo-side">{@render side()}</div>
+    <div class="zhuo-side" use:beside={{ id: 'bu', side: 'right' }}>{@render side()}</div>
+  {:else}
+    <div class="zhuo-main">
+      <p class="ming-line" id="ming-line">贞：{ming}</p>
+      {#if reading && away && crack}
+        {#key S.cur}
+          <OmenFigure {ctx} {crack} spot={cur.spot} {other} otherSpot={otherB?.spot} grow={reading} delay={300} onDone={game.onGrown} />
+        {/key}
+      {:else}
+        <div class="zhuo-card">
+          <div class="card">
+            <Plastron {ctx} {game} />
+          </div>
+        </div>
+      {/if}
+    </div>
+    <div class="zhuo-side">{@render side()}</div>
+  {/if}
 {/snippet}
 
 <Spread {hint} {desk}>

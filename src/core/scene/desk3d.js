@@ -116,6 +116,11 @@ export async function createDesk(host, { onLost } = {}) {
   win.shadow.blurSamples = 14;
   win.shadow.intensity = 0.7;
   scene.add(win, win.target);
+  // 聚焦时的一束光：只照在被聚焦的东西上（强度 0 时不起作用；先建好，不在聚焦时才加灯，免得着色器重编）
+  const beam = new THREE.SpotLight(0xffe6c0, 0, 0, 0.4, 0.9, 2);
+  scene.add(beam, beam.target);
+  const BEAM = { day: 22000, night: 30000 }; // 坎德拉，距目标约 60 厘米
+  let dimV = 0; // 聚焦的压暗程度 0..1：整张桌子的光收到 1 - 压暗·dimV（昼 0.72、夜 0.92：夜里灯本来就聚在一片上，要压得更狠才看得出），一束光照在目标上
 
   let themeT = isDark() ? 1 : 0; // 0 昼 1 夜
   let themeGoal = themeT;
@@ -124,11 +129,13 @@ export async function createDesk(host, { onLost } = {}) {
     const D = LIGHT.day;
     const N = LIGHT.night;
     const t = themeT;
-    lamp.intensity = lerp(D.lamp.i, N.lamp.i, t);
+    const dk = 1 - lerp(0.72, 0.92, t) * dimV;
+    lamp.intensity = lerp(D.lamp.i, N.lamp.i, t) * dk;
     lamp.color.set(N.lamp.color);
-    win.intensity = lerp(D.win.i, N.win.i, t);
+    win.intensity = lerp(D.win.i, N.win.i, t) * dk;
     win.color.set(D.win.color);
-    hemi.intensity = lerp(D.hemi.i, N.hemi.i, t);
+    hemi.intensity = lerp(D.hemi.i, N.hemi.i, t) * dk;
+    beam.intensity = lerp(BEAM.day, BEAM.night, t) * dimV;
     hemi.color.copy(col.set(D.hemi.sky).lerp(new THREE.Color(N.hemi.sky), t));
     hemi.groundColor.copy(col.set(D.hemi.ground).lerp(new THREE.Color(N.hemi.ground), t));
     renderer.toneMappingExposure = lerp(D.exposure, N.exposure, t);
@@ -137,7 +144,7 @@ export async function createDesk(host, { onLost } = {}) {
     win.shadow.radius = r;
     lamp.castShadow = t > 0.02;
     win.castShadow = t < 0.98;
-    glow.material.opacity = lerp(0, 0.3, t);
+    glow.material.opacity = lerp(0, 0.3, t) * (1 - dimV);
   }
 
   /* ───────── 桌子 ───────── */
@@ -233,7 +240,7 @@ export async function createDesk(host, { onLost } = {}) {
     return { tg: t, dist };
   }
   // 读命书的机位：书摊开在桌子中央，机位比看桌子时更陡、更近（由 book3d 给出摊开的书占的几个点）
-  const cam = { k: 0, goal: 0, rd: null, ticker: null, ext: { sx: 1, sz: 1 } };
+  const cam = { k: 0, goal: 0, rd: null, ticker: null, ext: { sx: 1, sz: 1 }, f: 0, fgoal: 0, fticker: null, focus: null }; // f：聚焦的程度 0..1（见 focusTo）
   const READ = { elev: (63 * Math.PI) / 180, band: { x: 0.9, ylo: -0.6, yhi: 0.84 } };
   // 读命书的机位里，桌面要铺满天头栏到页脚之间的整个画面（书以外全是桌面，不露桌外的背景，也不露桌角）：
   // 相机推近时，桌子的木面向四周长大（只长桌面，厚度不变），长到把画布四角落在桌面上的点都包进去
@@ -247,10 +254,21 @@ export async function createDesk(host, { onLost } = {}) {
   function applyCam() {
     const k = cam.k;
     applyExt(k);
-    if (!cam.rd || k <= 0) { place(target, distance, ELEV); return; }
-    const rd = cam.rd;
-    const tg = new THREE.Vector3().lerpVectors(target, rd.tg, k);
-    place(tg, lerp(distance, rd.dist, k), lerp(ELEV, rd.elev, k));
+    let tg = target;
+    let dist = distance;
+    let elev = ELEV;
+    if (cam.rd && k > 0) {
+      tg = new THREE.Vector3().lerpVectors(target, cam.rd.tg, k);
+      dist = lerp(distance, cam.rd.dist, k);
+      elev = lerp(ELEV, cam.rd.elev, k);
+    }
+    // 聚焦（灼卜时推近到龟甲）叠在看桌子 / 读命书的机位上
+    if (cam.focus && cam.f > 0) {
+      tg = new THREE.Vector3().lerpVectors(tg, cam.focus.tg, cam.f);
+      dist = lerp(dist, cam.focus.dist, cam.f);
+      elev = lerp(elev, cam.focus.elev, cam.f);
+    }
+    place(tg, dist, elev);
   }
   function fit() {
     W = Math.max(1, host.clientWidth);
@@ -300,6 +318,57 @@ export async function createDesk(host, { onLost } = {}) {
       applyCam();
       view.version++;
       if (u >= 1) { cam.ticker = null; return false; }
+      return true;
+    });
+  }
+
+  /**
+   * 聚焦：镜头平滑推近到一件东西，桌子其余部分与字盘压暗，一束光照在它上面（docs/DESIGN.md §15 “灼卜时推近”）。
+   *   spec  { pts: 要框进画面的世界点, elev, band } 或 null（退回原来的机位）
+   *   opt   { ms 默认 850（≤ 900）, instant, camera 为假时只压暗不推镜头 }
+   * 聚焦期间 desk.focusing 为真：版面（slot）不要按屏幕位置重新算器物在桌上的位置，不然镜头一动器物就跟着跑。
+   * 压暗只改灯的强度（不重建材质）；字盘的压暗走 CSS（<html data-stj-focus>）。
+   */
+  function focusTo(spec, { ms = 850, instant = false, camera = true } = {}) {
+    cam.fticker?.();
+    cam.fticker = null;
+    cam.fgoal = spec ? 1 : 0;
+    cam.fcam = spec ? camera : cam.fcam;
+    if (spec) {
+      const bp = beam.position;
+      const c = new THREE.Vector3();
+      for (const p of spec.pts) c.add(p);
+      c.multiplyScalar(1 / spec.pts.length);
+      beam.target.position.copy(c);
+      bp.set(c.x - 10, c.y + 60, c.z + 22);
+      beam.target.updateMatrixWorld();
+      if (camera) {
+        const saveF = cam.f;
+        cam.f = 0; // 在原机位上求聚焦的机位
+        applyCam();
+        const r = frame(spec.pts, spec.elev ?? (68 * Math.PI) / 180, spec.band ?? { x: 0.62, ylo: -0.74, yhi: 0.7 }, c.clone(), cam.fdist ?? distance * 0.45);
+        cam.focus = { tg: r.tg, dist: r.dist, elev: spec.elev ?? (68 * Math.PI) / 180 };
+        cam.f = saveF;
+      }
+    }
+    const camOn = () => cam.fcam;
+    const set = (e) => {
+      cam.f = camOn() ? e : 0;
+      dimV = e;
+      applyCam();
+      applyLight();
+      document.documentElement.toggleAttribute('data-stj-focus', e > 0.02);
+      view.version++;
+    };
+    const from = dimV;
+    if (instant || ms <= 0) { set(cam.fgoal); invalidate(); return; }
+    let t = 0;
+    cam.fticker = addTicker((dt) => {
+      t += dt * 1000;
+      const u = Math.min(1, t / ms);
+      const e = u * u * (3 - 2 * u);
+      set(lerp(from, cam.fgoal, e));
+      if (u >= 1) { cam.fticker = null; return false; }
       return true;
     });
   }
@@ -443,7 +512,8 @@ export async function createDesk(host, { onLost } = {}) {
     THREE, scene, root, camera, renderer, canvas: canvasEl, host,
     TABLE, tex, shadowed, blob, poser, paintCanvas: canvas,
     invalidate, addTicker, frameNow, project, floorAt, pick, register, unregister,
-    view, listeners, stats, cameraTo,
+    view, listeners, stats, cameraTo, focusTo,
+    get focusing() { return cam.fgoal > 0 || dimV > 0.001; },
     readingPts: null, // 由 book3d 填：摊开的书占的几个世界点（读命书的机位据此框画面）
     get camReading() { return cam.k; },
     get themeT() { return themeT; }, // 0 昼 1 夜（切换时在 0.9 秒里平滑变）

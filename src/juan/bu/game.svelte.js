@@ -371,6 +371,8 @@ export function createGame(ctx) {
       xu: cnNum(S.burns.indexOf(z) + 1),
       mainSpot: z.spot,
       fanSpot: f ? f.spot : null,
+      mainCrack: crackOf(z), // 刻辞要躲开兆（shell.js 的 carveLayout）
+      fanCrack: f ? crackOf(f) : null,
       qian: qianci(S.clock),
       ming: wrapCols(S.question),
       zhan: wrapCols(line, 8),

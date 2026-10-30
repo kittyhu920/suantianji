@@ -29,15 +29,17 @@ export function omenPages({ fig, omenKey, zhan, state, domain, domainKey }) {
     sig: 'omen',
     zhu: ['兆干兆枝', '兆象', '兆序', '钻凿', '前辞命辞占辞验辞'],
     paint(g) {
-      drawFigure(g, PW / 2 - FIG_W / 2, 56, 1, fig, F.display);
+      // 兆图是这一页的主体：放大到页宽的 3/4（兆纹本身也放大了，见 shell.js 的 CRACK_K），题字退到它下面
+      const sc = 1.14;
+      drawFigure(g, PW / 2 - (FIG_W * sc) / 2, 30, sc, fig, F.display);
       g.textAlign = 'center';
       g.textBaseline = 'alphabetic';
-      g.font = `64px ${F.display}`;
+      g.font = `58px ${F.display}`;
       g.fillStyle = C.gold;
-      g.fillText(`兆曰${o.name}`, PW / 2, 700);
-      g.font = `30px ${F.display}`;
+      g.fillText(`兆曰${o.name}`, PW / 2, 738);
+      g.font = `28px ${F.display}`;
       g.fillStyle = C.goldSoft;
-      g.fillText(zhan, PW / 2, 752);
+      g.fillText(zhan, PW / 2, 782);
     },
   };
   const second = {

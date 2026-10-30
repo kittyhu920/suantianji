@@ -67,7 +67,9 @@ export function pieceRect(id) {
   if (!desk || !p) return null;
   const THREE = desk.THREE;
   p.wrap.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(p.group);
+  const box = new THREE.Box3();
+  if (p.measure) p.measure(box); // 器物自己说哪几个网格算它的身体（龟甲：不算接触影、炭条、烟）
+  else box.setFromObject(p.group);
   let x0 = 1e9; let y0 = 1e9; let x1 = -1e9; let y1 = -1e9;
   for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
     const q = desk.project(new THREE.Vector3(x, y, z));
@@ -81,12 +83,18 @@ export function pieceRect(id) {
  *   id     器物 id（'qian'、'gua'、'bu'，掷筊的筊杯用 'jiao'）
  *   at     [横, 纵]：落脚处矩形里哪一点是器物的底（0..1），默认底边中心
  *   s      仪式中的放大（不给就用默认）
+ *   at3d   [x, z]：不按版面，直接指定器物在桌面上的位置（厘米）。需要用别的东西（纸笺）围着器物排版时用它，
+ *          排版的一方再按器物投影到屏幕上的矩形来摆（见下面的 beside）
  */
+const slotCount = {};
 export function slot(node, opt) {
   let o = opt;
+  slotCount[o.id] = (slotCount[o.id] ?? 0) + 1;
   const place = () => {
     const { desk, pieces } = deskRef;
     if (!desk || !pieces) return;
+    if (desk.focusing) return; // 镜头在推近（灼卜）：屏幕上的位置对应的桌面位置变了，器物不能跟着跑
+    if (o.at3d) { if (o.id !== 'jiao') pieces.place(o.id, o.at3d[0], o.at3d[1], o.s); return; }
     const r = node.getBoundingClientRect();
     if (!r.width) return;
     const c = desk.rect;
@@ -124,6 +132,72 @@ export function slot(node, opt) {
       stopWatch?.();
       timers.forEach(clearTimeout);
       removeEventListener('resize', place);
+      // 下一屏没有给落脚处的话，器物回到仪式的默认位置（settle）
+      slotCount[o.id]--;
+      if (o.id !== 'jiao') setTimeout(() => { if (!slotCount[o.id]) deskRef.pieces?.settle(o.id); }, 90);
     },
+  };
+}
+
+/**
+ * 一张 DOM 的纸笺摆在某件 3D 器物的旁边（不压在器物上）：按器物此刻投影到屏幕上的矩形来摆，镜头、窗口怎么变都不重叠。
+ *   id     器物 id
+ *   side   'right' | 'left'：摆在器物的右边或左边；这一侧放不下（画布不够宽）就换另一侧，再不行就缩窄
+ *   gap    与器物的间距（屏幕像素，默认 16）
+ * 纸笺要在 position: relative 的 .desk-items 里；位置写进 left / top（按场景的缩放 --k 换算）。
+ */
+export function beside(node, opt) {
+  let o = opt;
+  const place = () => {
+    const { desk } = deskRef;
+    if (!desk || desk.focusing) return;
+    const r = pieceRect(o.id);
+    const parent = node.offsetParent;
+    if (!r || !parent) return;
+    const pr = parent.getBoundingClientRect();
+    const kk = pr.width / parent.offsetWidth || 1;
+    const c = desk.rect;
+    const gap = o.gap ?? 16;
+    const margin = 10;
+    node.style.position = 'absolute';
+    node.style.maxWidth = '';
+    const W0 = node.offsetWidth * kk;
+    const roomR = c.left + c.width - margin - (c.left + r.x + r.w + gap);
+    const roomL = c.left + r.x - gap - (c.left + margin);
+    let side = o.side;
+    if ((side === 'right' ? roomR : roomL) < W0 && (side === 'right' ? roomL : roomR) > (side === 'right' ? roomR : roomL)) side = side === 'right' ? 'left' : 'right';
+    const room = side === 'right' ? roomR : roomL;
+    if (room < W0) node.style.maxWidth = `${Math.max(160, room) / kk}px`;
+    const W = Math.min(W0, Math.max(160, room));
+    const sx = side === 'right' ? c.left + r.x + r.w + gap : c.left + r.x - gap - W;
+    const sy = c.top + r.y + (o.dy ?? 0);
+    node.style.left = `${(sx - pr.left) / kk}px`;
+    node.style.top = `${(sy - pr.top) / kk}px`;
+  };
+  let ro = null;
+  let stopWatch = null;
+  const start = () => {
+    const { desk } = deskRef;
+    if (!desk || ro) return;
+    ro = new ResizeObserver(place);
+    ro.observe(node);
+    let v = -1;
+    let sig = '';
+    const f = () => {
+      // 镜头动了，或器物自己在桌上走（落脚处的位置在变）：重新摆
+      const r = pieceRect(o.id);
+      const s = r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '';
+      if (desk.view.version !== v || s !== sig) { v = desk.view.version; sig = s; place(); }
+    };
+    desk.listeners.add(f);
+    stopWatch = () => desk.listeners.delete(f);
+    place();
+  };
+  start();
+  const timers = [120, 450, 950].map((ms) => setTimeout(place, ms)); // 桌上的版面有入场动画：落定之后再量一次
+  addEventListener('resize', place);
+  return {
+    update(next) { o = next; place(); start(); },
+    destroy() { ro?.disconnect(); stopWatch?.(); timers.forEach(clearTimeout); removeEventListener('resize', place); },
   };
 }

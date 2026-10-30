@@ -149,6 +149,21 @@ export function buildBu(desk) {
   ring.visible = false;
   lifter.add(ring);
 
+  /* ───── 灼卜时镜头推近（docs/DESIGN.md §15）───── */
+  // 按住钻凿、火开始红的时候，镜头推近到龟甲，桌子其余部分与字盘压暗，一束光照在甲上；兆裂完停 0.6 秒让人看清，再退回仪式机位。
+  // 推近与压暗在 desk3d.js 的 focusTo；这里只管什么时候开始、什么时候结束
+  let focused = false;
+  const focusSpec = () => {
+    group.parent?.updateMatrixWorld(true);
+    const c = group.getWorldPosition(new THREE.Vector3());
+    const sc = group.parent?.scale.x ?? 1;
+    const pts = [];
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) pts.push(new THREE.Vector3(c.x + sx * 8 * sc, 0.5, c.z + sz * 11.2 * sc));
+    return { pts, elev: (66 * Math.PI) / 180 };
+  };
+  const focusOn = () => { if (focused) return; focused = true; desk.focusTo(focusSpec(), { ms: 850 }); };
+  const focusOff = (ms = 900, instant = false) => { if (!focused) return; focused = false; desk.focusTo(null, { ms, instant }); };
+
   /* ───── 状态：热度与已用的钻凿 ───── */
   let active = -1;
   let heat = 0;
@@ -196,12 +211,14 @@ export function buildBu(desk) {
   /* ───── 输入 ───── */
   let input = null;
   let flipGen = 0; // 翻面的动画一次只认最新的一个
+  let skipFront = null;
   const api = {
     id: 'bu',
     group,
     hit: [...hits, bodyHit],
     radius: 9,
     spotWorld,
+    measure(box) { box.makeEmpty(); for (const m of [topMesh, botMesh, wall]) box.expandByObject(m); }, // 龟甲的身体（版面按它排纸笺，不算接触影、炭条、烟）
     dbg: () => ({ rz: flipper.rotation.z, ly: flipper.position.y, smoke: smoke.alive, gen: flipGen, ember: ember.visible, coal: coal.visible }),
     setInput(i) { input = i; },
     get input() { return input; },
@@ -212,6 +229,7 @@ export function buildBu(desk) {
       if (changed) { paintBack(); backTex.needsUpdate = true; }
       active = S.active;
       heat = S.heat;
+      if (S.phase === 'pick') { if (active >= 0 && heat > 0.02) focusOn(); else focusOff(); }
       applyCoal();
       if (active >= 0 || smoke.alive) ensureSmoke();
       desk.invalidate();
@@ -273,24 +291,51 @@ export function buildBu(desk) {
         });
       };
       let stopGrow = null;
+      let timers = [];
+      let finished = false;
+      // 兆裂完：停 0.6 秒让人看清，再退回仪式机位（0.9 秒，退到一半时读兆的纸笺出现）；全程可以跳过
+      const finish = (quick) => {
+        if (finished) return;
+        finished = true;
+        timers.forEach(clearTimeout);
+        timers = [];
+        if (!focused) { opt.onDone?.(); return; }
+        if (quick) { focusOff(260); timers.push(setTimeout(() => opt.onDone?.(), 160)); return; }
+        timers.push(setTimeout(() => { focusOff(900); timers.push(setTimeout(() => opt.onDone?.(), 520)); }, 600));
+      };
       const grow = () => {
-        if (dead) return;
-        if (opt.reduced) { draw(1, false); opt.onDone?.(); return; }
+        if (dead || finished) return;
+        if (opt.reduced) { draw(1, false); focusOff(0, true); opt.onDone?.(); return; }
         let t = 0;
         stopGrow = desk.addTicker((dt) => {
           t = Math.min(1, t + (dt * 1000) / 2100);
           draw(t, t < 1);
           afterLight.intensity = AFTER * t * t; // 物理单位：6 厘米外约 50 勒克斯（比灯下的桌面亮一倍多，只照甲面一圈，范围 22 厘米；灯挂在器物上，3600 在昼里已经烧白），静帧看得出甲面泛暖，动起来明显，不刺眼
-          if (t >= 1) { draw(1, false); stopGrow = null; fadeAfter(1100); opt.onDone?.(); return false; }
+          if (t >= 1) { draw(1, false); stopGrow = null; fadeAfter(1100); finish(false); return false; }
           return true;
         });
       };
+      // 跳过：翻面与生长立刻到位，镜头很快退回
+      skipFront = () => {
+        if (finished || dead) return;
+        stopFlip?.(); stopFlip = null;
+        stopGrow?.(); stopGrow = null;
+        flipGen++;
+        flipper.rotation.z = Math.PI;
+        flipper.position.y = T / 2;
+        draw(1, false);
+        fadeAfter(300);
+        finish(true);
+      };
       run();
-      return () => { dead = true; stopFlip?.(); stopGrow?.(); };
+      return () => { dead = true; timers.forEach(clearTimeout); stopFlip?.(); stopGrow?.(); skipFront = null; };
     },
+    /** 兆还在裂的时候点一下 / 按回车、空格、Esc：跳过推近与停顿 */
+    skipFront() { skipFront?.(); },
     /** 翻回背面（再灼一处） */
     showBack() {
       afterStop?.(); afterLight.intensity = 0;
+      focusOff(500);
       let p = 1;
       const from = flipper.rotation.z;
       const gen = ++flipGen;
@@ -304,7 +349,7 @@ export function buildBu(desk) {
       });
       void stop;
     },
-    resetFlip() { afterStop?.(); afterLight.intensity = 0; flipGen++; flipper.rotation.z = 0; flipper.position.y = T / 2; desk.invalidate(); },
+    resetFlip() { afterStop?.(); afterLight.intensity = 0; focusOff(0, true); flipGen++; flipper.rotation.z = 0; flipper.position.y = T / 2; desk.invalidate(); },
     reset() {
       used.fill(false);
       paintBack();

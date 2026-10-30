@@ -11,11 +11,17 @@
 .table.is-gl .book-anchor .book > :not(#book-said) { display: none; }
 .table.is-gl .piece-slot, .table.is-gl .piece-slot * { pointer-events: none; }
 
+/* 灼卜时镜头推近到龟甲（desk3d.js 的 focusTo）：桌上的纸笺淡出，免得它们跟着镜头在画面里乱跑；推近结束、镜头退回之后再出现 */
+:root[data-stj-focus] .shell[data-phase="ritual"] .desk-items { opacity: 0; transition: opacity .25s ease; }
+
+/* 入口屏：器物下面的题语，别压在桌面下方中央那枚朱印上（矮窗口里印盖得更靠上） */
+.table.is-gl .idle-piece { margin-bottom: 28px; }
+
 /* 落脚处：版面里留给 3D 器物的一块地方（器物走到它在桌面上的位置，不画任何东西） */
 .piece-slot { flex: none; width: 250px; height: 300px; position: relative; }
 .piece-slot.is-qian { width: 230px; height: 330px; }
 .piece-slot.is-gua { width: 300px; height: 330px; }
-.piece-slot.is-bu { width: 310px; height: 380px; }
+.piece-slot.is-bu { width: 310px; height: 300px; }
 .piece-slot.is-jiao { width: 300px; height: 150px; }
 /* 器物的替身按钮：留给键盘与读屏，看不见；3D 里的器物自己会亮起来 */
 .proxy {

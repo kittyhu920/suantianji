@@ -135,7 +135,7 @@
 </script>
 
 {#if gl}
-<div class="piece-slot is-bu" use:slot={{ id: 'bu', at: [0.5, 0.4] }}>
+<div class="piece-slot is-bu" use:slot={{ id: 'bu', at3d: [-6, 12], s: 1.6 }}>
   {#each SPOTS as s, i}
     <button
       class="spot proxy"
