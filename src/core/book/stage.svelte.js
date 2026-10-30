@@ -18,3 +18,7 @@ export function registerSpread(entry) {
 export const stage = $state({ speaking: false, said: '', saidN: 0 });
 
 export const bookEl = { el: null, gl: null }; // gl：3D 书桌里的书（scene/book3d.js），有它时书自己的动作作用在它上面
+
+// 仪式里写在右页（平躺的封面里侧）上的账：我一条条记下这一局的事实（文案在 core/ledger-lines.js，由 ctx.jot 写入）。
+// items：{ id, key, text }；最多 6 条，同一个 key 的旧条目被顶替
+export const ledger = $state({ items: [], n: 0 });

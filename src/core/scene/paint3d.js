@@ -637,12 +637,15 @@ export function paintTag({ name, title, closed = false, w = 420, h = 130 }) {
   g.lineWidth = 2;
   g.beginPath(); g.moveTo(h * 1.12, h * 0.2); g.lineTo(h * 1.12, h * 0.8); g.stroke();
   g.textAlign = 'left';
-  g.font = `${Math.round(h * 0.34)}px "Huiwen-mincho","Noto Serif SC",serif`;
-  g.fillText(title, h * 1.28, closed ? h * 0.36 : h * 0.5);
+  // 全称与“未开卷”：字号按木签的宽度取满（1440×900 下全称约 20px 宽、“未开卷”约 16px 宽；木签平躺在桌上，竖向被压到六成多）
+  const room = w - h * 1.28 - h * 0.1;
+  const tfs = Math.min(h * 0.4, room / [...title].length);
+  g.font = `${Math.round(tfs)}px "Huiwen-mincho","Noto Serif SC",serif`;
+  g.fillText(title, h * 1.28, closed ? h * 0.34 : h * 0.5);
   if (closed) {
-    g.font = `${Math.round(h * 0.23)}px "Noto Serif SC",serif`;
-    g.fillStyle = 'rgba(235,228,210,.74)';
-    g.fillText('未开卷', h * 1.28, h * 0.7);
+    g.font = `${Math.round(Math.min(h * 0.3, room / 3))}px "Noto Serif SC",serif`;
+    g.fillStyle = 'rgba(235,228,210,.9)';
+    g.fillText('未开卷', h * 1.28, h * 0.74);
   }
   return cv;
 }

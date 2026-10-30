@@ -72,18 +72,18 @@
   white-space: nowrap;
 }
 .top-title i { font-style: normal; color: var(--ink-dim); }
-.top-title small { font-family: var(--f-text); font-size: 12px; letter-spacing: .2em; color: var(--ink-dim); margin-left: .6em; }
+.top-title small { font-family: var(--f-text); font-size: 14px; letter-spacing: .2em; color: var(--ink-dim); margin-left: .6em; }
 .top-tools { justify-self: end; display: flex; align-items: center; gap: 12px; }
 .topbar .tag-btn:first-child { justify-self: start; }
 .topbar .corner-theme { --s: 34px; font-size: 17px; }
 .top-nav { display: flex; gap: 16px; align-items: center; }
-.top-link { font-size: 13px; letter-spacing: .08em; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--ink-faint); }
+.top-link { font-size: 14px; letter-spacing: .08em; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--ink-faint); }
 .top-link:hover { color: var(--ink); text-decoration-color: var(--ink); }
 .oracle-toggle.is-bar { margin: 0; display: inline-flex; flex-direction: row; align-items: center; gap: 6px; cursor: pointer; }
 .oracle-toggle.is-bar .oracle-row { gap: 8px; }
 .oracle-toggle.is-bar .oracle-name { font-size: 14px; color: var(--ink); letter-spacing: .1em; }
-.oracle-toggle.is-bar .oracle-state { font-size: 12px; }
-.oracle-toggle.is-bar .oracle-quota { font-size: 12px; }
+.oracle-toggle.is-bar .oracle-state { font-size: 14px; }
+.oracle-toggle.is-bar .oracle-quota { font-size: 14px; }
 .oracle-toggle.is-bar .seal { --s: 30px; font-size: 14px; }
 
 /* 小木牌：回书桌、声 */
@@ -131,16 +131,16 @@
 .bot-mid { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .bot-hint { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-soft); min-height: 1.6em; text-wrap: pretty; }
 .bot-acts { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: nowrap; }
-.bot-acts .btn { color: var(--bar-ink); border-color: rgba(236, 228, 208, .5); }
-.bot-acts .btn:hover { border-color: var(--bar-ink); }
-.bot-acts .btn-primary { color: var(--on-zhu); border-color: var(--cinnabar); }
-.bot-acts .btn-ghost { border-color: transparent; color: var(--ink-soft); text-decoration-color: var(--ink-faint); }
+.bot-acts .btn { min-height: 44px; padding: 6px 16px; color: var(--bar-ink); border-color: rgba(236, 228, 208, .8); background: rgba(14, 11, 8, .5); }
+.bot-acts .btn:hover { border-color: var(--bar-ink); background: rgba(236, 228, 208, .14); }
+.bot-acts .btn-primary { color: var(--on-zhu); border-color: var(--cinnabar); background: var(--cinnabar); }
+.bot-acts .btn-primary:hover { background: var(--cinnabar-press); }
 .bot-acts .btn:disabled { opacity: .35; }
 .bot-links { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .shell[data-phase="reading"] .bot-links { display: none; }
 
 /* 步骤：一 · 择域 → 二 · 摇签 …，当前一步在序号上点朱圈 */
-.bot-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; font-size: 13px; color: var(--ink-dim); letter-spacing: .08em; }
+.bot-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; font-size: 14px; color: var(--ink-dim); letter-spacing: .08em; }
 .bot-steps li { display: inline-flex; align-items: baseline; white-space: nowrap; position: relative; }
 .bot-steps b { font-weight: 400; }
 .stp-arrow { font-style: normal; margin: 0 .7em; color: var(--ink-faint); }
@@ -152,11 +152,12 @@
 .bot-steps li.is-cur b, .bot-steps li.is-cur .stp-name { color: var(--cinnabar-hi); }
 
 /* 读命书时，页脚放这一页的脚注（注疏）：墨色宋体里的术语与它的解释 */
-.bot-notes { width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.5; color: var(--ink-soft); }
-.bot-notes li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bot-notes { width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
+.bot-notes li { overflow-wrap: anywhere; } /* 不用省略号截断：放不下一条，页脚就少显示一条（Codex.svelte 的 fitNotes） */
+.bot-notes li.is-cut { display: none !important; }
 .bot-notes b { font-weight: 600; margin-right: .5em; color: var(--ink); letter-spacing: .06em; }
 .bot-notes li.bot-end { color: var(--ink-dim); letter-spacing: .08em; display: list-item !important; }
-.bot-notes small { font-size: 11px; margin-left: .5em; color: var(--ink-dim); }
+.bot-notes small { font-size: 12px; margin-left: .5em; color: var(--ink-dim); }
 .pg-no { font-variant-numeric: tabular-nums; }
 
 /* 存疑印：页脚左端，呼吸般若隐若现 */
@@ -195,6 +196,24 @@
     repeating-linear-gradient(0deg, rgba(0, 0, 0, .06) 0 1px, transparent 1px 7px),
     linear-gradient(180deg, #3a2a1a, #2a1e12 60%, #231910);
   box-shadow: inset 0 0 0 1px rgba(255, 226, 170, .09), inset 0 2px 0 rgba(255, 226, 170, .12), 0 20px 40px rgba(0, 0, 0, .55);
+}
+
+/* 2D 桌面（手机、减少动效）昼夜要分得开：昼里木面亮一档（字仍是纸白，对木面 ≥ 4.5:1）；夜里更深 */
+html[data-theme="light"] .desk-plane {
+  background:
+    radial-gradient(60% 55% at 50% 40%, rgba(255, 236, 190, .14), transparent 74%),
+    radial-gradient(120% 100% at 50% 50%, transparent 60%, rgba(0, 0, 0, .32) 100%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .0) 0 3px, rgba(0, 0, 0, .08) 3px 4px, rgba(255, 236, 190, .04) 4px 9px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .05) 0 1px, transparent 1px 7px),
+    linear-gradient(180deg, #735437, #5f4529 60%, #52391f);
+}
+html[data-theme="dark"] .desk-plane {
+  background:
+    radial-gradient(44% 40% at 50% 40%, rgba(255, 200, 120, .13), transparent 72%),
+    radial-gradient(120% 100% at 50% 50%, transparent 45%, rgba(0, 0, 0, .7) 100%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .0) 0 3px, rgba(0, 0, 0, .12) 3px 4px, rgba(255, 226, 170, .015) 4px 9px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .08) 0 1px, transparent 1px 7px),
+    linear-gradient(180deg, #2a1d11, #1c130b 60%, #150e08);
 }
 
 /* 桌上的器物（首页） */
@@ -241,9 +260,9 @@
 .tip-l .piece-tip { right: calc(100% + 6px); }
 .piece:hover .piece-tip, .piece:focus-visible .piece-tip { opacity: 1; transform: none; }
 .piece-name { font-family: var(--f-display); font-size: 24px; line-height: 1.2; letter-spacing: .14em; }
-.piece-name small { font-family: var(--f-text); font-size: 12px; letter-spacing: .16em; margin-left: .7em; opacity: .75; }
-.piece-intro { font-size: 13px; line-height: 1.6; }
-.piece-tag { font-size: 12px; letter-spacing: .2em; color: var(--ink-dim); }
+.piece-name small { font-family: var(--f-text); font-size: 14px; letter-spacing: .16em; margin-left: .7em; opacity: .75; }
+.piece-intro { font-size: 14px; line-height: 1.6; }
+.piece-tag { font-size: 14px; letter-spacing: .2em; color: var(--ink-dim); }
 .piece.is-closed .piece-tag { color: var(--slip-ink); opacity: .7; }
 
 /* 桌上（仪式）：器物摆在桌面的中前部 */
@@ -343,7 +362,7 @@
 .rd-nav { position: absolute; top: 0; bottom: 0; width: 22%; background: none; border: 0; cursor: pointer; opacity: 0; }
 .rd-nav:focus-visible { opacity: 1; outline: 2px solid var(--bar-ink); outline-offset: -4px; }
 .rd-prev { left: 0; } .rd-next { right: 0; }
-.rd-page-no { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 12px; letter-spacing: .2em; color: rgba(236, 228, 208, .6); pointer-events: none; }
+.rd-page-no { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 14px; letter-spacing: .2em; color: rgba(236, 228, 208, .6); pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -387,7 +406,7 @@
   .piece-tip { position: static; width: auto; padding: 0; background: none; box-shadow: none; opacity: 1; transform: none; color: var(--obj-hi); align-items: center; }
   .piece-name { font-size: 20px; }
   .piece-name small { display: block; margin: 0; }
-  .piece-intro { font-size: 12px; opacity: .85; }
+  .piece-intro { font-size: 14px; opacity: .9; }
   .piece-tag { color: rgba(236, 228, 208, .7); }
   .piece.is-closed .piece-tip { opacity: .6; }
   .piece:hover .piece-art, .piece:focus-visible .piece-art { transform: none; }
@@ -406,11 +425,11 @@
   }
   .bot-doubt { position: absolute; left: 8px; bottom: 8px; z-index: 2; }
   .bot-mid { align-items: center; padding: 0 44px; }
-  .bot-hint { font-size: 13px; line-height: 1.45; }
-  .bot-steps { justify-content: center; font-size: 12px; flex-wrap: nowrap; }
+  .bot-hint { font-size: 14px; line-height: 1.4; }
+  .bot-steps { justify-content: center; font-size: 14px; flex-wrap: nowrap; }
   .bot-steps li:not(.is-cur) .stp-name, .bot-steps li:not(.is-cur) .stp-dot { display: none; }
   .stp-arrow { margin: 0 .45em; }
-  .bot-notes { text-align: left; font-size: 12px; }
+  .bot-notes { text-align: left; font-size: 14px; }
   .bot-notes li:nth-child(n+3) { display: none; }
   .bot-links { justify-content: center; font-size: 12px; }
   .shell:not([data-phase="home"]):not([data-phase="doc"]) .bot-links { display: none; }

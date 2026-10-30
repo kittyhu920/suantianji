@@ -22,7 +22,8 @@
   import Zhu from './Zhu.svelte';
   import { termSegments } from './zhu-text.js';
   import { footnotes } from './book/notes.js';
-  import { spread, stage } from './book/stage.svelte.js';
+  import { spread, stage, ledger } from './book/stage.svelte.js';
+  import { wrap } from './gloss-wrap.js';
   import { mountTilt } from './tilt.js';
   import { mountToggle } from './theme.js';
   import { mountBoard } from './paper/board.js';
@@ -33,6 +34,22 @@
   import { cn } from './cn.js';
   import { bookEl } from './book/stage.svelte.js';
   import { quadMatrix } from './scene/quad.js';
+
+  // 页脚的脚注不用省略号截断：每条可以折成两行；放不下就少显示一条（从最后一条起去掉），不留半句
+  function fitNotes(node) {
+    const run = () => {
+      const lis = [...node.children];
+      lis.forEach((l) => l.classList.remove('is-cut'));
+      for (let i = lis.length - 1; i > 0 && node.scrollHeight > node.clientHeight + 1; i--) {
+        if (!lis[i].classList.contains('bot-end')) lis[i].classList.add('is-cut');
+      }
+    };
+    const ro = new ResizeObserver(run);
+    ro.observe(node);
+    document.fonts?.ready.then(run);
+    run();
+    return { update() { tick().then(run); }, destroy() { ro.disconnect(); } };
+  }
 
   // 书桌场景的设计尺寸（px）：样式见 styles/stage.css 的 .scene
   const SCENE_W = 1140;
@@ -80,6 +97,7 @@
   let voice2d = $state(null);
   let voiceGl = $state(null);
   let vplane = $state(null);
+  let lplane = $state(null); // 右页（平躺的封面里侧）：仪式里记的账
   let tip = $state(null); // 悬停的器物：{ id, x, y, w }（画布上的位置）
   let rects = $state({});
   const gl = $derived(glState === 'on');
@@ -221,7 +239,25 @@
     const h = w * q.ratio;
     vplane.style.width = `${w.toFixed(1)}px`;
     vplane.style.height = `${h.toFixed(1)}px`;
+    vplane.style.fontSize = `${(w * 0.2).toFixed(1)}px`;
     vplane.style.transform = quadMatrix(q, w, h);
+    placeLedger();
+  }
+
+  // 右页记账：贴在平躺的封面里侧。字号随页宽（宽的 10%），一行 9 个字，所以与窗口大小无关
+  const LEDGER_CAP = 9;
+  function placeLedger() {
+    if (!lplane || !deskRef.book) return;
+    const q = phase === 'ritual' ? deskRef.book.coverQuad() : null;
+    if (!q) { lplane.style.visibility = 'hidden'; return; }
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const w = Math.max(80, (dist(q[0], q[1]) + dist(q[3], q[2])) / 2);
+    const h = w * q.ratio;
+    lplane.style.visibility = 'visible';
+    lplane.style.width = `${w.toFixed(1)}px`;
+    lplane.style.height = `${h.toFixed(1)}px`;
+    lplane.style.fontSize = `${(w * 0.1).toFixed(1)}px`;
+    lplane.style.transform = quadMatrix(q, w, h);
   }
 
   onMount(() => {
@@ -285,6 +321,7 @@
       bookEl.gl = deskRef.book;
       glState = 'on';
       deskRef.desk.fit();
+      placeVoice();
       refreshRects();
     };
     bootGL();
@@ -369,6 +406,13 @@
       </nav>
       {/if}
 
+      <!-- 2D 退回：右页的账写在书左边的一张纸笺上（3D 里它写在平躺的封面里侧）。手机上见 Book.svelte 的 .slip-ledger -->
+      {#if !gl && phase === 'ritual' && ledger.items.length}
+        <aside class="ledger-2d paper" aria-label="我记下的账">
+          {#each ledger.items as it (it.id)}<p>{it.text}</p>{/each}
+        </aside>
+      {/if}
+
       <div class="book-anchor" aria-hidden={phase === 'doc'}>
         <Book {lift} stamped={bookClosed && !gl} bind:voice={voice2d} />
       </div>
@@ -407,6 +451,12 @@
       <div class="voice-plane" bind:this={vplane}>
         <div class="voice" bind:this={voiceGl}></div>
       </div>
+      <!-- 右页的账：我一条条记下这一局的事实（ledger-lines.js），写在平躺的封面里侧 -->
+      <div class="ledger-plane" bind:this={lplane} aria-hidden="true">
+        {#each ledger.items as it (it.id)}
+          <p class="led">{#each wrap(it.text, LEDGER_CAP) as line}<span class="gloss-l">{#each [...line] as ch, i}<span class="ink-ch" class:ink-sp={ch === ' '} style="animation-delay:{i * 34}ms">{ch}</span>{/each}</span>{/each}</p>
+        {/each}
+      </div>
     {/if}
 
     {#if phase === 'ritual' && cur?.act}
@@ -430,7 +480,7 @@
       {#if phase === 'reading' && bookClosed}
         <p class="bot-hint" id="bot-hint">书合上了，点一下书，可以再翻开读。</p>
       {:else if phase === 'reading' && notes.length}
-        <ul class="bot-notes" id="bot-notes" aria-label="这一页的注">
+        <ul class="bot-notes" id="bot-notes" aria-label="这一页的注" use:fitNotes={notes}>
           {#each notes as n}<li><b>{n.term}</b>{n.body}<small>{n.kind}</small></li>{/each}
           {#if atLast}<li class="bot-end">再翻一页，合上。</li>{/if}
         </ul>

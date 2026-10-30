@@ -8,7 +8,7 @@
   import { onMount } from 'svelte';
   import { juans } from '../../juan/index.js';
   import { stamps } from '../store.js';
-  import { bookEl, stage } from './stage.svelte.js';
+  import { bookEl, stage, ledger } from './stage.svelte.js';
 
   let { lift = 'shut', stamped = false, voice = $bindable(null) } = $props();
   let el;
@@ -32,7 +32,7 @@
     <i class="bk-edge bk-edge-r"></i>
     <i class="bk-edge bk-edge-b"></i>
     <div class="bk-sheet">
-      <div class="bk-slip"><div class="voice" bind:this={voice}></div></div>
+      <div class="bk-slip"><div class="voice" bind:this={voice}></div>{#if ledger.items.length}<p class="slip-ledger">{ledger.items[ledger.items.length - 1].text}</p>{/if}</div>
     </div>
     <div class="bk-cover">
       <div class="cv-front">

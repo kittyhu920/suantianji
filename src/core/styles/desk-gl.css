@@ -48,11 +48,16 @@
 .piece-card.is-closed { opacity: .92; }
 
 /* 书的话：写在扉页上的字，透视贴在 3D 的扉页上（尺寸与变换由 Codex.svelte 的 placeVoice 写） */
-.voice-plane { position: absolute; left: 0; top: 0; z-index: 4; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; padding: 4px 8px; --bs: 1; }
+.voice-plane { position: absolute; left: 0; top: 0; z-index: 4; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; padding: 3px 2px; --bs: 1; }
 .voice-plane .voice { position: relative; min-height: 1px; }
-.voice-plane .gloss { font-size: 25px; line-height: 1.45; color: #1b1712; -webkit-text-stroke: .4px #1b1712; paint-order: stroke fill; }
+/* 字号随扉页的宽（placeVoice 把 font-size 写在 .voice-plane 上：宽的 20%，1440×900 下约 32px），所以一行放几个字与窗口大小无关 */
+.voice-plane .gloss { font-size: 1em; line-height: 1.32; letter-spacing: 0; color: #1b1712; -webkit-text-stroke: .5px #1b1712; paint-order: stroke fill; }
 /* 字不再随灯光方向加明暗遮罩（以前背光一侧、夜里字被削到 58%，行书的细笔画更读不清）：字是墨，multiply 叠在受光的纸上，纸暗字也跟着暗，本身已经“和纸一起受光” */
 
+/* 右页的账：记在平躺的封面里侧（Codex.svelte 的 placeLedger 写尺寸与变换）。楷书、墨色，不用朱；一条一行或两行，新的一条逐字洇开 */
+.ledger-plane { position: absolute; left: 0; top: 0; z-index: 4; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; padding: 6px 2px; visibility: hidden; font-family: var(--f-kai); color: #1b1712; }
+.ledger-plane .led { margin: 0 0 .3em; line-height: 1.22; letter-spacing: 0; -webkit-text-stroke: .35px #1b1712; paint-order: stroke fill; }
+.ledger-plane .ink-ch { animation-duration: .5s; }
 /* 3D 的桌面是亮的木面：直接写在木头上的字看不清，所以桌上的说明与记录都写在摊在桌上的纸笺上（墨色、宣纸底） */
 .table.is-gl .desk-items :where(.jiao-legend, .jiao-tally, .cast-legend, .cast-hex, .zhuo-side:has(> *), .jiao-sign, .ming-line, .idle-piece figcaption, .jie-earlier) {
   --ink: #1b1712; --ink-rgb: 27, 23, 18;
@@ -70,7 +75,7 @@
 .table.is-gl .desk-items .jiao-labels span { color: var(--ink); }
 .table.is-gl .desk-items :where(.jiao-legend, .cast-legend) b { color: var(--ink); }
 
-@media (max-width: 959px) { .desk-gl, .pieces-gl, .piece-card, .voice-plane { display: none; } }
+@media (max-width: 959px) { .desk-gl, .pieces-gl, .piece-card, .voice-plane, .ledger-plane { display: none; } }
 
 /* ───────── 2D 退回（手机宽度、减少动效、WebGL 不可用）─────────
    器物前面桌上一块小木签，常显卷名；未开卷的暗下去、签是灰的。手机上是俯视的书桌角：书在上，器物在下排成一行，可横向滑动。 */
@@ -78,18 +83,18 @@
   position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%) rotate(-1deg);
   display: flex; align-items: baseline; gap: .5em; white-space: nowrap;
   padding: 3px 10px 4px; border-radius: 2px;
-  font-size: 12px; letter-spacing: .1em; color: #2a2118;
+  font-size: 14px; letter-spacing: .1em; color: #2a2118;
   background: linear-gradient(90deg, #d8c497, #e4d2a6 50%, #cdb988);
   box-shadow: 0 2px 4px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(70, 48, 22, .3);
 }
 .piece-label b { font-family: var(--f-display); font-weight: 400; font-size: 20px; line-height: 1; }
 .piece.is-closed .piece-label { color: rgba(235, 228, 210, .85); background: linear-gradient(90deg, #6d6657, #7a7363 50%, #656050); }
 @media (max-width: 959px) {
-  .pieces { top: 214px; bottom: 6px; left: 0; right: 0; display: flex; flex-direction: row; gap: 18px; align-items: flex-start; padding: 8px 16px 18px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .pieces { top: 214px; bottom: 6px; left: 0; right: 0; display: flex; flex-direction: row; gap: 10px; align-items: flex-start; padding: 8px 6px 18px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scrollbar-width: none; }
   .pieces::-webkit-scrollbar { display: none; }
   .piece { flex: none; scroll-snap-align: center; width: 112px; padding-bottom: 26px; }
   .piece-art { width: 100px; margin: 0 auto; }
-  .piece-label { bottom: 0; }
+  .piece-label { bottom: 0; flex-direction: column; align-items: center; gap: 0; line-height: 1.25; font-size: 14px; padding: 3px 8px 4px; } /* 名字在上、全称在下：不比器物宽，三件刚好排进 375 宽，不被截 */
   .piece-tip { display: none; }
   .piece.is-closed .piece-art { filter: brightness(.5) saturate(.4) drop-shadow(0 8px 6px rgba(0, 0, 0, .5)); }
 }

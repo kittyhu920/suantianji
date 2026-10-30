@@ -99,15 +99,19 @@ export function createOcclusions(desk, deskRef) {
       }
     }
     let text = null;
+    let ledger = null; // 右页（平躺的封面里侧）上记账的那一块
     let body = null;
     if (book?.root.visible && book.mode !== 'doc') {
       const pts = [];
       for (const s of book.reading?.list ?? []) s.fMesh.geometry.userData.liveBox = true; // 纸的包围盒按现在的顶点重算
       meshPoints(book.inner, pts);
       if (pts.length) body = hull(pts);
-      if (book.mode === 'ritual') text = book.pageQuad().map((q) => [q.x, q.y]);
+      if (book.mode === 'ritual') {
+        text = book.pageQuad().map((q) => [q.x, q.y]);
+        ledger = book.coverQuad?.()?.map((q) => [q.x, q.y]) ?? null;
+      }
     }
-    return { out, text, body };
+    return { out, text, ledger, body };
   }
 
   /* ───── DOM ───── */
@@ -148,7 +152,7 @@ export function createOcclusions(desk, deskRef) {
   }
 
   return function occlusions({ min = 0.04 } = {}) {
-    const { out: pieces, text, body } = threeItems();
+    const { out: pieces, text, ledger, body } = threeItems();
     const dom = domItems();
     const pairs = [];
     const soft = [];
@@ -161,6 +165,7 @@ export function createOcclusions(desk, deskRef) {
     };
     for (const p of pieces) {
       if (text) add(pairs, '器物挡扉页文字', p, { name: '书:扉页文字区', poly: text }, overlapArea(p.poly, text));
+      if (ledger) add(pairs, '器物挡右页的账', p, { name: '书:右页记账区', poly: ledger }, overlapArea(p.poly, ledger));
       if (body) add(soft, '器物压书', p, { name: '书', poly: body }, overlapArea(p.poly, body));
     }
     for (let i = 0; i < pieces.length; i++) for (let j = i + 1; j < pieces.length; j++) add(pairs, '器物互挡', pieces[i], pieces[j], overlapArea(pieces[i].poly, pieces[j].poly));

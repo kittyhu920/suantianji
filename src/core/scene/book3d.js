@@ -479,6 +479,25 @@ export function createBook(desk) {
     return out;
   }
 
+  /**
+   * 右页：封面翻开、平躺之后，封面里侧（衬页）朝上，仪式里的“账”写在这一块（docs/DESIGN.md §19“右页记账”）。
+   * 返回 [左上, 右上, 右下, 左下]（屏幕上的位置，按屏幕上的上下左右排，镜像与翻转不影响），带 ratio（高 / 宽）；封面没翻开时返回 null。
+   */
+  function coverQuad() {
+    if (coverA < OPEN_FROM) return null;
+    root.updateMatrixWorld(true);
+    const xs = [-BOOK.w / 2 + 3.4, BOOK.w / 2 - 1.1];
+    const za = BOOK.d / 2 - 1.2;
+    const pts = [];
+    for (const x of xs) for (const z of [-za, za]) pts.push(desk.project(coverMesh.localToWorld(new THREE.Vector3(x, -BOOK.cover / 2 - 0.03, z))));
+    const byY = [...pts].sort((a, b) => a.y - b.y);
+    const top = byY.slice(0, 2).sort((a, b) => a.x - b.x);
+    const bot = byY.slice(2).sort((a, b) => a.x - b.x);
+    const out = [top[0], top[1], bot[1], bot[0]];
+    out.ratio = (2 * za) / (xs[1] - xs[0]);
+    return out;
+  }
+
   /* ───────── 书自己的动作（docs/DESIGN.md §19 "书自己的动作"） ───────── */
   let fxTicker = null;
   function runFx(ms, f) {
@@ -527,7 +546,7 @@ export function createBook(desk) {
   const api = {
     root, inner, pose, version: 0, fx,
     parts: { cover: coverMesh, board, block, spine, sheetsRoot }, // 穿模检查（overlaps.js）与调试用
-    setMode, setLift, pageQuad, reading, beginReading, skipIntro, closeBook, reopenBook,
+    setMode, setLift, pageQuad, coverQuad, reading, beginReading, skipIntro, closeBook, reopenBook,
     get state() { return state; }, // 读命书的翻开 / 合上：'open' | 'closing' | 'closed' | 'opening'
     get stamped() { return !!stamp?.stamped; },
     get mode() { return mode; },

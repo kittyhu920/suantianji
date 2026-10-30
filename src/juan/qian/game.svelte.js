@@ -12,6 +12,7 @@ import { consultOracle, resetOracle } from '../../core/oracle.svelte.js';
 import { drawPoster } from '../../core/poster.js';
 import { posterSpec } from './poster.js';
 import { finishRound } from '../../core/round.js';
+import { L } from '../../core/ledger-lines.js';
 import { ATTITUDE } from '../../core/ending.js';
 
 export { db, CUP_NAMES, CUP_LABELS };
@@ -117,6 +118,7 @@ export function createGame(ctx) {
     S.domain = key;
     if (S.pickMs == null) S.pickMs = performance.now() - S.dingEnterAt;
     const d = db.domains[key];
+    ctx.jot('pick', L.qianPick(d.name));
     if (changed) gloss(`你问${d.name}，想了 ${sec(S.pickMs)} 秒。${d.persona}`, { key: 'pick' });
   }
 
@@ -174,6 +176,8 @@ export function createGame(ctx) {
     const sign = S.sign;
     tube?.stop();
     gloss(`你摇了 ${sec(S.shakeMs)} 秒，试了 ${S.shakeTries} 次`);
+    ctx.jot('shake', L.qianShake(S.shakeTries));
+    ctx.jot('sign', L.qianSign(signNo(sign)));
     // 签落地之后，桌上多出一支签条（签号、签名、签级）；签诗与解签写进命书
     S.signShown = true;
     ctx.sfx.thud();
@@ -239,6 +243,7 @@ export function createGame(ctx) {
       return;
     }
     S.cups.push({ ...cup });
+    ctx.jot(`cup${idx}`, L.qianCup(idx, cup.kind));
     S.pending = null;
     if (cup.kind === 'yin') {
       gloss('阴杯，和我猜的不一样', { alarm: true });
@@ -260,6 +265,7 @@ export function createGame(ctx) {
     ctx.touch();
     if (S.cups.some((c) => c.kind === 'yin')) {
       S.insist = true;
+      ctx.jot('insist', L.qianInsist);
       gloss('你偏要这支', { alarm: true });
     }
     finish();
@@ -275,6 +281,8 @@ export function createGame(ctx) {
     enterQian({
       shut: true,
       onCommit: () => {
+        ctx.unjot('shake'); ctx.unjot('sign'); ctx.unjot('cup'); ctx.unjot('insist');
+        ctx.jot('reroll', L.qianReroll(n + 1));
         S.throws.forEach((t) => { t.kept = false; });
         S.sign = null;
         S.cups = [];

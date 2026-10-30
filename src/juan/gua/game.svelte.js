@@ -14,6 +14,7 @@ import { createShake } from '../../core/shake.svelte.js';
 import { drawPoster } from '../../core/poster.js';
 import { posterSpec } from './poster.js';
 import { finishRound } from '../../core/round.js';
+import { L } from '../../core/ledger-lines.js';
 import { ATTITUDE } from '../../core/ending.js';
 import { atlas } from './atlas.js';
 
@@ -125,6 +126,7 @@ export function createGame(ctx) {
       ...opts,
       onCommit: () => {
         onCommit?.();
+        ctx.unjot('yao');
         S.cur = [];
         S.result = null;
         S.rolling = false;
@@ -167,6 +169,7 @@ export function createGame(ctx) {
     S.shakeMs += activeMs;
     S.throws.push({ kind: KIND_OF[v], v, faces, cast: S.casts.length, kept: true });
     S.fresh = idx;
+    ctx.jot(`yao${idx}`, L.guaYao(idx, v));
     const bits = binOf(S.cur.map((l) => l.v));
     const y = YAO[v];
     if (y.kind === 'laoyang') gloss(G.laoyang);

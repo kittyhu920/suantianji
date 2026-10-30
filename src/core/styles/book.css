@@ -186,7 +186,8 @@
 .gloss.is-sink { opacity: 0; filter: blur(1.6px); }
 .gloss.is-out { opacity: 0; transition-duration: .3s; }
 .gloss-t { display: block; max-width: 100%; }
-.ink-w { display: inline-block; max-width: 100%; } /* 一个语段：整体移到下一行，不在中间断开 */
+.gloss-l { display: block; white-space: nowrap; } /* 一行：折行在 gloss-wrap.js 里按标点与词边界排好，这里不再让浏览器自己折 */
+.ink-sp { width: .2em; overflow: hidden; }
 /* 警示句：着重点也是墨（书的话全墨，朱只留给印章、阴杯、最终判词与关键按钮） */
 .gloss.is-alarm { text-emphasis: filled dot; -webkit-text-emphasis: filled dot; text-emphasis-color: var(--ink); -webkit-text-emphasis-color: var(--ink); text-emphasis-position: under right; -webkit-text-emphasis-position: under; }
 .gloss .ink-ch { animation-duration: .6s; }
@@ -194,6 +195,20 @@
 .gloss.is-plain .ink-ch { animation: none; }
 .gloss.is-plain { animation: gloss-fade .35s ease-out both; transition-duration: .4s; }
 @keyframes gloss-fade { from { opacity: 0; } }
+
+/* 2D 退回：右页的账。桌面是书左边的一张纸笺（.ledger-2d，Codex.svelte），手机上只在纸笺里写最新的一条 */
+.slip-ledger { display: none; }
+.ledger-2d {
+  position: absolute; left: 22px; top: 44px; z-index: 3; width: 196px; padding: 12px 14px 8px;
+  --ink: #1b1712; --ink-rgb: 27, 23, 18; color: var(--ink);
+  font-family: var(--f-kai); font-size: 15px; line-height: 1.45;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .45);
+  clip-path: polygon(0 2%, 3% 0, 97% 1%, 100% 3%, 99% 98%, 95% 100%, 4% 99%, 0 96%);
+  transform: rotate(-.8deg); pointer-events: none;
+}
+.ledger-2d p { margin: 0 0 6px; padding-top: 5px; border-top: 1px solid rgba(27, 23, 18, .22); animation: gloss-fade .6s ease-out both; }
+.ledger-2d p:first-child { border-top: 0; padding-top: 0; }
+.ledger-2d p:last-child { margin-bottom: 4px; }
 
 /* 书自己的动作 */
 .book.is-tremble .bk-body { animation: book-tremble .85s ease-in-out; }
@@ -235,4 +250,6 @@
   }
   .book[data-lift="speak"] .bk-slip { transform: translateZ(1px); }
   .gloss { font-size: calc(18px / var(--bs)); line-height: 1.5; }
+  .slip-ledger { display: block; margin: calc(4px / var(--bs)) 0 0; font-family: var(--f-kai); font-size: calc(14px / var(--bs)); line-height: 1.4; color: var(--ink-soft); }
+  .ledger-2d { display: none; }
 }

@@ -19,6 +19,7 @@
 }
 .spot:hover:not(:disabled), .spot.is-active { box-shadow: 0 0 0 1px rgba(var(--ink-rgb), .3); }
 .spot:disabled { cursor: default; }
+.spot:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; } /* 2D 退回：键盘移到哪一处钻凿，圈就在哪一处（3D 里是 bu.js 的 ring） */
 
 
 /* ───────── 兆图：一块甲，兆在上，刻辞在下 ───────── */
@@ -48,5 +49,5 @@
 
 /* 桌上的龟甲：卡的大小固定 */
 .card { --cw: 300px; }
-@media (max-width: 959px) { .card { --cw: 210px; } .omen-fig { width: 220px; } }
+@media (max-width: 959px) { .card { --cw: 210px; } .omen-fig { width: 158px; } .read-how { display: none; } } /* 手机：读兆时兆图小一些、不显示“我是这样读的”（命书里有），按钮两排也压不到字 */
 @media (prefers-reduced-motion: reduce) { .card-inner, .card { transition-duration: .01ms !important; } }

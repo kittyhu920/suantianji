@@ -25,6 +25,7 @@ import { readDisappoint, readPortrait, ledgerNotes } from './profile.js';
 import { drawPoster } from '../../core/poster.js';
 import { posterSpec } from './poster.js';
 import { finishRound } from '../../core/round.js';
+import { L } from '../../core/ledger-lines.js';
 import { ATTITUDE } from '../../core/ending.js';
 
 export { DOMAINS, ENDINGS, OMENS, YAN };
@@ -214,6 +215,7 @@ export function createGame(ctx) {
       const h = performance.now() - S.readyAt;
       S.hesitations.push(h);
       gloss(`你选了第${cnNum(i + 1)}处，想了 ${sec(h)} 秒`);
+      ctx.jot('spot', L.buSpot(i));
     }
     sfx.clack(0.5);
     startTimer();
@@ -290,6 +292,10 @@ export function createGame(ctx) {
     plast?.puff();
     if (debug()) window.__buLast = { seed, omen: crack.omen, sig: crackSignature(crack), metrics: crack.metrics };
     gloss(`你按了 ${sec(hold)} 秒，手抖了 ${Math.round(jit)} 像素`);
+    ctx.jot('spot', L.buSpot(i));
+    ctx.jot('hold', L.buHold(sec(hold)));
+    ctx.jot('jit', L.buJit(Math.round(jit)));
+    ctx.unjot('omen');
     gloss('卜——裂了');
     // 记入兆谱
     const seen = new Set(ctx.store.get('omens', []));
@@ -305,6 +311,7 @@ export function createGame(ctx) {
     const o = OMENS[b.omen];
     sfx.clack(0.7);
     gloss(`这道兆，我读作${o.name}`, { alarm: isXiong(b.omen) });
+    ctx.jot('omen', L.buOmen(cracks.get(b.seed)?.metrics.ang ?? 0, o.name));
     if (b.kind === 'fan') {
       const z = decisive();
       if (z) gloss(isXiong(z.omen) === isXiong(b.omen) ? `正问是${OMENS[z.omen].name}，反问也是${o.name}。两边我都说得通` : `正问是${OMENS[z.omen].name}，反问是${o.name}，两兆相应`);
@@ -339,6 +346,7 @@ export function createGame(ctx) {
     ctx.touch();
     const n = zhengBurns().length;
     gloss(`你不满意，要灼第 ${cnNum(n + 1)} 次`, { alarm: true });
+    ctx.jot('again', L.buAgain(n + 1));
     if (n >= 2) gloss('我越来越懂你了……');
     ctx.revealDoubt();
     // 书合拢一下再打开：这一兆写在新的一页上，前面的兆还在书里
