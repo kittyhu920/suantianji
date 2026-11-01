@@ -15,6 +15,8 @@
   import { onMount, tick, untrack } from 'svelte';
   import { PW, PH, ground, folio, loadFonts, embolden } from './paint.js';
   import { deskRef } from '../scene/desk.svelte.js';
+  import { stamps } from '../store.js';
+  import { SLOTS } from './seal-parts.js';
 
   let { pages, narrow = false, on = false, reduced = false, glBook = null, onopen = () => {}, spread = $bindable(0), closed = $bindable(false) } = $props();
 
@@ -282,7 +284,18 @@
   const where = $derived(mode === 'one' ? `第 ${p1 + 1} 页，共 ${countOf()} 页` : `第 ${spread + 1} 个对页，共 ${countOf()} 个`);
   const label = $derived(pages ? `命书，${where}` : '命书');
   // 朗读区的内容：翻到哪，读哪。书还没摊开的时候不读
-  const said = $derived(!on ? '' : closed ? '命书合上了，我在封面落了一方印。' : `${where}。${seen.map((i) => `${titleOf(i)}。${bodyOf(i)}`).join('　')}`);
+  // 合书落印的那一句：说出盖在哪一卷的位上、这一卷集了几分（四种结局各占一分）
+  function sealSaid() {
+    const j = stamps.session.juan;
+    const sl = SLOTS.find((x) => x.id === j);
+    if (!sl) return '命书合上了。';
+    const n = stamps.count(j);
+    const han = ['零', '一', '二', '三', '四'][n];
+    const isNew = stamps.session.fresh;
+    if (n >= 4) return `命书合上了。我在封面${sl.ch}字位落了印，${sl.ch}卷集齐四分，印是完整的一方。`;
+    return isNew ? `命书合上了。我在封面${sl.ch}字位落了印，${sl.ch}卷已集${han}分。` : `命书合上了。我在封面${sl.ch}字位又盖了一下，${sl.ch}卷还是${han}分，印没有添新痕。`;
+  }
+  const said = $derived(!on ? '' : closed ? sealSaid() : `${where}。${seen.map((i) => `${titleOf(i)}。${bodyOf(i)}`).join('　')}`);
   // 3D：往后翻到底，再往后翻一次就是合书
   function turnGl(dir) {
     if (!engine || shutting) return;

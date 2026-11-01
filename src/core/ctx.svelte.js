@@ -23,7 +23,7 @@
 import { createGloss } from './gloss.js';
 import { tear, tremble, thud, riffle } from './book/fx.js';
 import { stage, ledger } from './book/stage.svelte.js';
-import { store, daysAgo } from './store.js';
+import { store, stamps, daysAgo } from './store.js';
 import { hashString } from './rng.js';
 import * as sfx from './audio.js';
 import * as profile from './profile.js';
@@ -57,6 +57,7 @@ export function createCtx(juan) {
       get: () => ns.get('endings', []),
       record(key) {
         const got = new Set(ns.get('endings', []));
+        stamps.note(juan.id, key, got.has(key)); // 封面的残印：这一局得的这一角，合书落印时盖上
         got.add(key);
         ns.set('endings', [...got]);
         return [...got];

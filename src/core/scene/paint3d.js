@@ -232,11 +232,11 @@ export function paintCover({ w = 1040, h = 1440, seed = 3, cloth = '#4b4b52', cb
     const step = (lh - 20) / (t.length + 0.4);
     [...t].forEach((c, i) => g.fillText(c, lw / 2, 10 + step * (i + 0.7)));
     g.restore();
-    // 残印位：题签下面一列四个，极淡的印痕（签、卦、卜、星）
+    // 残印位：题签下面一列四个，极淡的印痕（签、卦、卜、星）；位置要与 book3d.js 的 slotAt 一致，印本身是贴在上面的小平面（seal-parts.js）
     g.strokeStyle = 'rgba(236,228,208,.16)';
     g.lineWidth = 3;
     g.setLineDash([22, 7, 12, 9, 17, 7]);
-    [0, 1, 2, 3].forEach((k) => g.strokeRect(4.0 * px, (19.6 + k * 3.5) * px, 2.6 * px, 2.6 * px));
+    [0, 1, 2, 3].forEach((k) => g.strokeRect(3.25 * px, (17.8 + k * 4.15) * px, 3.9 * px, 3.9 * px));
     g.setLineDash([]);
   });
   make(bump, (g) => {

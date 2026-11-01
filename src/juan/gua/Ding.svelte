@@ -1,6 +1,7 @@
 <script>
   // 问事：三支木牌摆在桌上，选一支定下方向；问题写在桌上的纸笺上，写完点“定”，字被纸吸进去，书再开口回一句。
   // （版式与签卷的择域一致，样式在 core/styles/desk.css 与 ../qian/qian.css）
+  import AskField from '../../core/AskField.svelte';
   import Seal from '../../core/Seal.svelte';
   import Zhu from '../../core/Zhu.svelte';
   import Spread from '../../core/Spread.svelte';
@@ -36,11 +37,7 @@
     {#if soak}
       <p class="ask-written is-soak" id="ask-written">{ask || '（没有写下具体的问题）'}</p>
     {:else}
-      <label>
-        <span class="ask-label">在纸上写下想问的具体问题（可以不写）</span>
-        <textarea class="ask-paper" id="ask" rows="2" maxlength="40" autocomplete="off" spellcheck="false" placeholder="例如：今年该不该换一份工作" bind:value={ask} onkeydown={onKey}></textarea>
-      </label>
-      <span class="ask-count" aria-hidden="true">{[...ask].length} / 40</span>
+      <AskField bind:value={ask} max={40} label="在纸上写下想问的具体问题（可以不写）" placeholder="例如：今年该不该换一份工作" onkeydown={onKey} />
     {/if}
   </div>
 {/snippet}

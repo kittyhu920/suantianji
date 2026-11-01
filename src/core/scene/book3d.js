@@ -10,6 +10,9 @@ import * as THREE from 'three';
 import { paintCover, paintPaper, paintEdge, canvas } from './paint3d.js';
 import { createSheets } from '../book/three-book.js';
 import { seal as paintSeal } from '../book/paint.js';
+import { SLOTS, sealCanvas } from '../book/seal-parts.js';
+import { stamps } from '../store.js';
+import { loadFonts } from '../book/paint.js';
 import * as sfx from '../audio.js';
 
 export const BOOK = { w: 26, d: 36, board: 0.42, block: 2.0, cover: 0.42 };
@@ -268,50 +271,97 @@ export function createBook(desk) {
   let epoch = 0; // 合书、翻开中途离开命书（回书桌、再来一次）：旧的演出作废
   let stamp = null;
   const wait = (ms) => new Promise((res) => { const t0 = performance.now(); addTicker(() => { if (performance.now() - t0 >= ms) { res(); return false; } return true; }); });
-  function ensureStamp() {
-    if (stamp) return stamp;
-    const S = 6.4;
-    const cv = canvas(256, 256);
-    const g = cv.getContext('2d');
-    g.clearRect(0, 0, 256, 256);
-    paintSeal(g, 128, 128, 196, '命', 11);
+  // 封面上的四个残印位：各有一块贴在封面上的小平面（签、卦、卜、星），画的是这一卷已得的角（store 的 stamps）；
+  // 落印时盖在对应的位上，新得的那一角由 mark 洇开，旧的部分本来就在位里
+  const SLOT_P = 4.5; // 残印位的平面边长（印本身约 3.9 厘米，题签下面一列四个，位置与 paint3d.js 的 paintCover 一致）
+  const slotAt = (k) => [BOOK.w / 2 - 5.2, BOOK.cover / 2 + 0.012, 19.75 + 4.15 * k - BOOK.d / 2];
+  const slotTilt = [0.04, -0.03, 0.05, -0.04];
+  const slotMats = SLOTS.map((sl, k) => {
+    const cv = canvas(192, 192);
     const map = tex(cv);
     map.repeat.set(-1, 1); map.offset.set(1, 0); // 书是镜像摆的，和封面一样把 u 翻回来
-    const mark = new THREE.Mesh(new THREE.PlaneGeometry(S, S), new THREE.MeshLambertMaterial({ map, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(SLOT_P, SLOT_P), new THREE.MeshLambertMaterial({ map, color: 0x6c4a44, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.rotation.z = slotTilt[k];
+    mesh.position.set(...slotAt(k));
+    mesh.visible = false;
+    coverMesh.add(mesh);
+    return { cv, map, mesh };
+  });
+  /** 按存档把四个位重画一遍；hold 为真时，这一局新得、还没落印的那一角先不算 */
+  function refreshSeals(hold = false) {
+    SLOTS.forEach((sl, k) => {
+      const parts = stamps.parts(sl.id, !hold);
+      const m = slotMats[k];
+      const g = m.cv.getContext('2d');
+      g.clearRect(0, 0, 192, 192);
+      if (parts.some(Boolean)) g.drawImage(sealCanvas(k, parts, 192), 0, 0);
+      m.mesh.visible = parts.some(Boolean);
+      m.map.needsUpdate = true;
+    });
+    invalidate();
+  }
+  refreshSeals();
+  loadFonts('签卦卜星').then(() => refreshSeals(!!stamp && !stamp.stamped)).catch(() => {}); // 字体到了再画一遍：之前画的可能是回落的字体
+
+  function ensureStamp() {
+    if (stamp) return stamp;
+    const S = SLOT_P;
+    const cv = canvas(192, 192);
+    const map = tex(cv);
+    map.repeat.set(-1, 1); map.offset.set(1, 0);
+    const mark = new THREE.Mesh(new THREE.PlaneGeometry(S, S), new THREE.MeshLambertMaterial({ map, color: 0x6c4a44, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
     // 洇开的一圈：印文四周一层淡淡的朱晕
     const hv = canvas(128, 128);
     const hg = hv.getContext('2d');
     const rg = hg.createRadialGradient(64, 64, 20, 64, 64, 64);
     rg.addColorStop(0, 'rgba(176,38,31,.55)'); rg.addColorStop(0.65, 'rgba(176,38,31,.18)'); rg.addColorStop(1, 'rgba(176,38,31,0)');
     hg.fillStyle = rg; hg.fillRect(0, 0, 128, 128);
-    const halo = new THREE.Mesh(new THREE.PlaneGeometry(S * 1.5, S * 1.5), new THREE.MeshBasicMaterial({ map: tex(hv), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(S * 1.7, S * 1.7), new THREE.MeshBasicMaterial({ map: tex(hv), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -1.5 }));
     // 印章本身：一块深色的石头，底上一层朱
     const tool = new THREE.Group();
-    const stone = new THREE.Mesh(new THREE.BoxGeometry(S * 0.5, 2.4, S * 0.5), new THREE.MeshStandardMaterial({ color: 0x2e1d18, roughness: 0.55 }));
-    stone.position.y = 1.4;
-    const knob = new THREE.Mesh(new THREE.BoxGeometry(S * 0.26, 1.7, S * 0.26), new THREE.MeshStandardMaterial({ color: 0x3a2620, roughness: 0.5 }));
-    knob.position.y = 3.35;
-    const base = new THREE.Mesh(new THREE.BoxGeometry(S * 0.5, 0.35, S * 0.5), new THREE.MeshStandardMaterial({ color: 0xb02a20, roughness: 0.7 }));
-    base.position.y = 0.17;
+    const W = S * 0.52;
+    const stone = new THREE.Mesh(new THREE.BoxGeometry(W, 1.5, W), new THREE.MeshStandardMaterial({ color: 0x2e1d18, roughness: 0.55 }));
+    stone.position.y = 0.9;
+    const knob = new THREE.Mesh(new THREE.BoxGeometry(W * 0.52, 1.0, W * 0.52), new THREE.MeshStandardMaterial({ color: 0x3a2620, roughness: 0.5 }));
+    knob.position.y = 2.15;
+    const base = new THREE.Mesh(new THREE.BoxGeometry(W, 0.22, W), new THREE.MeshStandardMaterial({ color: 0xb02a20, roughness: 0.7 }));
+    base.position.y = 0.11;
     tool.add(stone, knob, base);
     tool.visible = false;
-    const at = new THREE.Group(); // 落在封面的右下偏中（题签与订线之外）
-    at.position.set(BOOK.w / 2 - 0.56 * BOOK.w, BOOK.cover / 2 + 0.014, 9.4);
-    at.rotation.y = -0.06;
+    const at = new THREE.Group(); // 落在哪一个残印位，按这一局的卷定（planStamp 里设）
     mark.rotation.x = -Math.PI / 2;
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = -0.004;
     at.add(halo, mark, tool);
     coverMesh.add(at);
     desk.shadowed(tool);
-    return (stamp = { at, mark, halo, tool, map });
+    return (stamp = { at, mark, halo, tool, map, cv, target: -1, fresh: false });
+  }
+  /** 这一局的落印怎么盖：落在哪一格、新得的是哪一角（没有新得的，印不添新痕，只闪一下） */
+  function planStamp() {
+    const st = ensureStamp();
+    const k = SLOTS.findIndex((sl) => sl.id === stamps.session.juan);
+    const fi = stamps.freshIndex();
+    st.target = k;
+    st.fresh = fi >= 0;
+    if (k < 0) return st;
+    const parts = stamps.parts(SLOTS[k].id, true);
+    const only = st.fresh ? parts.map((_, i) => i === fi) : parts; // 新得：只画这一角；已得过：整方印轻轻闪一下
+    const g = st.cv.getContext('2d');
+    g.clearRect(0, 0, 192, 192);
+    g.drawImage(sealCanvas(k, only, 192, { residue: !st.fresh }), 0, 0);
+    st.map.needsUpdate = true;
+    st.at.position.set(...slotAt(k));
+    st.at.rotation.set(0, 0, slotTilt[k]);
+    return st;
   }
   /** 把石章、印文、晕画一帧（编译着色器、上传纹理），再收起：落印时不会因第一次用它们而卡住 */
   function warmStamp() {
-    const st = ensureStamp();
+    const st = planStamp();
     desk.renderer.initTexture(st.map);
     st.tool.visible = true;
-    st.tool.position.y = 7.2;
+    st.tool.position.y = 5.5;
     st.mark.material.opacity = 0.01;
     st.halo.material.opacity = 0.01;
     desk.renderer.compile(desk.scene, desk.camera);
@@ -320,6 +370,7 @@ export function createBook(desk) {
     st.halo.material.opacity = 0;
   }
   function dropStamp(fade) {
+    refreshSeals(false); // 离开命书（或刚进命书）：封面上的残印位照存档显示（含这一局新得的，哪怕没读完、没盖上）
     if (!stamp) return;
     const st = stamp;
     stamp = null;
@@ -330,13 +381,15 @@ export function createBook(desk) {
     addTicker(() => { const u = Math.min(1, (performance.now() - t0) / 450); st.mark.material.opacity = o0 * (1 - u); st.halo.material.opacity *= 0.9; if (u >= 1) { done(); return false; } return true; });
   }
   async function stampSeal(my) {
-    const st = ensureStamp();
+    const st = planStamp();
     st.stamped = true;
     const { mark, halo, tool } = st;
+    if (st.target < 0) return; // 不是从一局里来的（没有这一卷的印位）：只合书，不落印
     tool.visible = true;
     let t0 = performance.now();
     let last = t0;
     let hit = false;
+    const hover = 5.5;
     await new Promise((res) => {
       addTicker(() => {
         if (my !== epoch || stamp !== st) { res(); return false; }
@@ -345,10 +398,9 @@ export function createBook(desk) {
         last = now;
         const t = now - t0;
         // 0–300 抬起、斜着悬在上面；300–520 按下；520–700 压着；700–1100 抬走
-        const hover = 7.2;
         let h;
         let tilt;
-        if (t < 300) { const u = ease(t / 300); h = hover + (1 - u) * 3; tilt = 0.2; }
+        if (t < 300) { const u = ease(t / 300); h = hover + (1 - u) * 2; tilt = 0.2; }
         else if (t < 520) { const u = (t - 300) / 220; const e = u * u; h = hover * (1 - e); tilt = 0.2 * (1 - e); }
         else if (t < 700) { h = 0; tilt = 0; }
         else { const u = easeIO(Math.min(1, (t - 700) / 400)); h = hover * u; tilt = 0.1 * u; }
@@ -358,18 +410,31 @@ export function createBook(desk) {
         if (t >= 520 && !hit) { hit = true; sfx.thud(); }
         if (t >= 520) {
           const u = Math.min(1, (t - 520) / 380);
-          mark.material.opacity = Math.min(1, (t - 520) / 90); // 一按下，印文就出来
-          const k = 1.04 - 0.04 * ease(u); // 微微缩回：印泥被压开又收住
-          mark.scale.set(k, k, 1);
-          halo.material.opacity = 0.55 * (1 - 0.35 * u) * Math.min(1, (t - 520) / 120); // 洇开的一圈，慢慢淡到一层薄晕
-          const hk = 0.92 + 0.2 * ease(u);
-          halo.scale.set(hk, hk, 1);
+          const press = Math.min(1, (t - 520) / 90);
+          if (st.fresh) {
+            mark.material.opacity = press; // 一按下，新得的这一角就出来
+            const k = 1.05 - 0.05 * ease(u); // 微微缩回：印泥被压开又收住
+            mark.scale.set(k, k, 1);
+            halo.material.opacity = 0.55 * (1 - 0.35 * u) * Math.min(1, (t - 520) / 120); // 洇开的一圈，慢慢淡到一层薄晕
+            const hk = 0.9 + 0.22 * ease(u);
+            halo.scale.set(hk, hk, 1);
+          } else {
+            mark.material.opacity = 0.4 * press * (1 - u); // 已得过的：印不添新痕，只在原处轻轻一闪
+            halo.material.opacity = 0.22 * (1 - u) * press;
+            halo.scale.set(1, 1, 1);
+          }
         }
         invalidate();
         if (t >= 1100) { tool.visible = false; res(); return false; }
         return true;
       });
     });
+    if (my === epoch && stamp === st) {
+      stamps.session.stamped = true;
+      mark.material.opacity = 0; // 新得的一角从此在位里（残印位按存档重画），盖上去的那层收起
+      halo.material.opacity = 0;
+      refreshSeals(false);
+    }
   }
   async function closeBook() {
     if (state !== 'open' || mode !== 'reading') return false;
@@ -377,6 +442,7 @@ export function createBook(desk) {
     state = 'closing';
     api.version++;
     skipIntro();
+    refreshSeals(stamps.freshIndex() >= 0 && !stamp?.stamped); // 封面上这一卷的位先是“还没有这一角”的样子
     warmStamp(); // 石章、印文、晕的着色器与纹理先备好：落印那 1.1 秒里不能卡
     sfx.rustle(0.5, 0.1, false);
     await reading.collapse(560);
@@ -549,6 +615,7 @@ export function createBook(desk) {
     setMode, setLift, pageQuad, coverQuad, reading, beginReading, skipIntro, closeBook, reopenBook,
     get state() { return state; }, // 读命书的翻开 / 合上：'open' | 'closing' | 'closed' | 'opening'
     get stamped() { return !!stamp?.stamped; },
+    get sealCanvases() { return slotMats.map((m) => m.cv); }, // 调试：封面上四个残印位的画布
     get mode() { return mode; },
     get lift() { return lift; },
     set visible(b) { root.visible = b; invalidate(); },

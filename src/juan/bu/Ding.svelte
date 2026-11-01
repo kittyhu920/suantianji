@@ -1,6 +1,7 @@
 <script>
   // 命辞：三支木牌摆在桌上，选一支定下方向；把想问的事说成一句话，写在桌上的纸笺上。命辞以“贞：”起头，刻在甲上。
   // 写完点“定”，字被纸吸进去，书再开口回一句。
+  import AskField from '../../core/AskField.svelte';
   import Seal from '../../core/Seal.svelte';
   import Zhu from '../../core/Zhu.svelte';
   import Spread from '../../core/Spread.svelte';
@@ -38,10 +39,7 @@
     {#if soak}
       <p class="ask-written is-soak" id="ask-written">{ask || '（没有写下具体的事，我替你拟）'}</p>
     {:else}
-      <label>
-        <span class="ask-label">把要问的事说成一句话，写在纸上（可以不写，我替你拟）</span>
-        <textarea class="ask-paper" id="ask" rows="2" maxlength={MAX_Q} autocomplete="off" spellcheck="false" placeholder="例如：今年换一份工作" bind:value={ask} onkeydown={onKey}></textarea>
-      </label>
+      <AskField bind:value={ask} max={MAX_Q} label="把要问的事说成一句话，写在纸上（可以不写，我替你拟）" placeholder="例如：今年换一份工作" onkeydown={onKey} />
     {/if}
     <p class="ming-preview" id="ming-preview" aria-live="polite">{#if shown}贞：{shown}{:else}　{/if}</p>
   </div>

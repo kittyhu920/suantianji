@@ -72,25 +72,32 @@
 .ask-sheet .shichen, .ask-sheet .ask-domain { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
 .ask-sheet .ask-domain b { font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--ink); margin: 0 .3em; }
 .ask-label { font-size: 14px; color: var(--ink-dim); }
+.ask-field { display: flex; flex-direction: column; gap: 4px; }
+/* 问事的输入（core/AskField.svelte，三卷共用）：写在纸上，没有方框；三行淡墨行线，高度固定三行，聚焦时行线加深 */
 .ask-paper {
+  --rule: rgba(var(--ink-rgb), .22); --rw: 1px;
   display: block;
   width: 100%;
-  min-height: 3.2em;
-  padding: 6px 2px 8px;
+  height: 96px; /* 三行：不随字数跳 */
+  margin: 0;
+  padding: 0 2px;
   border: 0;
-  border-bottom: 1px solid var(--ink-dim);
-  background: transparent;
+  border-radius: 0;
+  background: linear-gradient(to bottom, transparent calc(31px - var(--rw)), var(--rule) calc(31px - var(--rw)) 31px, transparent 31px) 0 0 / 100% 32px repeat-y local;
   color: var(--ink);
-  font-family: var(--f-voice);
-  font-size: 26px;
-  line-height: 1.5;
-  letter-spacing: .05em;
+  caret-color: var(--ink);
+  font-family: var(--f-kai);
+  font-size: 20px;
+  line-height: 32px;
+  letter-spacing: .04em;
   text-align: left;
   resize: none;
-  overflow: hidden;
+  overflow-x: hidden; overflow-y: auto; scrollbar-width: none; /* 不要拖拽角与滚动条 */
+  appearance: none; -webkit-appearance: none;
 }
-.ask-paper::placeholder { color: rgba(var(--ink-rgb), .68); font-family: var(--f-kai); font-size: 17px; opacity: 1; } /* 占位符对纸 ≥ 4.5:1 */
-.ask-paper:focus { outline: 2px solid var(--ink); outline-offset: 3px; border-bottom-color: var(--ink); } /* 焦点：一圈清楚的外框，不是 1px 细线 */
+.ask-paper::-webkit-scrollbar { display: none; }
+.ask-paper::placeholder { color: rgba(var(--ink-rgb), .68); font-family: var(--f-kai); opacity: 1; } /* 占位符对纸 ≥ 4.5:1 */
+.ask-paper:focus, .ask-paper:focus-visible { outline: 0; --rule: rgba(var(--ink-rgb), .55); --rw: 2px; } /* 焦点：只让行线加深（不用浏览器的外框） */
 /* 写下之后：字被纸吸进去，墨色渐渐沉进纸里，只剩一行淡淡的字迹 */
 .ask-written { margin: 0; font-family: var(--f-voice); font-size: 26px; line-height: 1.5; letter-spacing: .05em; color: rgba(var(--ink-rgb), .82); overflow-wrap: anywhere; }
 .ask-written.is-soak { animation: ask-soak 1.5s var(--ease-out) both; }
@@ -99,7 +106,7 @@
   45% { opacity: .55; filter: blur(2.4px); letter-spacing: .12em; }
   100% { opacity: .82; filter: blur(0); letter-spacing: .05em; }
 }
-.ask-count { align-self: flex-end; font-size: 14px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.ask-count { align-self: flex-end; margin-top: -4px; font-size: 14px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .ming-preview { margin: 0; min-height: 1.6em; font-family: var(--f-display); font-size: 22px; letter-spacing: .06em; overflow-wrap: anywhere; }
 .ledger-intro { margin: 0; font-size: 14px; color: var(--ink-dim); }
 
@@ -200,7 +207,8 @@
   .desk .slips { gap: 16px; }
   .desk .slip { width: 58px; height: 150px; }
   .ask-sheet { width: min(340px, 100%); padding: 16px 18px 12px; }
-  .ask-paper, .ask-written { font-size: 22px; }
+  .ask-written { font-size: 22px; }
+  .ask-paper { font-size: 18px; }
   .sign-slip { width: 60px; height: 190px; padding: 12px 0; }
   .sl-name { font-size: 26px; }
   .desk .jiao { height: 100px; }
