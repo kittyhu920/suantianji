@@ -9,12 +9,9 @@
 </script>
 
 {#snippet desk()}
-  <figure class="idle-piece">
-    {#if deskState.on}<div class="piece-slot is-gua" use:slot={{ id: 'gua', at: [0.5, 0.4] }}></div>{:else}<div class="idle-art"><Instrument id="gua" /></div>{/if}
-    <figcaption>你起卦，我算你</figcaption>
-  </figure>
+  {#if deskState.on}<span class="slot-ghost" use:slot={{ id: 'gua', at3d: [-40, 19], s: 1.05 }}></span>{:else}<div class="idle-art is-corner"><Instrument id="gua" /></div>{/if}
 {/snippet}
 
-<Spread hint="点下面朱红的“问”字印开始。三枚铜钱，掷六回，约三分钟，建议打开声音。" {desk}>
-  {#snippet act()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
+<Spread hero dim hint="点桌面正中朱红的“问”字印开始。三枚铜钱，掷六回，约三分钟，建议打开声音。" {desk}>
+  {#snippet act()}<Seal size="xl" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal><p class="hero-line">你起卦，我算你</p>{/snippet}
 </Spread>

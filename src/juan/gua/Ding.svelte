@@ -23,14 +23,14 @@
 </script>
 
 {#snippet desk()}
-  <div class="slips" role="radiogroup" aria-label="问卜领域" id="slips">
+  <div class="slips" class:is-needed={!S.domain && !soak} role="radiogroup" aria-label="问卜领域" id="slips">
     {#each Object.entries(db.domains) as [key, d]}
       <button class="slip" role="radio" aria-checked={S.domain === key} data-key={key} disabled={soak} onclick={() => game.pickDomain(key)}>
         <span class="slip-name">{d.name}</span><span class="slip-desc">{d.desc.replaceAll(' · ', '　')}</span>
       </button>
     {/each}
   </div>
-  <div class="ask-sheet paper">
+  <div class="ask-sheet paper" class:is-wait={!S.domain}>
     <p class="shichen" id="shichen">用三枚铜钱起一卦：掷六次，画六<Zhu term="爻" />，这就是<Zhu term="金钱卦" />。</p>
     <p class="ask-domain" id="ask-domain">{#if dom}所问之事：<b>{dom.name}</b>{dom.desc.replaceAll(' · ', '　')}{:else}先取一块木牌，定下想问的方向。{/if}</p>
     {#if soak}
@@ -45,6 +45,6 @@
   </div>
 {/snippet}
 
-<Spread hint={soak ? '字被纸吸进去了。' : S.domain ? '选好了，点下面的“定”。具体的问题可以不写。' : '先在桌上选一块木牌，再点下面的“定”。具体的问题写在纸笺上，可以不写。'} {desk}>
+<Spread dim hint={soak ? '字被纸吸进去了。' : S.domain ? '选好了，点下面的“定”。具体的问题可以不写。' : '先在桌上选一块木牌，再点下面的“定”。具体的问题写在纸笺上，可以不写。'} {desk}>
   {#snippet act()}<Seal size="md" id="btn-ding" disabled={!S.domain || soak} aria-label="确定" onclick={confirm}>定</Seal>{/snippet}
 </Spread>

@@ -6,6 +6,8 @@
 //   foot   页脚里的按钮（snippet，可选）：读命书时的合上、再来、保存等；仪式中的按钮都放 act
   //   desk   桌上的器物（snippet，可选）：仪式在桌上，用实物完成
   //          器物里要接指针或物理的元素，用 use: 动作去接（它们由 Codex 渲染，不在屏的 onMount 里）
+  //   hero   入口屏：这一步的主操作是桌面正中那一枚放大的朱印（焦点），器物退到左下角，四周压暗
+  //   dim    这一屏器物不是玩家要动的东西（要点的是木牌、纸笺、按钮）：器物压暗一档，退到后面
   //   book   命书（可选，只有结局屏）：返回页的数组的函数，见 book/pages.js；有它，书就摊开来读
   import { onMount } from 'svelte';
   import { registerSpread } from './book/stage.svelte.js';
@@ -17,5 +19,7 @@
     get foot() { return props.foot; },
     get desk() { return props.desk; },
     get book() { return props.book; },
+    get hero() { return props.hero; },
+    get dim() { return props.dim; },
   }));
 </script>

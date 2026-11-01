@@ -6,6 +6,10 @@
 /* ───────── 入口屏：一件器物，题一句话 ───────── */
 .idle-piece { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .idle-art { width: 250px; filter: drop-shadow(0 14px 10px rgba(0, 0, 0, .55)); }
+/* 入口屏（2D）：器物退到左下角，正中是朱印 */
+.idle-art.is-corner { position: absolute; left: 2%; bottom: 8px; width: 190px; }
+/* 这一屏器物不是玩家要动的东西：退后（3D 里是 pieces.dim） */
+.desk-items.is-dim :where(.idle-art, .tube-wrap, .shell-wrap, .zhuo-card) { opacity: .55; transition: opacity .3s; }
 .idle-piece figcaption { font-family: var(--f-display); font-size: 24px; letter-spacing: .2em; color: var(--ink); }
 
 /* ───────── 择域：三支木牌 ───────── */
@@ -196,6 +200,7 @@
 @media (max-width: 959px) {
   .desk-items { flex-direction: column; justify-content: flex-start; gap: 12px; padding-top: 4px; overflow-y: auto; }
   .idle-art { width: 170px; }
+  .idle-art.is-corner { width: 112px; left: 3%; bottom: 2px; }
   .desk .tube-wrap, .desk .shell-wrap { height: 230px; }
   .desk .slips { gap: 16px; }
   .desk .slip { width: 58px; height: 150px; }
