@@ -35,6 +35,7 @@ export function startDesk(host, { juans, onOpen, onHover, onLost }) {
       deskRef.book = book;
       deskRef.pieces = pieces;
       deskState.on = true;
+      desk.prewarm?.(); // 空闲时把着色器编译好（含现在看不见的），首次出现时不卡
       if (location.search.includes('debug')) {
         window.__desk = deskRef;
         // 穿模检查：window.__desk.overlaps() 列出互相穿插的东西与低于桌面的东西（scene/overlaps.js）

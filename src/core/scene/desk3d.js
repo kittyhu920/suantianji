@@ -317,9 +317,9 @@ export async function createDesk(host, { onLost } = {}) {
       cam.k = lerp(from, cam.goal, e);
       applyCam();
       view.version++;
-      if (u >= 1) { cam.ticker = null; return false; }
+      if (u >= 1) { cam.ticker = null; shadowDirty = true; return false; }
       return true;
-    });
+    }, { quiet: true });
   }
 
   /**
@@ -370,7 +370,7 @@ export async function createDesk(host, { onLost } = {}) {
       set(lerp(from, cam.fgoal, e));
       if (u >= 1) { cam.fticker = null; return false; }
       return true;
-    });
+    }, { quiet: true });
   }
 
   /** 世界点 → 画布上的 CSS 像素 */
@@ -400,10 +400,16 @@ export async function createDesk(host, { onLost } = {}) {
   let last = 0;
   let disposed = false;
   let lastFrameAt = 0;
+  // 阴影贴图（VSM，2048²，还要模糊两遍）只在有东西动了、灯变了才重画；只动镜头与压暗的帧（quiet 的 ticker）不重画
+  let shadowDirty = true;
+  const quiet = new Set();
+  const beforeRender = new Set(); // 每次画之前（含预热编译）先跑一遍：器物的灯数量补平（见 pieces/index.js 的 ballast）
   const stats = { frames: 0, idleFrames: 0, since: performance.now(), ms: [] };
 
   function renderNow() {
-    renderer.shadowMap.needsUpdate = true;
+    for (const f of beforeRender) f();
+    renderer.shadowMap.needsUpdate = shadowDirty;
+    shadowDirty = false;
     const t0 = performance.now();
     renderer.render(scene, camera);
     stats.frames++;
@@ -418,25 +424,33 @@ export async function createDesk(host, { onLost } = {}) {
     if (disposed || document.hidden) return;
     const dt = Math.min(0.05, (now - (last || now)) / 1000);
     last = now;
-    for (const f of [...tickers]) if (f(dt) === false) tickers.delete(f);
+    for (const f of [...tickers]) {
+      if (!quiet.has(f)) shadowDirty = true;
+      if (f(dt) === false) { tickers.delete(f); quiet.delete(f); }
+    }
     if (dirty || tickers.size) renderNow();
-    if (tickers.size || dirty) raf = requestAnimationFrame(tick);
+    // 回调里又 addTicker / invalidate 时 raf 已经排好了：只留一条 rAF 链（以前这里会再排一条，链越攒越多，一帧里画好几遍）
+    if (tickers.size || dirty) { if (!raf) raf = requestAnimationFrame(tick); }
     else last = 0;
   }
-  function invalidate() {
+  /** 请求画一帧。shadow 为假时说明这一帧只是镜头动了，阴影贴图不用重画 */
+  function invalidate(shadow = true) {
+    if (shadow !== false) shadowDirty = true;
     dirty = true;
     if (!raf && !disposed) raf = requestAnimationFrame(tick);
   }
-  /** 加一个每帧回调：返回 false 即停；回调在跑的时候每帧都画 */
-  function addTicker(f) {
+  /** 加一个每帧回调：返回 false 即停；回调在跑的时候每帧都画。opt.quiet：这个回调只动镜头与压暗，不改变阴影 */
+  function addTicker(f, opt) {
     tickers.add(f);
+    if (opt?.quiet) quiet.add(f);
     if (!raf && !disposed) { last = 0; raf = requestAnimationFrame(tick); }
-    return () => tickers.delete(f);
+    return () => { tickers.delete(f); quiet.delete(f); };
   }
   /** 立刻画一帧（物理在自己的 rAF 里推进，推进完直接画，不再等下一帧） */
   function frameNow() {
     if (disposed || document.hidden) return;
     if (performance.now() - lastFrameAt < 4) return;
+    shadowDirty = true;
     renderNow();
   }
   const onVis = () => { if (!document.hidden) invalidate(); };
@@ -457,6 +471,29 @@ export async function createDesk(host, { onLost } = {}) {
     });
   }
   const offTheme = onTheme((t) => goTheme(t === 'dark'));
+
+  /* ───────── 着色器预热 ───────── */
+  // three 的着色器在第一次画到它的时候才链接，链接会卡住主线程（实测进卷 0.7 秒、进命书 0.45 秒、摇签 0.08 秒）。
+  // 空闲时把场景里所有材质（含现在看不见的：筊杯、签条、命书的纸）都编译好；灯的阴影数量也在程序的参数里，
+  // 昼（窗光投影）、夜（灯投影）、昼夜交替中（两盏都投）各编一遍，切换主题时不会整桌重编。分几次做，每次一种，不占满空闲
+  function prewarm() {
+    let warmed = 0;
+    const states = [[lamp.castShadow, win.castShadow], [false, true], [true, false], [true, true]].filter((a, i, all) => all.findIndex((b) => b[0] === a[0] && b[1] === a[1]) === i);
+    const idle = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 300));
+    return new Promise((resolve) => {
+      const run = () => {
+        if (disposed) { resolve(); return; }
+        const keep = [lamp.castShadow, win.castShadow];
+        const [l, w] = states[warmed++];
+        lamp.castShadow = l;
+        win.castShadow = w;
+        for (const f of beforeRender) f();
+        try { renderer.compile(scene, camera); } catch (e) { console.warn('[desk] 预热着色器失败', e); } finally { lamp.castShadow = keep[0]; win.castShadow = keep[1]; }
+        if (warmed < states.length) idle(run); else resolve();
+      };
+      idle(run);
+    });
+  }
 
   /* ───────── 位姿：平滑逼近目标 ───────── */
   // pose = { x, y, z, ry, s }：目标改了就让它指数逼近；到位即停
@@ -521,6 +558,8 @@ export async function createDesk(host, { onLost } = {}) {
     get rect() { return canvasEl.getBoundingClientRect(); },
     setTheme: goTheme,
     fit,
+    prewarm,
+    beforeRender,
     // 之后由 book3d / pieces 填入
     book: null,
     pieces: {},

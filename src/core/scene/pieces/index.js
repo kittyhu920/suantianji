@@ -59,6 +59,14 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
     const h = HOME[j.id];
     piece.pose = desk.poser(wrap, { x: h.x, z: h.z, ry: h.ry, s: HOME_S[j.id] ?? 1 });
     piece.pose.onMove = () => { wrap.visible = piece.pose.P.s > 0.02; };
+    // 灯的数量是着色器程序的参数之一：器物收起（wrap 不可见）时它里面的灯不再被 three 计入，全桌的材质都要重新编译（实测进别的卷时卡 0.7 秒）。
+    // 所以器物每有一盏灯，就在场景里放一盏光强为 0 的“补位灯”，器物收起时亮出来（计数），器物出现时收起，灯的总数始终不变
+    let lights = 0;
+    piece.group.traverse((o) => { if (o.isLight) lights++; });
+    if (lights) {
+      const ballast = Array.from({ length: lights }, () => { const l = new THREE.PointLight(0xffffff, 0, 1, 2); l.visible = false; desk.root.add(l); return l; });
+      desk.beforeRender.add(() => { const on = !wrap.visible; for (const l of ballast) l.visible = on; });
+    }
     piece.lift = 0; // 悬停的抬起，0..1
     piece.glow = (v) => { piece.lift = v * 0.7; setLiftGlow(piece); desk.invalidate(); }; // 键盘焦点：亮起来
     // 灯下发亮：所有标准材质带一点暖色的自发光，悬停时拉起来

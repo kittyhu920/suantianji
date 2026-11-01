@@ -78,8 +78,14 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
   // 纸：每张一份网格（正反面共用顶点）
   const grid = sheetGrid(W, H, COLS, ROWS, true); // 书是右装、镜像摆的（book3d.js）：uv 的 u 翻过来，字才是正的
 
+  // 纹理按画布缓存：Reader 每画好一页就先传到显卡（stage），摊开时 setSheets 直接用现成的；
+  // 以前 setSheets 一口气传完十来页（每页 900×1260），主线程在进命书的第一帧卡 0.3 秒以上
+  const staged = new WeakMap();
   function makeTexture(cv) {
+    const hit = staged.get(cv);
+    if (hit) return hit;
     const tex = new THREE.CanvasTexture(cv);
+    staged.set(cv, tex);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = desk.renderer.capabilities.getMaxAnisotropy() >= 8 ? 8 : desk.renderer.capabilities.getMaxAnisotropy();
     return tex;
@@ -182,6 +188,28 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
   };
   desk.listeners.add(tint);
 
+  // 常驻的几份“模子”（看不见）：命书的纸每次摊开才建、收起就销毁，着色器程序只剩纸用着，纸一销毁 three 就把程序释放，
+  // 下次摊开又要重新链接（实测 0.45 秒的卡顿）。这几份一直拿着程序（desk.prewarm 空闲时把它们编译好）：
+  // 正面、背面、扉页（带“只有纸”的底）三种材质，各按“静着（接影）”与“正在翻（投影、不接影）”两种形态
+  const keepers = (() => {
+    const dummy = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    dummy.colorSpace = THREE.SRGBColorSpace;
+    dummy.needsUpdate = true;
+    const veil = { tex: dummy, body: { value: 1 }, title: { value: 1 } };
+    const list = [paperMaterial(dummy, dummy, THREE.FrontSide, null), paperMaterial(dummy, dummy, THREE.BackSide, null), paperMaterial(dummy, dummy, THREE.FrontSide, veil)];
+    const geo = new THREE.PlaneGeometry(1, 1);
+    const out = [];
+    for (const m of list) for (const recv of [true, false]) {
+      const o = new THREE.Mesh(geo, m);
+      o.visible = false;
+      o.receiveShadow = recv;
+      o.castShadow = !recv;
+      scene.add(o);
+      out.push(o);
+    }
+    return out;
+  })();
+
   /* ───────── 动起来：借桌子的渲染循环 ───────── */
   function request() {
     if (disposed) return;
@@ -231,6 +259,13 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
     get count() { return sheets.length; },
     get list() { return sheets; }, // 调试用
 
+    /** 一页画好了：纹理先上传（一页约 10 毫秒），别等摊开时一口气传完。画布重画过就重传 */
+    stage(cv) {
+      if (disposed || !cv) return;
+      const t = makeTexture(cv);
+      t.needsUpdate = true;
+      desk.renderer.initTexture(t);
+    },
     /** 设置全部纸的纹理画布：[{ front, back, veil? }]（Reader 画好的）；veil 是第一张纸正面的"只有纸"的底 */
     setSheets(list, lastSpread = list.length) {
       limit = lastSpread;
@@ -371,6 +406,7 @@ export function createSheets(desk, parent, { z0r = 9, z0l = 13, stack = 32 } = {
       api.clear();
       edgeMat.map.dispose();
       edgeMat.dispose();
+      for (const o of keepers) { scene.remove(o); o.material.dispose(); }
       for (const k of ['R', 'L']) for (const m of edges[k]) { scene.remove(m); m.geometry.dispose(); }
     },
   };
