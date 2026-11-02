@@ -42,7 +42,7 @@
 
 {#snippet desk()}
   {#if deskState.on}
-    <div class="piece-slot is-qian" id="tube-wrap" use:slot={{ id: 'qian', at: [0.5, 0.5] }}>
+    <div class="piece-slot is-qian" id="tube-wrap" use:slot={{ id: 'qian', at: [0.5, 0.74] }}>
       <button class="tube proxy" id="tube" use:rig aria-label="签筒：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃"></button>
     </div>
   {:else}
@@ -62,7 +62,7 @@
   {/if}
 {/snippet}
 
-<Spread hint={note} {desk}>
+<Spread dim={!!S.signShown} hint={note} {desk}>
   {#snippet act()}
     {#if S.signShown && S.sign}<button class="btn btn-primary" id="btn-to-jiao" onclick={game.enterJiao}>掷筊请示</button>{/if}
   {/snippet}

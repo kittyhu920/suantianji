@@ -36,7 +36,7 @@
   </div>
 {/snippet}
 
-<Spread hint="看过卦象与卦辞，可以“受卦”，也可以不认，再起一卦。白话解读与建议，我写进命书里。" {desk}>
+<Spread dim hint="看过卦象与卦辞，可以“受卦”，也可以不认，再起一卦。白话解读与建议，我写进命书里。" {desk}>
   {#snippet act()}
     <button class="btn btn-pair" id="btn-recast" onclick={game.recast}>{recastLabel}</button>
     <button class="btn btn-pair" id="btn-accept" onclick={game.accept}>受卦</button>

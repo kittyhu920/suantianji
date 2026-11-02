@@ -59,6 +59,14 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
     const h = HOME[j.id];
     piece.pose = desk.poser(wrap, { x: h.x, z: h.z, ry: h.ry, s: HOME_S[j.id] ?? 1 });
     piece.pose.onMove = () => { wrap.visible = piece.pose.P.s > 0.02; };
+    // 灯的数量是着色器程序的参数之一：器物收起（wrap 不可见）时它里面的灯不再被 three 计入，全桌的材质都要重新编译（实测进别的卷时卡 0.7 秒）。
+    // 所以器物每有一盏灯，就在场景里放一盏光强为 0 的“补位灯”，器物收起时亮出来（计数），器物出现时收起，灯的总数始终不变
+    let lights = 0;
+    piece.group.traverse((o) => { if (o.isLight) lights++; });
+    if (lights) {
+      const ballast = Array.from({ length: lights }, () => { const l = new THREE.PointLight(0xffffff, 0, 1, 2); l.visible = false; desk.root.add(l); return l; });
+      desk.beforeRender.add(() => { const on = !wrap.visible; for (const l of ballast) l.visible = on; });
+    }
     piece.lift = 0; // 悬停的抬起，0..1
     piece.glow = (v) => { piece.lift = v * 0.7; setLiftGlow(piece); desk.invalidate(); }; // 键盘焦点：亮起来
     // 灯下发亮：所有标准材质带一点暖色的自发光，悬停时拉起来
@@ -181,6 +189,34 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
     const r = RITUAL[id] ?? { x: 0, z: 14, s: 1 };
     p.pose.to({ x: r.x, y: 0, z: r.z, ry: 0, s: r.s }, 4.5);
   }
+  /** 压暗一件器物（玩家这一步要动的不是它）：v 为 0..1，颜色向暗处靠，约 0.3 秒淡入淡出。id 为空时全部恢复 */
+  const dimGoal = {};
+  let dimTicker = null;
+  function dim(id, v = 1) {
+    for (const k of Object.keys(list)) dimGoal[k] = k === id ? v : 0;
+    if (dimTicker) return;
+    dimTicker = desk.addTicker((dt) => {
+      let more = false;
+      for (const [k, p] of Object.entries(list)) {
+        const g = dimGoal[k] ?? 0;
+        const cur = p.dimV ?? 0;
+        if (Math.abs(g - cur) < 0.01) { if (cur !== g) { p.dimV = g; paintDim(p); } continue; }
+        p.dimV = cur + (g - cur) * Math.min(1, dt * 9);
+        paintDim(p);
+        more = true;
+      }
+      if (!more) { dimTicker = null; return false; }
+      return true;
+    }, { quiet: true });
+  }
+  function paintDim(p) {
+    const f = 1 - 0.55 * (p.dimV ?? 0);
+    for (const m of p.glows) {
+      if (!m.color) continue;
+      m.userData.c0 ??= m.color.clone();
+      m.color.copy(m.userData.c0).multiplyScalar(f);
+    }
+  }
   /** 收起一件器物（它的位置由别的东西占了，比如刻辞屏上摆的是刻好辞的甲） */
   function hide(id) {
     const p = list[id];
@@ -263,7 +299,7 @@ export function createPieces(desk, juans, { onOpen, onHover } = {}) {
   cv.addEventListener('pointerleave', onLeave);
 
   return {
-    list, setHover, toHome, toRitual, toAway, place, park, settle, hide,
+    list, setHover, toHome, toRitual, toAway, place, park, settle, hide, dim,
     get mode() { return mode; },
     get active() { return activeId ? list[activeId] : null; },
     get hoverId() { return hoverId; },

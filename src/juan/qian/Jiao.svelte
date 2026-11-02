@@ -115,7 +115,7 @@
   </div>
 {/snippet}
 
-<Spread hint={J.note} {desk}>
+<Spread dim hint={J.note} {desk}>
   {#snippet act()}
     {#if J.mode === 'choose'}
       <button class="btn btn-pair" id="btn-reroll" disabled={J.busy} onclick={game.reroll}>{J.reroll}</button>

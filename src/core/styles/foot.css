@@ -89,6 +89,43 @@
 .btn.btn-pair { min-width: 12em; }
 .bench-slot .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
 
+/* ───────── 焦点：这一步该点的东西亮着，别的退后（docs/DESIGN.md §19“构图：谁是焦点”）───────── */
+.seal-xl { --s: 128px; }
+.slot-ghost { display: none; }
+/* 可以点的主操作：底下一团暖光；禁用时（还没选木牌的“定”）灭掉，选好才亮起 */
+.bench-slot::before {
+  content: ""; position: absolute; inset: -26px -46px; z-index: -1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 222, 170, .26), rgba(255, 222, 170, 0));
+  opacity: 0; transition: opacity .4s;
+}
+.bench-slot:not(:has(:disabled)):not(:empty)::before { opacity: 1; }
+/* 入口屏：朱印放大、居中，成为整张桌子的焦点；题语在它下面。四周压暗（stage 外壳上的 data-hero，见下） */
+.bench-slot.is-hero { bottom: auto; top: 55%; transform: translate(-50%, -50%); flex-direction: column; flex-wrap: nowrap; gap: 18px; }
+.bench-slot.is-hero::before {
+  inset: -80px -130px -60px;
+  background: radial-gradient(closest-side, rgba(255, 228, 180, .38), rgba(255, 228, 180, .12) 58%, rgba(255, 228, 180, 0));
+  animation: hero-glow 3.8s ease-in-out infinite;
+}
+@keyframes hero-glow { 50% { transform: scale(1.07); } }
+@media (max-width: 959px) { .bench-slot.is-hero { top: 46%; } .seal-xl { --s: 104px; } }
+@media (max-height: 820px) { .seal-xl { --s: 108px; } .bench-slot.is-hero { top: 59%; gap: 14px; } }
+.hero-line { margin: 0; font-family: var(--f-display); font-size: 24px; letter-spacing: .2em; color: var(--ink); text-align: center; }
+.shell[data-hero] .table::after {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: radial-gradient(ellipse 54% 58% at 50% 55%, rgba(6, 4, 2, 0) 28%, rgba(6, 4, 2, .62) 100%);
+  animation: hero-in .7s ease-out both;
+}
+@keyframes hero-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bench-slot.is-hero::before { animation: none; } .shell[data-hero] .table::after { animation: none; } }
+/* 择域：还没选木牌时，木牌是焦点（轻轻起伏），纸笺退后；选了之后纸笺亮起来，“定”也亮 */
+.ask-sheet { transition: opacity .4s, filter .4s; }
+.ask-sheet.is-wait { opacity: .5; filter: saturate(.6); }
+.desk .slips.is-needed .slip { animation: slip-call 2.6s ease-in-out infinite; }
+.desk .slips.is-needed .slip:nth-child(2) { animation-delay: .3s; }
+.desk .slips.is-needed .slip:nth-child(3) { animation-delay: .6s; }
+@keyframes slip-call { 50% { transform: translateY(-6px); filter: brightness(1.14); } }
+@media (prefers-reduced-motion: reduce) { .desk .slips.is-needed .slip { animation: none; } }
+
 /* ───────── 图例：收进一张纸笺（掷筊的规矩、一爻怎么算） ───────── */
 .legend-plaque {
   --ink: #1b1712;

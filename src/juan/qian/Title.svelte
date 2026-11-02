@@ -9,12 +9,10 @@
 </script>
 
 {#snippet desk()}
-  <figure class="idle-piece">
-    {#if deskState.on}<div class="piece-slot is-qian" use:slot={{ id: 'qian', at: [0.5, 0.5] }}></div>{:else}<div class="idle-art"><Instrument id="qian" /></div>{/if}
-    <figcaption>你求签，我算你</figcaption>
-  </figure>
+  <!-- 入口：桌面正中是朱印“问”（焦点），签筒退到左下角（at3d），四周压暗 -->
+  {#if deskState.on}<span class="slot-ghost" use:slot={{ id: 'qian', at3d: [-40, 21], s: 0.95 }}></span>{:else}<div class="idle-art is-corner"><Instrument id="qian" /></div>{/if}
 {/snippet}
 
-<Spread hint="点下面朱红的“问”字印开始。全程约两分钟，建议打开声音。通灵开关、源流与关于，在上面的天头栏里。" {desk}>
-  {#snippet act()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal>{/snippet}
+<Spread hero dim hint="点桌面正中朱红的“问”字印开始。全程约两分钟，建议打开声音。通灵开关、源流与关于，在上面的天头栏里。" {desk}>
+  {#snippet act()}<Seal size="xl" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>问</Seal><p class="hero-line">你求签，我算你</p>{/snippet}
 </Spread>

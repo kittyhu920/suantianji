@@ -9,12 +9,9 @@
 </script>
 
 {#snippet desk()}
-  <figure class="idle-piece">
-    {#if deskState.on}<div class="piece-slot is-bu" use:slot={{ id: 'bu', at: [0.5, 0.36] }}></div>{:else}<div class="idle-art"><Instrument id="bu" /></div>{/if}
-    <figcaption>你灼龟，我读兆</figcaption>
-  </figure>
+  {#if deskState.on}<span class="slot-ghost" use:slot={{ id: 'bu', at3d: [-38, 18], s: 1.15 }}></span>{:else}<div class="idle-art is-corner"><Instrument id="bu" /></div>{/if}
 {/snippet}
 
-<Spread hint="点下面朱红的“卜”字印开始。三千多年前的殷墟，人们在甲骨上占卜；我替你备了一块龟腹甲，按住钻凿来灼，看裂出的兆。全程约三分钟，建议打开声音。" {desk}>
-  {#snippet act()}<Seal size="md" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>卜</Seal>{/snippet}
+<Spread hero dim hint="点桌面正中朱红的“卜”字印开始。三千多年前的殷墟，人们在甲骨上占卜；我替你备了一块龟腹甲，按住钻凿来灼，看裂出的兆。全程约三分钟，建议打开声音。" {desk}>
+  {#snippet act()}<Seal size="xl" id="btn-enter" aria-describedby="bot-hint" onclick={game.begin}>卜</Seal><p class="hero-line">你灼龟，我读兆</p>{/snippet}
 </Spread>

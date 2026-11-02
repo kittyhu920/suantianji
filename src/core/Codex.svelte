@@ -168,6 +168,13 @@
     if (phase !== 'home') tip = null;
     lastPhase3d = phase;
   });
+  // 这一屏器物不是玩家要动的东西：压暗一档（3D；2D 见 desk.css 的 .is-dim）。换屏、离开仪式时恢复
+  $effect(() => {
+    if (!gl) return;
+    const pieces = deskRef.pieces;
+    if (!pieces) return;
+    pieces.dim(phase === 'ritual' && juan ? juan.id : null, phase === 'ritual' && cur?.dim ? 1 : 0);
+  });
   $effect(() => {
     if (!gl || phase === 'reading') return; // 读命书时，封面由摊开的演出管（book3d.js 的 beginReading）
     deskRef.book?.setLift(lift);
@@ -352,7 +359,7 @@
   });
 </script>
 
-<div class="shell" data-phase={phase} data-reader={readerOn ? (bookClosed ? 'closed' : 'on') : 'off'} class:is-narrow={narrow} class:is-gl={gl}>
+<div class="shell" data-phase={phase} data-hero={phase === 'ritual' && cur?.hero ? '' : undefined} data-reader={readerOn ? (bookClosed ? 'closed' : 'on') : 'off'} class:is-narrow={narrow} class:is-gl={gl}>
   {#if page.kind === 'home' || juan}<h1 class="visually-hidden">{juan ? `演算天机　${juan.name}卷　${juan.title}` : '演算天机　书桌'}</h1>{/if}
   <header class="topbar">
     {#if juan}
@@ -420,7 +427,7 @@
 
       <!-- 仪式：器物摆在桌面的中前部 -->
       <div class="desk" aria-label="桌上" inert={phase !== 'ritual'}>
-        <div class="desk-items">{#if cur?.desk}{@render cur.desk()}{/if}</div>
+        <div class="desk-items" class:is-dim={cur?.dim}>{#if cur?.desk}{@render cur.desk()}{/if}</div>
       </div>
     </div>
 
@@ -460,7 +467,7 @@
     {/if}
 
     {#if phase === 'ritual' && cur?.act}
-      <BenchSlot>{@render cur.act()}</BenchSlot>
+      <BenchSlot hero={!!cur.hero}>{@render cur.act()}</BenchSlot>
     {/if}
 
     {#if phase === 'doc' && mounted}

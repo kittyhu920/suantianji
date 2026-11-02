@@ -52,6 +52,7 @@
       const g = veil.getContext('2d');
       g.setTransform(scale(), 0, 0, scale(), 0, 0);
       ground(g, 1000, 'L'); // 右装：扉页在左边，订口在它的右侧
+      engine.stage?.(veil);
     }
     engine.setSheets(Array.from({ length: total / 2 }, (_, i) => ({ front: cvs[2 * i], back: cvs[2 * i + 1], veil: i === 0 ? veil : null })), real >> 1);
     if (spread) engine.setSpread(spread);
@@ -90,6 +91,7 @@
       cvs[k] = cv;
       sigs[k] = sig;
       changed.push(k);
+      if (mode === 'gl') engine?.stage?.(cv); // 纹理边画边传，摊开时不再一口气上传
       loaded = k + 1;
       await frame(); // 一页一页画，不堵住主线程
       if (my !== token || dead) return;

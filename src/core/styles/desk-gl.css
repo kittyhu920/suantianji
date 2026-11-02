@@ -59,7 +59,7 @@
 .ledger-plane .led { margin: 0 0 .3em; line-height: 1.22; letter-spacing: 0; -webkit-text-stroke: .35px #1b1712; paint-order: stroke fill; }
 .ledger-plane .ink-ch { animation-duration: .5s; }
 /* 3D 的桌面是亮的木面：直接写在木头上的字看不清，所以桌上的说明与记录都写在摊在桌上的纸笺上（墨色、宣纸底） */
-.table.is-gl .desk-items :where(.jiao-legend, .jiao-tally, .cast-legend, .cast-hex, .zhuo-side:has(> *), .jiao-sign, .ming-line, .idle-piece figcaption, .jie-earlier) {
+.table.is-gl .desk-items :where(.jiao-legend, .jiao-tally, .cast-legend, .cast-hex, .zhuo-side:has(> *), .jiao-sign, .ming-line, .idle-piece figcaption, .jie-earlier), .table.is-gl .bench-slot .hero-line {
   --ink: #1b1712; --ink-rgb: 27, 23, 18;
   --ink-soft: rgba(27, 23, 18, .84); --ink-dim: rgba(27, 23, 18, .7); --ink-faint: rgba(27, 23, 18, .18);
   --cinnabar-hi: #b3261f;
@@ -71,7 +71,7 @@
   transform: rotate(-.5deg);
 }
 .table.is-gl .desk-items :where(.jiao-tally, .cast-hex, .zhuo-side:has(> *)) { transform: rotate(.6deg); }
-.table.is-gl .desk-items :where(.jiao-sign, .ming-line, .idle-piece figcaption) { padding: 6px 16px 8px; }
+.table.is-gl .desk-items :where(.jiao-sign, .ming-line, .idle-piece figcaption), .table.is-gl .bench-slot .hero-line { padding: 6px 16px 8px; }
 .table.is-gl .desk-items .jiao-labels span { color: var(--ink); }
 .table.is-gl .desk-items :where(.jiao-legend, .cast-legend) b { color: var(--ink); }
 

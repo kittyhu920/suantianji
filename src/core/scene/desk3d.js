@@ -241,19 +241,36 @@ export async function createDesk(host, { onLost } = {}) {
   }
   // 读命书的机位：书摊开在桌子中央，机位比看桌子时更陡、更近（由 book3d 给出摊开的书占的几个点）
   const cam = { k: 0, goal: 0, rd: null, ticker: null, ext: { sx: 1, sz: 1 }, f: 0, fgoal: 0, fticker: null, focus: null }; // f：聚焦的程度 0..1（见 focusTo）
-  const READ = { elev: (63 * Math.PI) / 180, band: { x: 0.9, ylo: -0.6, yhi: 0.84 } };
-  // 读命书的机位里，桌面要铺满天头栏到页脚之间的整个画面（书以外全是桌面，不露桌外的背景，也不露桌角）：
-  // 相机推近时，桌子的木面向四周长大（只长桌面，厚度不变），长到把画布四角落在桌面上的点都包进去
+  // 读命书是正俯视（89.5°，差半度只为 lookAt 不退化）：书与桌面在画面里都是矩形，没有上窄下宽；翻页的立体感靠光影与卷曲，不靠透视
+  const READ = { elev: (89.5 * Math.PI) / 180, band: { x: 0.93, ylo: -0.91, yhi: 0.91 } };
+  // 桌面随镜头长大，始终铺满画面（书以外全是桌面，推近、俯下去的整个过程里都不露出桌沿与桌外的背景）：
+  // 每帧把画布四角用射线落到桌面（y = 0），桌面在 x、z 上放大到刚好包住它们（只长桌面，厚度不变），再留一点余量（倒角、圆角）；
+  // 余量与放大都随推近的程度渐入，所以看桌子的机位（k = 0）完全不变
   function applyExt(k) {
-    const e = cam.rd && k > 0 ? (() => { const u = Math.min(1, k * 1.5); return u * u * (3 - 2 * u); })() : 0;
-    const sx = lerp(1, cam.ext.sx, e);
-    const sz = lerp(1, cam.ext.sz, e);
+    let sx = 1;
+    let sz = 1;
+    if (cam.rd && k > 0.001) {
+      let mx = 0;
+      let mz = 0;
+      for (const [nx, ny] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        ndc.set(nx, ny);
+        ray.setFromCamera(ndc, camera);
+        floorPlane.constant = 0;
+        const hit = ray.ray.intersectPlane(floorPlane, hitTmp);
+        if (hit) { mx = Math.max(mx, Math.abs(hit.x)); mz = Math.max(mz, Math.abs(hit.z)); } else { mx = mz = 9999; }
+      }
+      const u = Math.min(1, k * 8);
+      const m = 4 * u;
+      sx = 1 + (Math.max(1, (mx + m) / (TABLE.w / 2)) - 1) * u;
+      sz = 1 + (Math.max(1, (mz + m) / (TABLE.d / 2)) - 1) * u;
+      if (!(sx < 8) || !(sz < 8)) { sx = Math.min(sx, 8); sz = Math.min(sz, 8); }
+    }
     table.scale.set(sx, 1, sz);
     under.scale.set(TABLE.w * 1.28 * sx, TABLE.d * 1.4 * sz, 1);
   }
+  const hitTmp = new THREE.Vector3();
   function applyCam() {
     const k = cam.k;
-    applyExt(k);
     let tg = target;
     let dist = distance;
     let elev = ELEV;
@@ -269,6 +286,7 @@ export async function createDesk(host, { onLost } = {}) {
       elev = lerp(elev, cam.focus.elev, cam.f);
     }
     place(tg, dist, elev);
+    applyExt(k);
   }
   function fit() {
     W = Math.max(1, host.clientWidth);
@@ -284,19 +302,7 @@ export async function createDesk(host, { onLost } = {}) {
     if (pts) {
       const rr = frame(pts, READ.elev, READ.band, new THREE.Vector3(0, 0, 0), distance * 0.7);
       cam.rd = { tg: rr.tg, dist: rr.dist, elev: READ.elev };
-      // 读命书机位下，画布四角落在桌面（y = 0）上的点：桌面要把它们都包进去，留一点余量（倒角、圆角）
-      place(rr.tg, rr.dist, READ.elev);
-      let mx = 0;
-      let mz = 0;
-      for (const [nx, ny] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-        ndc.set(nx, ny);
-        ray.setFromCamera(ndc, camera);
-        floorPlane.constant = 0;
-        const hit = ray.ray.intersectPlane(floorPlane, new THREE.Vector3());
-        if (hit) { mx = Math.max(mx, Math.abs(hit.x)); mz = Math.max(mz, Math.abs(hit.z)); }
-      }
-      cam.ext = { sx: Math.max(1, (mx + 4) / (TABLE.w / 2)), sz: Math.max(1, (mz + 4) / (TABLE.d / 2)) };
-    } else cam.ext = { sx: 1, sz: 1 };
+    }
     applyCam();
     view.version++;
     invalidate();
@@ -317,9 +323,9 @@ export async function createDesk(host, { onLost } = {}) {
       cam.k = lerp(from, cam.goal, e);
       applyCam();
       view.version++;
-      if (u >= 1) { cam.ticker = null; return false; }
+      if (u >= 1) { cam.ticker = null; shadowDirty = true; return false; }
       return true;
-    });
+    }, { quiet: true });
   }
 
   /**
@@ -370,7 +376,7 @@ export async function createDesk(host, { onLost } = {}) {
       set(lerp(from, cam.fgoal, e));
       if (u >= 1) { cam.fticker = null; return false; }
       return true;
-    });
+    }, { quiet: true });
   }
 
   /** 世界点 → 画布上的 CSS 像素 */
@@ -400,10 +406,16 @@ export async function createDesk(host, { onLost } = {}) {
   let last = 0;
   let disposed = false;
   let lastFrameAt = 0;
+  // 阴影贴图（VSM，2048²，还要模糊两遍）只在有东西动了、灯变了才重画；只动镜头与压暗的帧（quiet 的 ticker）不重画
+  let shadowDirty = true;
+  const quiet = new Set();
+  const beforeRender = new Set(); // 每次画之前（含预热编译）先跑一遍：器物的灯数量补平（见 pieces/index.js 的 ballast）
   const stats = { frames: 0, idleFrames: 0, since: performance.now(), ms: [] };
 
   function renderNow() {
-    renderer.shadowMap.needsUpdate = true;
+    for (const f of beforeRender) f();
+    renderer.shadowMap.needsUpdate = shadowDirty;
+    shadowDirty = false;
     const t0 = performance.now();
     renderer.render(scene, camera);
     stats.frames++;
@@ -418,25 +430,33 @@ export async function createDesk(host, { onLost } = {}) {
     if (disposed || document.hidden) return;
     const dt = Math.min(0.05, (now - (last || now)) / 1000);
     last = now;
-    for (const f of [...tickers]) if (f(dt) === false) tickers.delete(f);
+    for (const f of [...tickers]) {
+      if (!quiet.has(f)) shadowDirty = true;
+      if (f(dt) === false) { tickers.delete(f); quiet.delete(f); }
+    }
     if (dirty || tickers.size) renderNow();
-    if (tickers.size || dirty) raf = requestAnimationFrame(tick);
+    // 回调里又 addTicker / invalidate 时 raf 已经排好了：只留一条 rAF 链（以前这里会再排一条，链越攒越多，一帧里画好几遍）
+    if (tickers.size || dirty) { if (!raf) raf = requestAnimationFrame(tick); }
     else last = 0;
   }
-  function invalidate() {
+  /** 请求画一帧。shadow 为假时说明这一帧只是镜头动了，阴影贴图不用重画 */
+  function invalidate(shadow = true) {
+    if (shadow !== false) shadowDirty = true;
     dirty = true;
     if (!raf && !disposed) raf = requestAnimationFrame(tick);
   }
-  /** 加一个每帧回调：返回 false 即停；回调在跑的时候每帧都画 */
-  function addTicker(f) {
+  /** 加一个每帧回调：返回 false 即停；回调在跑的时候每帧都画。opt.quiet：这个回调只动镜头与压暗，不改变阴影 */
+  function addTicker(f, opt) {
     tickers.add(f);
+    if (opt?.quiet) quiet.add(f);
     if (!raf && !disposed) { last = 0; raf = requestAnimationFrame(tick); }
-    return () => tickers.delete(f);
+    return () => { tickers.delete(f); quiet.delete(f); };
   }
   /** 立刻画一帧（物理在自己的 rAF 里推进，推进完直接画，不再等下一帧） */
   function frameNow() {
     if (disposed || document.hidden) return;
     if (performance.now() - lastFrameAt < 4) return;
+    shadowDirty = true;
     renderNow();
   }
   const onVis = () => { if (!document.hidden) invalidate(); };
@@ -457,6 +477,29 @@ export async function createDesk(host, { onLost } = {}) {
     });
   }
   const offTheme = onTheme((t) => goTheme(t === 'dark'));
+
+  /* ───────── 着色器预热 ───────── */
+  // three 的着色器在第一次画到它的时候才链接，链接会卡住主线程（实测进卷 0.7 秒、进命书 0.45 秒、摇签 0.08 秒）。
+  // 空闲时把场景里所有材质（含现在看不见的：筊杯、签条、命书的纸）都编译好；灯的阴影数量也在程序的参数里，
+  // 昼（窗光投影）、夜（灯投影）、昼夜交替中（两盏都投）各编一遍，切换主题时不会整桌重编。分几次做，每次一种，不占满空闲
+  function prewarm() {
+    let warmed = 0;
+    const states = [[lamp.castShadow, win.castShadow], [false, true], [true, false], [true, true]].filter((a, i, all) => all.findIndex((b) => b[0] === a[0] && b[1] === a[1]) === i);
+    const idle = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 300));
+    return new Promise((resolve) => {
+      const run = () => {
+        if (disposed) { resolve(); return; }
+        const keep = [lamp.castShadow, win.castShadow];
+        const [l, w] = states[warmed++];
+        lamp.castShadow = l;
+        win.castShadow = w;
+        for (const f of beforeRender) f();
+        try { renderer.compile(scene, camera); } catch (e) { console.warn('[desk] 预热着色器失败', e); } finally { lamp.castShadow = keep[0]; win.castShadow = keep[1]; }
+        if (warmed < states.length) idle(run); else resolve();
+      };
+      idle(run);
+    });
+  }
 
   /* ───────── 位姿：平滑逼近目标 ───────── */
   // pose = { x, y, z, ry, s }：目标改了就让它指数逼近；到位即停
@@ -521,6 +564,8 @@ export async function createDesk(host, { onLost } = {}) {
     get rect() { return canvasEl.getBoundingClientRect(); },
     setTheme: goTheme,
     fit,
+    prewarm,
+    beforeRender,
     // 之后由 book3d / pieces 填入
     book: null,
     pieces: {},

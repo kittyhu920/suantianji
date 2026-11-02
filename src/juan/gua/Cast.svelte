@@ -42,7 +42,7 @@
     </ul>
   </details>
   {#if deskState.on}
-    <div class="piece-slot is-gua" id="shell-wrap" use:slot={{ id: 'gua', at: [0.5, 0.2] }}>
+    <div class="piece-slot is-gua" id="shell-wrap" use:slot={{ id: 'gua', at: [0.5, 0.5] }}>
       <button class="tube kegui proxy" id="shell" use:rig aria-label="龟壳：按住左右拖动来摇，或按住不动让它自己摇；手机可以直接晃"></button>
     </div>
   {:else}
@@ -66,7 +66,7 @@
   </div>
 {/snippet}
 
-<Spread hint={note} {desk}>
+<Spread dim={!!S.result} hint={note} {desk}>
   {#snippet act()}
     {#if S.result}<Seal size="md" id="btn-jie" aria-label="解卦" onclick={game.toJie}>解</Seal>{/if}
   {/snippet}
