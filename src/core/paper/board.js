@@ -6,12 +6,11 @@
 // mountBoard 按条件选一种，条件变了（窗口跨过 960px、系统设置变了）会换过去。
 //
 // 2D 的做法：把一盘字预先排好、画在离屏画布上，只光栅化这一次；之后只用 CSS 的 transform 把它纵向循环滚动，
-// 静止与滚动时都不逐帧重绘，也不跑 rAF。悬停整盘暂停；点一个字，那里"拓"出一枚小朱印，并洇开一团墨。
+// 静止与滚动时都不逐帧重绘，也不跑 rAF。悬停整盘暂停；点一个字，那一块活字凸起来（放大、加高光与投影，停约 3 秒后落回），不再涂黑。减少动效下只有静止的凸起态。
 //
 // 字从哪来：卷模块的可选字段 zipan（字符串，或返回字符串的函数，见 src/juan/index.js）；
 // 没有的卷（以及卷首目录页、关于页）用《说文》部首。
 
-import { createInk } from '../ink.js';
 import { isDark, onTheme } from '../theme.js';
 import { want3D, reducedQuery, coarseQuery } from '../scene/gate.js';
 import { SHUOWEN_BUSHOU_SHOWN } from './shuowen-bushou.js';
@@ -20,10 +19,8 @@ import { modules } from '../../juan/modules.js';
 
 const FONT = '"Noto Serif SC", "Songti SC", "STSong", serif';
 const SPEED = 9; // 滚动速度，CSS 像素每秒
-const MAX_STAMPS = 8;
-const DARK = [6, 5, 4];
-const WATER = [214, 196, 150];
-const DARK_WASH = [214, 196, 150]; // 深色主题下"墨晕"是一团淡金
+const MAX_LIFTS = 8;
+const LIFT_MS = 3700; // 与 paper.css 里 zp-lift 的时长一致
 // 铅字两套配色：浅色是旧木盒里的铅字（灰褐、暖光）；深色是墨底冷光，偶见泥金
 const TILE_LIGHT = {
   a: '#312c25', b: '#25211b', hi: 'rgba(255, 238, 200, .09)', lo: 'rgba(0, 0, 0, .42)',
@@ -63,13 +60,6 @@ const hash = (n) => { // 确定性的小散列：哪些位置留作"空铅"
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 
-// 点字时洇开的墨与水。深底上，浅色主题的墨晕要比底更黑才看得见；深色主题里是一团淡金
-function boardWash(fx, x, y, R) {
-  const dark = isDark();
-  fx.wash(x, y, { color: dark ? DARK_WASH : DARK, R, a: dark ? 0.34 : 0.9, grow: 0.9, hold: 0.8, fade: 2.2 });
-  fx.ripple(x, y, { color: dark ? DARK_WASH : WATER, r: R, rings: 2, a: dark ? 0.2 : 0.16 }); // 水纹是一圈淡淡的亮痕
-}
-
 function roundRect(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);
@@ -86,15 +76,10 @@ const getChars = async () => (charsCache ??= await pickChars());
 function mount2D(board) {
   const roll = document.createElement('div');
   roll.className = 'zp-roll';
-  const inkCanvas = document.createElement('canvas');
-  inkCanvas.className = 'zp-ink';
-  // 朱印另放一层，盖在墨之上，但与字盘同步滚动（两层用同一段动画，暂停也一起）
-  const stampRoll = document.createElement('div');
-  stampRoll.className = 'zp-roll zp-roll-top';
-  board.append(roll, inkCanvas, stampRoll);
-
-  const reduced = () => reducedQuery.matches;
-  const fx = createInk(inkCanvas, { reduced: reduced() });
+  // 凸起的活字另放一层，盖在字盘之上，但与字盘同步滚动（两层用同一段动画，暂停也一起）
+  const liftRoll = document.createElement('div');
+  liftRoll.className = 'zp-roll zp-roll-top';
+  board.append(roll, liftRoll);
 
   let chars = null;
   let layout = null; // { cell, cols, rows, margin, tileH, cells: [[ch|null]] }
@@ -170,7 +155,7 @@ function mount2D(board) {
     }
     // 下半幅复制上半幅：滚过一个 tileH 之后正好首尾相接
     g.drawImage(cv, 0, 0, cv.width, tileH * dpr, 0, tileH * dpr, cv.width, tileH * dpr);
-    layout = { cell, cols, rows, margin, tileH, cells, W };
+    layout = { cell, slug, cols, rows, margin, tileH, cells, W };
     return cv;
   }
 
@@ -189,8 +174,8 @@ function mount2D(board) {
     cv.style.width = `${Math.round(r.width)}px`;
     cv.style.height = `${layout.tileH * 2}px`;
     roll.replaceChildren(cv);
-    stampRoll.replaceChildren();
-    for (const el of [roll, stampRoll]) {
+    liftRoll.replaceChildren();
+    for (const el of [roll, liftRoll]) {
       el.style.setProperty('--tile-h', `${layout.tileH}px`);
       el.style.setProperty('--roll-dur', `${(layout.tileH / SPEED).toFixed(1)}s`);
       el.classList.add('is-ready');
@@ -204,37 +189,35 @@ function mount2D(board) {
     return new DOMMatrix(t).m42;
   }
 
-  // 点一个字：拓出一枚小朱印，并洇开一团墨
+  // 点一个字：那一块活字凸起来
   function onClick(e) {
     if (!layout) return;
     const b = board.getBoundingClientRect();
     const x = e.clientX - b.left;
     const y = e.clientY - b.top;
-    const { cell, cols, margin, rows, tileH, cells } = layout;
+    const { cell, slug, cols, margin, rows, tileH, cells } = layout;
     const ty = rollOffset();
     const col = Math.min(cols - 1, Math.max(0, Math.floor((x - margin) / cell)));
     const rAbs = Math.floor((y - ty) / cell);
     const ch = cells[((rAbs % rows) + rows) % rows][col];
+    if (!ch) return;
     const cx = margin + col * cell + cell / 2;
     const cyContent = rAbs * cell + cell / 2;
 
-    boardWash(fx, cx, cyContent + ty, cell * 1.7);
-    if (!ch) return;
-
-    // 印放进同步滚动的上层，跟着那一枚铅字一起走；上下两幅各放一枚，循环到头时也在
-    const rot = (Math.random() - 0.5) * 8;
+    // 放进同步滚动的上层，跟着那一枚铅字一起走；上下两幅各放一块，循环到头时也在
     const made = [0, tileH].map((dy) => {
       const s = document.createElement('span');
-      s.className = 'zp-stamp';
-      s.textContent = ch;
-      s.style.cssText = `left:${cx}px;top:${((cyContent % tileH) + tileH) % tileH + dy}px;--rot:${rot.toFixed(1)}deg;--sz:${cell - 6}px`;
+      s.className = 'zp-lift';
+      const g = document.createElement('i');
+      g.textContent = ch;
+      s.append(g);
+      s.style.cssText = `left:${cx}px;top:${((cyContent % tileH) + tileH) % tileH + dy}px;--sz:${slug}px`;
       return s;
     });
-    stampRoll.append(...made);
-    while (stampRoll.children.length > MAX_STAMPS * 2) stampRoll.firstElementChild.remove();
-    const gone = () => made.forEach((s) => s.remove());
-    made[0].addEventListener('animationend', (ev) => { if (ev.animationName === 'zp-fade') gone(); });
-    setTimeout(gone, 9000); // 减少动效下没有动画，也要收掉
+    liftRoll.append(...made);
+    while (liftRoll.children.length > MAX_LIFTS * 2) liftRoll.firstElementChild.remove();
+    // 减少动效下没有动画，也要收掉
+    setTimeout(() => made.forEach((s) => s.remove()), reducedQuery.matches ? 3000 : LIFT_MS);
   }
 
   // 手机上按住暂停（鼠标悬停暂停由 CSS 负责）
@@ -258,7 +241,7 @@ function mount2D(board) {
   onVis();
   render();
 
-  if (new URLSearchParams(location.search).has('debug')) window.__zipan = { fx, get layout() { return layout; }, rollOffset };
+  if (new URLSearchParams(location.search).has('debug')) window.__zipan = { get layout() { return layout; }, rollOffset };
 
   return () => {
     dead = true;
@@ -271,7 +254,6 @@ function mount2D(board) {
     document.removeEventListener('visibilitychange', onVis);
     removeEventListener('resize', onResize);
     offTheme();
-    fx.destroy();
   };
 }
 
@@ -294,23 +276,18 @@ export function mountBoard(board) {
     const chars = await getChars();
     const { createBoard3D } = await import('../scene/board3d.js'); // three.js 的包在这里才下载
     if (dead || id !== ticket) return;
-    const inkCanvas = document.createElement('canvas');
-    inkCanvas.className = 'zp-ink';
-    const fx = createInk(inkCanvas, { reduced: false });
     let scene;
     try {
-      scene = await createBoard3D(board, { chars, debug, wash: (x, y) => boardWash(fx, x, y, 62) });
+      scene = await createBoard3D(board, { chars, debug });
     } catch (e) {
       console.warn('3D 字盘不可用，退回 2D：', e);
-      fx.destroy();
       if (!dead && id === ticket) use2D();
       return;
     }
-    if (dead || id !== ticket) { scene.destroy(); fx.destroy(); return; }
-    board.append(inkCanvas);
+    if (dead || id !== ticket) { scene.destroy(); return; }
     board.addEventListener('zp-gl-lost', fallback);
     mode = '3d';
-    stop = () => { board.removeEventListener('zp-gl-lost', fallback); scene.destroy(); fx.destroy(); };
+    stop = () => { board.removeEventListener('zp-gl-lost', fallback); scene.destroy(); };
   }
 
   function fallback() { ticket++; reset(); use2D(); }
