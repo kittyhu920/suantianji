@@ -3,11 +3,11 @@
 // 一盘有厚度的金属活字：整盘只有一个 InstancedMesh（一份盒子几何、几千个实例），字形来自一张 Canvas 画的反字图集；
 // 字面的凸起用图集的高度做法线（着色器里对图集取差分），边缘的倒角在着色器里弯折法线，所以不为每个字单独建几何体。
 //   鼠标移过：附近几块活字微微抬起（高度按距离衰减、每块略有差别）；
-//   点一下：那一块按下去，原地"拓"出朱印（阴文正字）、洇开一团墨晕（ink.js，由 board.js 传进来）；
+//   点一下：那一块活字高高凸起（比悬停的微抬高两三倍，带弹性：升起略过冲再落到抬起位），停约 2.4 秒后慢慢落回，字面受光更亮；可同时抬起多块；
 //   整盘缓慢向上滚；悬停整盘暂停；页面不可见时停止渲染；静止时停帧。
 //
-// 渲染节奏：有交互动画（抬起、按下）时跟随 rAF；只有漂移（滚动）时降到约 20 帧；
-// 只剩朱印淡出时约 30 帧；什么都不动时一帧不画。dpr 上限 1.5。
+// 渲染节奏：有交互动画（抬起、弹起）时跟随 rAF；只有漂移（滚动）时降到约 20 帧；
+// 只剩凸起保持、回落时约 30 帧；什么都不动时一帧不画。dpr 上限 1.5。
 
 import {
   WebGLRenderer, PerspectiveCamera, Scene, InstancedMesh, BoxGeometry, ShaderMaterial, InstancedBufferAttribute,
@@ -25,7 +25,9 @@ const PITCH = 1;
 const W_TILE = 0.94;
 const LIFT = 0.62;
 const LIFT_R = 3.4;
-const MAX_STAMPS = 8;
+const RAISE = 1.5;       // 点中的活字抬高多少（悬停最多 0.62）
+const RAISE_HOLD = 2.4;  // 抬起后保持多少秒
+const RAISE_FALL = 1.3;  // 慢慢落回用多少秒
 const DPR_MAX = 1.5;
 const LIGHT = [-0.55, -0.15, 0.82];
 
@@ -43,7 +45,7 @@ const PALETTE = {
 
 const VERT = /* glsl */`
   attribute vec4 aCell;   // 图集里这个字的 uv：xy 起点，zw 宽高
-  attribute vec4 aState;  // x 抬起量，y 朱印浓度，z 明暗差，w 泥金标记
+  attribute vec4 aState;  // x 抬起量，y 凸起的亮度，z 明暗差，w 泥金标记
   attribute float aTop;   // 几何自带：1 为顶面
   varying vec2 vFace;
   varying vec2 vAtlas;
@@ -55,7 +57,7 @@ const VERT = /* glsl */`
   varying float vDepth;
   void main() {
     vec3 p = position;
-    p.z += aState.x;
+    p.z += aState.x * (1.0 + position.z); // 底面不动、顶面抬起：活字被拔高，不悬空
     vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
     vN = mat3(modelMatrix) * mat3(instanceMatrix) * normal;
     vW = wp.xyz;
@@ -125,24 +127,14 @@ const FRAG = /* glsl */`
       float shin = mix(18.0, 60.0, mask);
       float sp = pow(max(dot(n, H), 0.0), shin) * (0.35 + 0.9 * mask + 1.1 * edge) * uSpec;
       col = albedo * (uAmb + uLightCol * diff) + uLightCol * sp;
-      // 抬起的块更亮一点（离光近），按下去的更暗
-      col *= 1.0 + vState.x * 0.45;
-
-      // 朱印：阴文正字。把图集的反字沿 x 翻回来，字的地方留纸色，其余是朱
-      if (vState.y > 0.001) {
-        vec2 fl = vCell.xy + vec2(1.0 - vFace.x, vFace.y) * vCell.zw;
-        float m2 = smoothstep(0.3, 0.7, hgt(fl));
-        vec2 inner = smoothstep(0.045, 0.085, d);
-        float box = inner.x * inner.y;
-        vec3 red = vec3(0.70, 0.15, 0.12) * (0.55 + 0.7 * diff) + uLightCol * sp * 0.25;
-        vec3 paper = vec3(0.95, 0.91, 0.82) * (0.7 + 0.4 * diff);
-        vec3 stamp = mix(red, paper, m2 * 0.92);
-        col = mix(col, stamp, vState.y * box);
-      }
+      // 抬起的块更亮一点（离光近）；被点起的再亮一档，字的浮雕更分明
+      col *= 1.0 + min(vState.x, 0.7) * 0.45 + vState.y * 0.3;
+      col += uLightCol * sp * vState.y * 0.5;
     } else {
       vec3 n = normalize(vN);
       float diff = max(dot(n, L), 0.0);
       col = uBody * 0.8 * (uAmb + uLightCol * diff * 0.8);
+      col += uGlyph * (0.14 + 0.5 * diff) * vState.y; // 抬起的侧面：金属受光，别黑成一根柱子
     }
     float fog = smoothstep(uFar * 0.78, uFar * 1.18, vDepth);
     col = mix(col, uFog, fog * 0.7);
@@ -160,10 +152,10 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 /**
  * @param {HTMLElement} board  案（#an-board）
- * @param {{ chars: string[], wash: (x:number,y:number)=>void, debug?: boolean }} opt
+ * @param {{ chars: string[], debug?: boolean }} opt
  * @returns {Promise<{ destroy(): void, stats(): object }>}
  */
-export async function createBoard3D(board, { chars, wash, debug = false }) {
+export async function createBoard3D(board, { chars, debug = false }) {
   const { list, index } = uniqueChars(chars);
   const seqChars = chars.filter((c) => index.has(c));
   const { canvas: atlasCv, side } = buildAtlas(list);
@@ -219,14 +211,12 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   let lift;     // 当前抬起量
   let tone;
   let gold;
-  let stampAge;
-  let pressAge;
+  let raiseAge; // 被点起的块：起了多少秒
   let seq = 0;
   let scroll = 0;
   let curRow = 0;
   const active = new Set();   // 抬起量不为 0 的块
-  const stamps = new Set();   // 正在显示朱印的块
-  const presses = new Set();  // 正在被按下的块
+  const raised = new Set();   // 被点起、还没落回的块
   let hoverCol = -1;
   let hoverRow = -1;
   let hovering = false;
@@ -251,8 +241,8 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       const gi = glyphIdx[i];
       const [u, v, du, dv] = gi >= 0 ? cellUv(gi, side) : [0, 0, 0, 0];
       cellA[i * 4] = u; cellA[i * 4 + 1] = v; cellA[i * 4 + 2] = du; cellA[i * 4 + 3] = dv;
-      st[i * 4] = lift[i] + pressOffset(i);
-      st[i * 4 + 1] = stampAmt(i);
+      st[i * 4] = lift[i] + raiseOffset(i);
+      st[i * 4 + 1] = raiseGlow(i);
       st[i * 4 + 2] = tone[i];
       st[i * 4 + 3] = gold[i];
     }
@@ -260,18 +250,16 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
     attrState.needsUpdate = true;
   }
 
-  const pressOffset = (i) => {
-    if (!presses.has(i)) return 0;
-    const a = pressAge[i];
-    return a < 0.08 ? (-0.34 * a) / 0.08 : -0.34 * Math.exp(-(a - 0.08) * 6);
+  // 弹起：阻尼弹簧的阶跃响应，升起略过冲（约 16%）再落到抬起位；保持一段后缓缓落回
+  const raiseK = (i) => {
+    if (!raised.has(i)) return 0;
+    const a = raiseAge[i];
+    const up = 1 - Math.exp(-a * 9) * Math.cos(a * 16);
+    const t = clamp((a - RAISE_HOLD) / RAISE_FALL, 0, 1);
+    return Math.max(0, up) * (1 - t * t * (3 - 2 * t));
   };
-  const stampAmt = (i) => {
-    if (!stamps.has(i)) return 0;
-    const a = stampAge[i];
-    if (a < 0.12) return (a / 0.12) * 0.92;
-    if (a < 5) return 0.92;
-    return Math.max(0, 0.92 * (1 - (a - 5) / 1.6));
-  };
+  const raiseOffset = (i) => RAISE * raiseK(i);
+  const raiseGlow = (i) => Math.min(1, raiseK(i));
 
   function build(c, r) {
     if (mesh) { scene.remove(mesh); mesh.dispose(); geo.dispose(); }
@@ -303,9 +291,8 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
     lift = new Float32Array(n);
     tone = new Float32Array(n);
     gold = new Float32Array(n);
-    stampAge = new Float32Array(n);
-    pressAge = new Float32Array(n);
-    active.clear(); stamps.clear(); presses.clear();
+    raiseAge = new Float32Array(n);
+    active.clear(); raised.clear();
     seq = Math.floor(Math.random() * Math.max(1, seqChars.length));
     for (let rr = rows - 1; rr >= 0; rr--) rowFill(rr);
     writeAttrs();
@@ -316,15 +303,15 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   // 整盘上移一格：每块的数据整行上挪，新的一行从底下进来
   function shiftRows() {
     const n = cols * rows;
-    for (const arr of [glyphIdx, lift, tone, gold, stampAge, pressAge]) arr.copyWithin(cols, 0, n - cols);
+    for (const arr of [glyphIdx, lift, tone, gold, raiseAge]) arr.copyWithin(cols, 0, n - cols);
     const move = (set) => {
       const next = [...set].map((i) => i + cols).filter((i) => i < n);
       set.clear();
       next.forEach((i) => set.add(i));
     };
-    move(active); move(stamps); move(presses);
+    move(active); move(raised);
     rowFill(0);
-    lift.fill(0, 0, cols); stampAge.fill(0, 0, cols); pressAge.fill(0, 0, cols);
+    lift.fill(0, 0, cols); raiseAge.fill(0, 0, cols);
     if (hoverRow >= 0) hoverRow = Math.min(rows - 1, hoverRow + 1);
     writeAttrs();
   }
@@ -409,23 +396,13 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
   };
   const onClick = (e) => {
     const b = board.getBoundingClientRect();
-    const x = e.clientX - b.left;
-    const y = e.clientY - b.top;
-    wash(x, y);
-    const p = pick(x, y);
+    const p = pick(e.clientX - b.left, e.clientY - b.top);
     if (!p) return;
     const i = p.r * cols + p.c;
-    presses.add(i);
-    pressAge[i] = 0;
-    if (glyphIdx[i] >= 0) {
-      if (stamps.size >= MAX_STAMPS) { // 最多留八枚：最老的让位
-        let oldest = -1;
-        for (const s of stamps) if (oldest < 0 || stampAge[s] > stampAge[oldest]) oldest = s;
-        stamps.delete(oldest);
-      }
-      stamps.add(i);
-      stampAge[i] = 0;
-    }
+    if (glyphIdx[i] < 0) return; // 空铅没有字，不抬
+    // 已经抬着的再点一下：从站稳的那一刻重新计时，不再弹
+    raiseAge[i] = raised.has(i) && raiseAge[i] < RAISE_HOLD ? Math.max(raiseAge[i], 0.7) : 0;
+    raised.add(i);
     request();
   };
 
@@ -473,28 +450,23 @@ export async function createBoard3D(board, { chars, wash, debug = false }) {
       if (t === 0 && Math.abs(lift[i]) < 0.003) { lift[i] = 0; active.delete(i); }
       touched.push(i);
     }
-    for (const i of presses) {
-      pressAge[i] += dt;
-      if (pressAge[i] > 0.9) presses.delete(i);
-      touched.push(i);
-    }
-    for (const i of stamps) {
-      stampAge[i] += dt;
-      if (stampAge[i] > 6.7) stamps.delete(i);
+    for (const i of raised) {
+      raiseAge[i] += dt;
+      if (raiseAge[i] > RAISE_HOLD + RAISE_FALL) raised.delete(i);
       touched.push(i);
     }
     // 只重写动过的块
     const st = attrState.array;
     for (const i of touched) {
-      st[i * 4] = lift[i] + pressOffset(i);
-      st[i * 4 + 1] = stampAmt(i);
+      st[i * 4] = lift[i] + raiseOffset(i);
+      st[i * 4 + 1] = raiseGlow(i);
     }
     if (touched.length) attrState.needsUpdate = true;
   }
 
-  const interactive = () => busy || presses.size > 0;
+  const interactive = () => busy || [...raised].some((i) => raiseAge[i] < 0.9 || raiseAge[i] > RAISE_HOLD);
   const drifting = () => !hovering && !document.hidden; // 滚动
-  const fading = () => stamps.size > 0;
+  const fading = () => raised.size > 0;
 
   // 读命书（stj-flip，见 Codex.svelte）时暂停：翻页的纸要用满合成器，字盘慢慢漂移这一秒不画也看不出来
   let held = false;

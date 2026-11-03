@@ -65,44 +65,43 @@
   display: block;
 }
 
-.zp-ink { /* 点字时洇开的墨（ink.js），在字之上、盘边之下 */
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-}
-
-/* 拓出来的小朱印：把反字拓回正字，阴文 */
-.zp-stamp {
+/* 点中的活字凸起（2D 回退）：盖在原位那块铅字上，放大、加高光与投影，停一会儿落回。
+   色与 board.js 里画铅字的两套配色一致；字是反刻的，所以字形镜像 */
+.zp-lift {
   position: absolute;
   width: var(--sz); height: var(--sz);
   margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2);
   display: grid;
   place-items: center;
-  border-radius: 3px 2px 4px 2px;
-  background: var(--cinnabar);
-  color: var(--on-zhu);
-  font-family: var(--f-text);
-  font-size: calc(var(--sz) * .66);
-  line-height: 1;
-  box-shadow: inset 0 0 0 2px var(--cinnabar), inset 0 0 0 3px rgba(246, 238, 219, .6);
-  filter: url(#seal-rough);
-  transform: rotate(var(--rot, 0deg));
+  border-radius: 2px;
+  background: linear-gradient(135deg, #4a443a, #302b24);
+  box-shadow: inset 1px 1px 0 rgba(255, 238, 200, .28), inset -1px -1px 0 rgba(0, 0, 0, .4), 0 1px 2px rgba(0, 0, 0, .4);
   pointer-events: none;
-  animation:
-    zp-print .5s cubic-bezier(.2, .9, .3, 1.15) both,
-    zp-fade 1.6s ease-in 5s forwards;
+  transform: scale(1.22);
+  animation: zp-lift 3.7s both;
 }
-@keyframes zp-print {
-  0% { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(1.7); }
-  55% { opacity: .95; transform: rotate(var(--rot, 0deg)) scale(.92); }
-  100% { opacity: .92; transform: rotate(var(--rot, 0deg)) scale(1); }
+:root[data-theme="dark"] .zp-lift {
+  background: linear-gradient(135deg, #2c3138, #1a1c20);
+  box-shadow: inset 1px 1px 0 rgba(190, 210, 240, .3), inset -1px -1px 0 rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .5);
 }
-@keyframes zp-fade { to { opacity: 0; } }
+.zp-lift i {
+  font: normal 400 calc(var(--sz) * .7) / 1 "Noto Serif SC", "Songti SC", "STSong", serif;
+  color: #e6d6ae;
+  transform: scaleX(-1);
+  text-shadow: 0 0 1px rgba(255, 244, 214, .55), -1px 1px 0 rgba(0, 0, 0, .55);
+}
+:root[data-theme="dark"] .zp-lift i { color: #b6c8e6; text-shadow: 0 0 1px rgba(210, 226, 255, .55), -1px 1px 0 rgba(0, 0, 0, .6); }
+@keyframes zp-lift { /* 升起略过冲，再落到抬起位；停住；慢慢落回 */
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 0, 0, 0); filter: brightness(1); }
+  10% { transform: scale(1.34); box-shadow: 0 7px 12px rgba(0, 0, 0, .5); filter: brightness(1.25); }
+  18% { transform: scale(1.2); box-shadow: 0 5px 9px rgba(0, 0, 0, .45); filter: brightness(1.2); }
+  26%, 64% { transform: scale(1.24); box-shadow: 0 6px 10px rgba(0, 0, 0, .45); filter: brightness(1.22); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 0, 0, 0); filter: brightness(1); opacity: 0; }
+}
 
-/* 减少动效：字盘静止，点击仍有朱印，只是没有动画 */
+/* 减少动效：字盘静止，点击仍凸起，只是静止的凸起态，没有弹跳 */
 @media (prefers-reduced-motion: reduce) {
   .zp-roll { transition: none; }
   .zp-roll.is-ready { animation: none; }
-  .zp-stamp { animation: none; opacity: .92; }
+  .zp-lift { animation: none; filter: brightness(1.22); box-shadow: 0 6px 10px rgba(0, 0, 0, .45); }
 }
