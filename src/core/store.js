@@ -41,33 +41,35 @@ export const store = {
   },
 };
 
-// 残印：封面上每一卷一个残印位，印的完整度 = 这一卷已得的结局数（四种结局各占印的一角，集齐四个才是完整一方，docs/DESIGN.md §19）。
-// 不另存一份：直接从各卷已有的结局存档（stj-endings / stj-<卷id>-endings）推出来，两处不会不一致。
-//   stamps.parts(id)   [遵, 逆, 破, 迷] 四个角各自得没得（布尔数组），存储读不到就是全空
-//   stamps.count(id)   已得几个（0–4）
-//   session            这一局的事（只在内存里；存储失败时封面也能显示这一局）：{ juan, key, fresh }
-//                      juan 是这一局的卷，key 是这一局的结局，fresh 为真表示这个结局是第一次得到、合书落印时才盖上去
+// 结局印位：封面题签下一列四个印位，就是四种结局（遵、逆、破、迷，与命书结局页的四方印一致），不分卷。
+// 在任何一卷得过某个结局，那一格就盖着完整一方朱印（docs/DESIGN.md §19“结局印位”）。
+// 不另存一份：直接从各卷已有的结局存档（stj-endings / stj-<卷id>-endings）取并集，两处不会不一致。
+//   stamps.got()          { zun, ni, po, mi } 四种结局各自得没得（布尔），存储读不到就只有这一局的
+//   stamps.count()        已得几种（0–4）
+//   stamps.freshKey()     这一局新得（之前所有卷都没得过）、还没落印的结局键；没有就是 null
+//   stamps.note(key)      记下这一局得了哪个结局（round 收尾时，在写入存档之前调用）
+//   session               这一局的事（只在内存里；存储失败时封面也能显示这一局）：{ key, fresh, stamped, keys }
 // 旧的 stj-stamps 键从来没人写过，不读也不迁移。
 export const ENDING_KEYS = ['zun', 'ni', 'po', 'mi'];
-const gotOf = (id) => {
-  const list = new Set(raw.get(keyOf(id, 'endings'), []));
-  if (session.juan === id && session.key) list.add(session.key);
-  return list;
-};
-const session = { juan: null, key: null, fresh: false, stamped: false };
+const JUAN_IDS = ['qian', 'gua', 'bu', 'xing', 'niao', 'zi', 'li']; // 与 juan/index.js 一致；新增一卷时补在这里
+const storedHas = (key) => JUAN_IDS.some((id) => raw.get(keyOf(id, 'endings'), []).includes(key));
+const session = { key: null, fresh: false, stamped: false, keys: new Set() };
 export const stamps = {
   session,
-  /** withFresh 为假时，这一局新得、还没落印的那一角不算（落印的演出里，封面上先是“没有这一角”的样子） */
-  parts(id, withFresh = true) {
-    const got = gotOf(id);
-    const skip = !withFresh && session.juan === id ? stamps.freshIndex() : -1;
-    return ENDING_KEYS.map((k, i) => got.has(k) && i !== skip);
+  /** withFresh 为假时，这一局新得、还没落印的结局不算（落印的演出里，封面上那一格先是空的） */
+  got(withFresh = true) {
+    const skip = withFresh ? null : stamps.freshKey();
+    return Object.fromEntries(ENDING_KEYS.map((k) => [k, k !== skip && (session.keys.has(k) || storedHas(k))]));
   },
-  count: (id) => stamps.parts(id).filter(Boolean).length,
-  /** 记下这一局得了哪个结局（round 收尾时，在写入存档之前调用，prevHad = 之前是否已得过） */
-  note(id, key, prevHad) { session.juan = id; session.key = key; session.fresh = !prevHad; session.stamped = false; },
-  /** 落印时用：这一局新得的那一角（没有新得就是 null） */
-  freshIndex: () => (session.fresh && !session.stamped && session.key ? ENDING_KEYS.indexOf(session.key) : -1),
+  count: (withFresh = true) => Object.values(stamps.got(withFresh)).filter(Boolean).length,
+  note(key) {
+    session.fresh = !(session.keys.has(key) || storedHas(key));
+    session.key = key;
+    session.keys.add(key);
+    session.stamped = false;
+  },
+  /** 这一局新得、还没落印的结局键 */
+  freshKey: () => (session.fresh && !session.stamped && session.key ? session.key : null),
 };
 
 /** 把上一局的日期换成"昨天""3 天前"这样的说法 */

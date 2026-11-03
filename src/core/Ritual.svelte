@@ -32,6 +32,7 @@
       if (!alive) return;
       game = g;
       session.game = g;
+      if (location.search.includes('debug')) window.__game = g; // 调试：手动结束一局（改 attitude 再 finish()）
       ctx.watch(g);
       refreshQuota();
     })();
