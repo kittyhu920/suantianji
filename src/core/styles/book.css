@@ -122,16 +122,16 @@
   padding-top: .3em;
 }
 
-/* 残印位：封面四角，各一卷；位里是这一卷已得的角（图），没得的角是断痕（seal-parts.js 画）；得过印的位，轮廓稍深一点 */
-.cv-slot { position: absolute; width: 42px; height: 42px; }
+/* 结局印位：题签右边一列四个，从上到下遵、逆、破、迷；在任何一卷得过这个结局，位里就是完整一方朱印（seals.js 画），没得过的只留淡淡的空框 */
+.cv-slot { position: absolute; width: 38px; height: 38px; left: 108px; }
 .cv-seal { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgba(236, 228, 208, .16); stroke-width: 1.4; }
 .cv-seal rect:first-of-type { fill: rgba(236, 228, 208, .018); }
 .cv-got, .cv-press { position: absolute; inset: 0; width: 100%; height: 100%; }
-.cv-slot-0 { left: 44px; top: 14px; transform: rotate(-3deg); }
-.cv-slot-1 { right: 10px; top: 10px; transform: rotate(4deg); }
-.cv-slot-2 { left: 46px; bottom: 12px; transform: rotate(2deg); }
-.cv-slot-3 { right: 10px; bottom: 10px; transform: rotate(-4deg); }
-/* 读完合上之后落的印（2D 退回；3D 里的在 book3d.js）：封面合拢（.95 秒）之后，石章压在这一卷的位上，这一局新得的那一角压下来、洇开一圈；已得过的，印不添新痕，只闪一下 */
+.cv-slot-0 { top: 66px; transform: rotate(-2deg); }
+.cv-slot-1 { top: 112px; transform: rotate(2deg); }
+.cv-slot-2 { top: 158px; transform: rotate(-1deg); }
+.cv-slot-3 { top: 204px; transform: rotate(3deg); }
+/* 读完合上之后落的印（2D 退回；3D 里的在 book3d.js）：封面合拢（.95 秒）之后，石章压在这一局结局的位上，新得的印压下来、洇开一圈；已得过的，印已在位里，只闪一下 */
 .cv-press { animation: cv-stamp-in 1.05s cubic-bezier(.3, .7, .25, 1) 1s backwards; }
 .cv-press.is-flash { animation: cv-flash 1.05s ease-out 1.3s backwards; opacity: 1; }
 @keyframes cv-stamp-in {

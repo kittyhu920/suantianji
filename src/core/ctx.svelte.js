@@ -57,7 +57,7 @@ export function createCtx(juan) {
       get: () => ns.get('endings', []),
       record(key) {
         const got = new Set(ns.get('endings', []));
-        stamps.note(juan.id, key, got.has(key)); // 封面的残印：这一局得的这一角，合书落印时盖上
+        stamps.note(key); // 封面的结局印位：这一局得的结局，合书落印时盖上
         got.add(key);
         ns.set('endings', [...got]);
         return [...got];

@@ -135,7 +135,7 @@ export function paintWood({ w = 1024, h = 704, seed = 11, planks = 4, light = 0x
   return { color, bump, rough };
 }
 
-/** 书的封面（俯视画面：竖的，书脊在右，传统右装）：旧靛青的布面、织纹、四眼订线、竖贴的题签、竖列的残印位。返回 { color, bump }。
+/** 书的封面（俯视画面：竖的，书脊在右，传统右装）：旧靛青的布面、织纹、四眼订线、竖贴的题签、竖列的结局印位。返回 { color, bump }。
     画布就是屏幕上看到的样子（左上是画布原点）；书在 3D 里是镜像摆的（book3d.js 的 inner.scale.x = -1），贴图要把 u 翻回来（repeat.x = -1）。
     参数 w、h 是封面的宽与高（px），宽高比与页一致。 */
 export function paintCover({ w = 1040, h = 1440, seed = 3, cloth = '#4b4b52', cb = 0x232c40 } = {}) {
@@ -232,12 +232,10 @@ export function paintCover({ w = 1040, h = 1440, seed = 3, cloth = '#4b4b52', cb
     const step = (lh - 20) / (t.length + 0.4);
     [...t].forEach((c, i) => g.fillText(c, lw / 2, 10 + step * (i + 0.7)));
     g.restore();
-    // 残印位：题签下面一列四个，极淡的印痕（签、卦、卜、星）；位置要与 book3d.js 的 slotAt 一致，印本身是贴在上面的小平面（seal-parts.js）
+    // 结局印位：题签下面一列四个空印框（遵、逆、破、迷）；位置要与 book3d.js 的 slotAt 一致，得过的印是贴在上面的小平面（seals.js）
     g.strokeStyle = 'rgba(236,228,208,.16)';
     g.lineWidth = 3;
-    g.setLineDash([22, 7, 12, 9, 17, 7]);
     [0, 1, 2, 3].forEach((k) => g.strokeRect(3.25 * px, (17.8 + k * 4.15) * px, 3.9 * px, 3.9 * px));
-    g.setLineDash([]);
   });
   make(bump, (g) => {
     g.fillStyle = '#808080';
